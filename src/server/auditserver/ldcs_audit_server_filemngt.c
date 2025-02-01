@@ -67,8 +67,8 @@ int ldcs_audit_server_filemngt_init (char* location) {
    return(rc);
 }
 
-/* Returns NULL if not a local file. Otherwise, returns pointer to global portion of string */
-char* ldcs_is_a_localfile (char* filename) {
+/* Returns NULL if not a cached file. Otherwise, returns pointer to global portion of string */
+char* ldcs_is_a_cachedfile (char* filename) {
   int len = strlen(_ldcs_audit_server_tmpdir);
   int norm_len = strlen(normalized_tmpdir);
 
@@ -77,6 +77,16 @@ char* ldcs_is_a_localfile (char* filename) {
   if ( strncmp(normalized_tmpdir, filename, norm_len) == 0 )
      return filename + norm_len + 1;
   return NULL;
+}
+
+extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
+extern int is_local_prefix(const char *path, char **cached_local_prefixes);
+int ldcs_is_a_localfile(ldcs_process_data_t *procdata, char *filename) {
+   static char **cached_localprefixes = NULL;
+   if (!cached_localprefixes) {
+      cached_localprefixes = parse_colonsep_prefixes(procdata->localprefix, procdata->number);
+   }
+   return is_local_prefix(filename, cached_localprefixes);
 }
 
 
@@ -162,8 +172,7 @@ int filemngt_read_file(char *filename, void *buffer, size_t *size, int strip, in
       debug_printf2("Could not read file %s from disk, errcode = %d\n", filename, *errcode);
       return 0;
    }
-
-   result = read_file_and_strip(f, buffer, size, strip);
+   result = read_file_and_strip(f, buffer, size, strip, 0);
    if (result == -1)
       err_printf("Error reading from file %s: %s\n", filename, strerror(errno));
 

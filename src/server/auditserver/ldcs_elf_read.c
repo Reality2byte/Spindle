@@ -46,7 +46,7 @@ static int readUpTo(FILE *f, unsigned char *buffer, size_t *cur_pos, size_t new_
 
 #define ERR -1
 #define NOT_ELF -2
-static int readLoadableFileSections(FILE *f, unsigned char *buffer, size_t *size, int strip)
+static int readLoadableFileSections(FILE *f, unsigned char *buffer, size_t *size, int strip, int mod_ro_got)
 {
    int result;
    size_t filesize = *size;
@@ -100,12 +100,18 @@ static int readLoadableFileSections(FILE *f, unsigned char *buffer, size_t *size
       return ERR;
    }
 
-   //Spindle isn't compatible with PT_GNU_RELRO sections. Delete them
-   // by changing the type to an unused type.
-   phdr = (Elf64_Phdr *) (buffer + ph_start);
-   for (i = 0; i < num_phdrs; i++, phdr++) {
-      if (phdr->p_type == PT_GNU_RELRO) {
-         phdr->p_type = 0x7a5843cc;
+   if (mod_ro_got) {
+      //Spindle isn't compatible with PT_GNU_RELRO sections. Delete them
+      // by changing the type to an unused type.
+      //Update - Spindle also has the capability of fixing this in the client by
+      // mprotect changing the got table to writable. So this is no longer
+      // necessary.
+      phdr = (Elf64_Phdr *) (buffer + ph_start);
+      for (i = 0; i < num_phdrs; i++, phdr++) {
+         if (phdr->p_type == PT_GNU_RELRO) {
+            debug_printf3("Modifying PT_GNU_RELRO in file\n");
+            phdr->p_type = 0x7a5843cc;
+         }
       }
    }
 
@@ -144,8 +150,8 @@ static int readLoadableFileSections(FILE *f, unsigned char *buffer, size_t *size
    return 0;
 }
 
-int read_file_and_strip(FILE *f, void *data, size_t *size, int strip) {
-   int result = readLoadableFileSections(f, (unsigned char *) data, size, strip);
+int read_file_and_strip(FILE *f, void *data, size_t *size, int strip, int mod_ro_got) {
+   int result = readLoadableFileSections(f, (unsigned char *) data, size, strip, mod_ro_got);
    if (result == ERR) {
       debug_printf3("Error reading from file\n");
       return -1;
