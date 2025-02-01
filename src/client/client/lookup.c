@@ -184,6 +184,9 @@ int get_stat_result(int fd, const char *path, int is_lstat, int *exists, struct 
       
       if (network_result == -1)
          buffer[0] = '\0';
+      if (network_result == STAT_SELF) {
+         return STAT_SELF_OPEN;
+      }
 
       if (use_cache)
          update_cache(cache_name, dir_name, buffer, &errcode, ENOENT);

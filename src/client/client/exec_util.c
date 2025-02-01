@@ -249,7 +249,11 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
       newexec[MAX_PATH_LEN] = '\0';
       
       debug_printf2("Exec search operation requesting file via stat: %s\n", newexec);
-      get_stat_result(ldcsid, newexec, 0, &exists, &buf);
+      int result = get_stat_result(ldcsid, newexec, 0, &exists, &buf);
+      if (result == STAT_SELF_OPEN) {
+         result = stat(newexec, &buf);
+         exists = (result != -1);
+      }
       if (!exists)
          continue;
       if (buf.st_mode & S_IFDIR) {

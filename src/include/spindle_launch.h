@@ -143,6 +143,11 @@ typedef struct {
 
    /* Path to rsh command, used if OPT_RSHLAUNCH */
    char *rsh_command;
+
+   /* Colon-seperated list of directory prefixes that spindle will not build caches out of. 
+      Local storage directores can be placed here.
+   */
+   char *local_prefixes;   
 } spindle_args_t;
 
 /* Functions used to startup Spindle on the front-end. Init returns after finishing start-up,

@@ -226,6 +226,8 @@ const list<SpindleOption> Options = {
      "Colon-seperated list of directories that contain the python install locations." },
    { confCachePrefix, "cache-prefix", shortCachePrefix, groupMisc, cvList, {}, "",
      "Alias for python-prefix" },
+   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR ":$TMPDIR/:/proc/:/dev/",
+     "Colon-seperated list of directories that spindle will not cache files out of" },
    { confDebug, "debug", shortDebug, groupMisc, cvBool, {}, "false",
      "If yes, hide spindle from debuggers so they think libraries come from the original locations.  May cause extra overhead." },
    { confPreload, "preload", shortPreload, groupMisc, cvString, {}, "",
@@ -349,9 +351,9 @@ bool ConfigMap::mergeOnto(const ConfigMap &other)
       
       string newvalue;
       if (conftype == cvList && !existing_value.empty()) {
-         debug_printf3("Config parsing merging lists for %s '%s' and '%s' from configmap %s\n",
-                       opt.cmdline_long, existing_value.c_str(), value.c_str(), other.origin.c_str());
          newvalue = value + ":" + existing_value;
+         debug_printf3("Config parsing merging lists for %s '%s' and '%s' from configmap %s to %s\n",
+                       opt.cmdline_long, existing_value.c_str(), value.c_str(), other.origin.c_str(), newvalue.c_str());
       }
       else if (!existing_value.empty() && existing_value != value) {
          debug_printf3("Config parsing overwriting existing value for %s '%s' with '%s' from %s\n",
@@ -362,7 +364,7 @@ bool ConfigMap::mergeOnto(const ConfigMap &other)
          newvalue = value;
       }
       
-      name_values[name] = value;
+      name_values[name] = newvalue;
    }
    if (!other.app_commandline.empty()) {
       app_commandline = other.app_commandline;
@@ -679,6 +681,9 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
          case confCachePrefix:
          case confPythonPrefix:
             args.pythonprefix = getstr(strresult, alloc_strs);
+            break;
+         case confLocalPrefix:
+            args.local_prefixes = getstr(strresult, alloc_strs);
             break;
          case confStrip:
             setopt(args.opts, OPT_STRIP, boolresult);

@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "spindle_launch.h"
 #include "client.h"
@@ -31,42 +32,6 @@ extern int relocate_spindleapi();
 
 extern char *location;
 extern char *orig_location;
-static void get_location_tmpdir(char **tmpdir, int *tmpdir_size)
-{
-   static char location_root_cached[4096];
-   static int location_root_size = -1;
-   char *last_slash = NULL;
-
-   if (location_root_size != -1) {
-      *tmpdir = location_root_cached;
-      *tmpdir_size = location_root_size;
-      return;
-   }
-
-   if (location == NULL) {
-      *tmpdir = NULL;
-      *tmpdir_size = 0;
-   }
-
-   strncpy(location_root_cached, location, sizeof(location_root_cached)-1); 
-   
-   last_slash = strrchr(location_root_cached, '/');
-   while (last_slash && strncmp(last_slash, "/spindle.", 9) != 0)
-   {
-      *last_slash = '\0';
-      last_slash = strrchr(location_root_cached, '/');
-   }
-   if (!last_slash) {
-      location_root_cached[0] = '\0';
-      *tmpdir = location_root_cached;
-      *tmpdir_size = location_root_size = 0;
-      return;
-   }
-   *last_slash = '\0';
-   location_root_size = strlen(location_root_cached);
-   *tmpdir = location_root_cached;
-   *tmpdir_size = location_root_size;
-}
 
 int is_in_spindle_cache(const char *pathname)
 {
@@ -82,28 +47,22 @@ int is_in_spindle_cache(const char *pathname)
            (strncmp(pathname, orig_location, orig_location_size) == 0));
 }
 
+extern int is_local_prefix(const char *path, char **cached_local_prefixes);
+extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
+extern int number;
+
 static int is_local_file(const char *pathname)
 {
-   char *loctmpdir;
-   int loctmpdir_size;
-   if (is_in_spindle_cache(pathname)) {
-      debug_printf3("Decided that %s is part of spindle cache %s. Sending to spindle\n",
-                    pathname, location);
-      return 0;
+   static char **cached_local_prefixes = NULL;
+   if (!cached_local_prefixes) {
+      char *colonsep_list = NULL;
+      int result = get_local_prefixes(&colonsep_list);
+      if (result == -1) {
+         return -1;
+      }
+      cached_local_prefixes = parse_colonsep_prefixes(colonsep_list, number);
    }
-   get_location_tmpdir(&loctmpdir, &loctmpdir_size);
-   if (strncmp(pathname, loctmpdir, loctmpdir_size) == 0) {
-      debug_printf3("Decided that %s is prefixed by local path %s\n, not redirecting\n", pathname, loctmpdir);
-      return 1;
-   }
-
-   char *tmpdir = getenv("TMPDIR");
-   if (tmpdir && strncmp(pathname, tmpdir, strlen(tmpdir)) == 0) {
-      debug_printf3("Decided that %s is prefixed by tmpdir %s\n, not redirecting\n", pathname, tmpdir);
-      return 1;
-   }
-
-   return 0;
+   return is_local_prefix(pathname, cached_local_prefixes);
 }
 
 static int is_python_path(const char *pathname)
@@ -151,6 +110,16 @@ static int is_dso(const char *pathname, char *last_slash, char *last_dot)
    return 0;
 }
 
+int dlopen_filter(const char *pathname)
+{
+   if (is_local_file(pathname)) {
+      debug_printf3("Not intercepting dlopen of %s, because local file\n", pathname);
+      return 0;
+   }
+
+   return 1;
+}
+
 static int is_lib_prefix(const char *pathname, char *last_slash)
 {
    if (last_slash && strncmp(last_slash, "/lib", 4) != 0)
@@ -179,8 +148,10 @@ int open_filter(const char *fname, int flags)
       return ORIG_CALL;
    }
 
-   if (is_local_file(fname))
+   if (is_local_file(fname)) {
+      debug_printf3("Not intercepting open of %s, because local file\n", fname);
       return ORIG_CALL;
+   }
 
    if (!(opts & OPT_RELOCPY))
       return ORIG_CALL;
@@ -219,8 +190,10 @@ int fopen_filter(const char *fname, const char *flags)
       return ORIG_CALL;
    }
 
-   if (is_local_file(fname))
+   if (is_local_file(fname)) {
+      debug_printf3("Not intercepting fopen of %s, because local file\n", fname);      
       return ORIG_CALL;
+   }
    
    if (!(opts & OPT_RELOCPY))
       return ORIG_CALL;
@@ -248,8 +221,10 @@ int exec_filter(const char *fname)
    if (relocate_spindleapi())
       return REDIRECT;
 
-   if (is_local_file(fname))
+   if (is_local_file(fname)) {
+      debug_printf3("Not intercepting exec of %s, because local file\n", fname);      
       return ORIG_CALL;
+   }
 
    if (opts & OPT_RELOCEXEC)
       return REDIRECT;
@@ -264,8 +239,14 @@ int stat_filter(const char *fname)
    if (relocate_spindleapi())
       return REDIRECT;
 
-   if (is_local_file(fname))
+   if (is_in_spindle_cache(fname)) {
+      debug_printf3("Redirection stat of %s, which is in spindle cache\n", fname);
+      return REDIRECT;
+   }
+   if (is_local_file(fname)) {
+      debug_printf3("Not intercepting stat of %s, because local file\n", fname);      
       return ORIG_CALL;
+   }
    
    if (!(opts & OPT_RELOCPY))
       return ORIG_CALL;

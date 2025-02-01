@@ -206,6 +206,9 @@ static int init_server_connection()
 
    if (strchr(location, '$')) {
       location = parse_location(location, number);
+      if (!location) {
+         exit(-1);
+      }
    }
 
    if (!(opts & OPT_FOLLOWFORK)) {
@@ -371,6 +374,8 @@ int client_done()
    return 0;
 }
 
+extern int dlopen_filter(const char *name);
+
 char *client_library_load(const char *name)
 {
    char *newname;
@@ -400,8 +405,13 @@ char *client_library_load(const char *name)
       debug_printf2("Library %s is in spindle cache (%s). Translating request\n", name, location);
       memset(fixed_name, 0, MAX_PATH_LEN+1);
       send_orig_path_request(ldcsid, orig_file_name, fixed_name);
-      orig_file_name = fixed_name;      
+      orig_file_name = fixed_name;
       debug_printf2("Spindle cache library %s translated to original path %s\n", name, orig_file_name);
+   }
+
+   if (!dlopen_filter(orig_file_name)) {
+      debug_printf("Library %s was filtered. Not relocating\n", orig_file_name);
+      return (char *) orig_file_name;
    }
    
    get_relocated_file(ldcsid, orig_file_name, &newname, &errcode);
@@ -432,6 +442,11 @@ static void read_python_prefixes(int fd, char **path)
       if (use_cache)
          shmcache_update("*SPINDLE_PYTHON_PREFIXES", *path);
    }
+}
+
+int get_local_prefixes(char **prefixes)
+{
+   return send_local_prefix_request(ldcsid, prefixes);
 }
 
 python_path_t *pythonprefixes = NULL;

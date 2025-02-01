@@ -21,6 +21,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 #if !defined(USE_PLUGIN_DEBUG)
 #include "spindle_debug.h"
@@ -46,7 +47,7 @@ extern char *custom_getenv();
 #define IS_ENVVAR_CHAR(X) ((X >= 'a' && X <= 'z') || (X >= 'A' && X <= 'Z') || (X == '_'))
 
 /* Expand the user specified location with environment variable values */
-char *parse_location(char *loc, int number)
+static char *parse_location_impl(char *loc, int number, int print_on_error)
 {
    char newloc[MAX_PATH_LEN+1];
    char envvar[MAX_PATH_LEN+1];
@@ -107,10 +108,16 @@ char *parse_location(char *loc, int number)
 #endif
          }
          if (!env_value) {
-            fprintf(stderr, "Spindle Error: No environment variable '%s' defined, from specified location %s\n",
-                    envvar, loc);
-            err_printf("Could not find envvar %s in %s\n", envvar, loc);
-            return NULL;
+            if (print_on_error) {
+               fprintf(stderr, "Spindle Error: No environment variable '%s' defined, from specified location %s\n",
+                       envvar, loc);
+               err_printf("Could not find envvar %s in %s\n", envvar, loc);
+               return NULL;
+            }
+            else {
+               debug_printf("Warning, could not find envvar %s in %s\n", envvar, loc);
+               return strdup("");
+            }
          }
          env_value_len = strlen(env_value);
          if (env_value_len + j > MAX_PATH_LEN) {
@@ -138,6 +145,16 @@ char *parse_location(char *loc, int number)
 
    newloc[j] = '\0';
    return strdup(newloc);
+}
+
+char *parse_location(char *loc, int number)
+{
+   return parse_location_impl(loc, number, 1);
+}
+
+char *parse_location_noerr(char *loc, int number)
+{
+   return parse_location_impl(loc, number, 0);
 }
 
 /**
@@ -189,3 +206,74 @@ char *realize(char *path)
    debug_printf2("Realized %s to %s\n", path, newpath);
    return strdup(newpath);
 }
+
+/**
+ * parse_colonsep_prefixes turns a colon-seperated list of paths into an array of paths.
+ * Number is the spindle session number and is used to expand $NUMBER. Other environment 
+ * variables in the paths are expanded normally.
+ **/
+char **parse_colonsep_prefixes(char *colonsep_list, int number)
+{
+   char **prefixes;
+   char *s = strdup(colonsep_list);
+   
+   if (s == NULL || s[0] == '\0') {
+      prefixes = (char **) malloc(sizeof(char *));
+      prefixes[0] = NULL;
+      return prefixes;
+   }
+   int numprefixes = 1;
+   for (size_t i = 0; s[i] != '\0'; i++) {
+      if (s[i] == ':') {
+         numprefixes++;
+      }
+   }   
+   int num_strs = numprefixes + 1;
+   
+   prefixes = (char **) malloc(sizeof(char*) * num_strs);
+   size_t i = 0, cur = 0;
+   while (s[i] != '\0') {
+      while (s[i] == ':') {
+         s[i] = '\0';
+         i++;
+      }
+      if (s[i] == '\0')
+         break;
+      prefixes[cur] = s+i;
+      cur++;
+      while (s[i] != ':' && s[i] != '\0')
+         i++;
+   }
+   prefixes[cur] = NULL;    
+   cur++;
+   assert(cur <= num_strs);
+
+   for (i = 0; prefixes[i] != NULL; i++) {
+      prefixes[i] = parse_location_noerr(prefixes[i], number);
+   }
+   
+   free(s);
+   return prefixes;
+}
+
+/**
+ * is_local_prefix takes an array of local prefixes, cached_local_prefixes, and
+ * returns true if path is prefixed by one of the local prefixes.
+ **/   
+int is_local_prefix(const char *path, char **cached_local_prefixes) {
+   if (!path || path[0] != '/')
+      return 0;
+   if (!cached_local_prefixes)
+      return 0;
+   
+   for (int i = 0; cached_local_prefixes[i] != NULL; i++) {
+      size_t len = strlen(cached_local_prefixes[i]);
+      if (len == 0)
+         continue;
+      if (strncmp(path, cached_local_prefixes[i], len) == 0) {
+         return 1;
+      }
+   }
+   return 0;
+}
+

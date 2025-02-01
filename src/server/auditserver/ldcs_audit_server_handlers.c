@@ -70,7 +70,8 @@ typedef enum {
    REQUEST_METADATA,
    METADATA_FILE,
    REPORT_METADATA,
-   METADATA_IN_PROGRESS
+   METADATA_IN_PROGRESS,
+   METADATA_ORIG_STAT
 } handle_metadata_result_t;
 
 typedef enum {
@@ -159,6 +160,7 @@ static int handle_broadcast_alias(ldcs_process_data_t *procdata, char *alias_fro
 static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, metadata_t mdtype, node_peer_t peer);
 static int handle_client_metadata(ldcs_process_data_t *procdata, int nc);
 static int handle_client_metadata_result(ldcs_process_data_t *procdata, int nc, metadata_t mdtype);
+static int handle_client_metadata_self(ldcs_process_data_t *procdata, int nc);
 static int handle_metadata_request(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, node_peer_t from);
 static int handle_metadata_request_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, metadata_t mdtype, node_peer_t peer);
 static int handle_load_and_broadcast_metadata(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype);
@@ -171,6 +173,7 @@ static int handle_cache_ldso(ldcs_process_data_t *procdata, char *pathname, int 
                              ldso_info_t *ldsoinfo, char **localname);
 static int handle_msgbundle(ldcs_process_data_t *procdata, node_peer_t peer, ldcs_message_t *msg);
 static int handle_setup_alias(ldcs_process_data_t *procdata, char *pathname, char *alias_to);
+static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc);
 static int handle_close_client_query(ldcs_process_data_t *procdata, int nc);
 
 /**
@@ -228,6 +231,27 @@ static int handle_pythonprefix_query(ldcs_process_data_t *procdata, int nc)
    return 0;
 }
 
+static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc)
+{
+   ldcs_message_t msg;
+   int connid;
+   ldcs_client_t *client;
+
+   assert(nc != -1);
+   client = procdata->client_table + nc;
+   connid = client->connid;
+   if (client->state != LDCS_CLIENT_STATUS_ACTIVE || connid < 0)
+      return 0;
+
+   msg.header.type = LDCS_MSG_LOCALPREFIX_RESP;
+   msg.header.len = strlen(procdata->localprefix) + 1;
+   msg.data = procdata->localprefix;
+   
+   ldcs_send_msg(connid, &msg);
+   procdata->server_stat.clientmsg.cnt++;
+   procdata->server_stat.clientmsg.time += ldcs_get_time() - client->query_arrival_time;
+   return 0;
+}
 /**
  * Client is providing meta-info (CWD, PID) to server.
  **/
@@ -361,10 +385,14 @@ static handle_file_result_t handle_howto_file(ldcs_process_data_t *procdata, cha
    handle_file_result_t dir_result;
    *alias_to = NULL;
 
-   if (ldcs_is_a_localfile(pathname)) {
-      debug_printf("Recieved request for local file %s, returning err to client\n", pathname);
+   if (ldcs_is_a_cachedfile(pathname)) {
+      debug_printf("Recieved request for cached file %s, returning err to client\n", pathname);
       *errcode = 0;
       return FOUND_ERRCODE;
+   }
+   if (ldcs_is_a_localfile(procdata, pathname)) {
+      debug_printf2("Received request for local file %s. Telling client to open it itself\n", pathname);
+      return ORIG_FILE;
    }
    
    /* check directory + file */
@@ -1242,6 +1270,11 @@ static handle_metadata_result_t handle_howto_metadata(ldcs_process_data_t *procd
    char *localname;
    int result, responsible;
 
+   if (ldcs_is_a_localfile(procdata, pathname)) {
+      debug_printf2("Received stat request for local file %s. Telling client to open it itself\n", pathname);
+      return METADATA_ORIG_STAT;
+   }
+   
    result = lookup_stat_cache(pathname, &localname, mdtype);
    if (result != -1)
       return REPORT_METADATA;
@@ -1290,6 +1323,8 @@ static int handle_client_metadata(ldcs_process_data_t *procdata, int nc)
       case METADATA_IN_PROGRESS:
          add_requestor(metadata_pending_requests(procdata, mdtype), pathname, NODE_PEER_CLIENT);
          return 0;
+      case METADATA_ORIG_STAT:
+         return handle_client_metadata_self(procdata, nc);
    }
    err_printf("Unexpected result from handle_howto_metadata: %d\n", (int) stat_result);
    assert(0);
@@ -1662,6 +1697,8 @@ int handle_client_message(ldcs_process_data_t *procdata, int nc, ldcs_message_t 
          return handle_pythonprefix_query(procdata, nc);
       case LDCS_MSG_MYRANKINFO_QUERY:
          return handle_client_myrankinfo_msg(procdata, nc, msg);
+      case LDCS_MSG_LOCALPREFIX_REQ:
+         return handle_client_localprefix_req(procdata, nc);
       case LDCS_MSG_FILE_QUERY:
       case LDCS_MSG_FILE_QUERY_EXACT_PATH:
       case LDCS_MSG_STAT_QUERY:
@@ -2474,6 +2511,38 @@ static int handle_client_metadata_result(ldcs_process_data_t *procdata, int nc, 
 }
 
 /**
+ * Tell the client that it should stat the metadata request itself
+ **/
+static int handle_client_metadata_self(ldcs_process_data_t *procdata, int nc)
+{
+   int result, connid;
+   ldcs_message_t msg;
+   ldcs_client_t *client;
+
+   assert(nc != -1);
+   client = procdata->client_table + nc;
+   assert(client->query_open || client->is_stat);
+
+   connid = client->connid;
+   if (client->state != LDCS_CLIENT_STATUS_ACTIVE || connid < 0)
+      return 0;
+
+   msg.header.type = LDCS_MSG_STAT_ANSWER_SELF;
+   msg.header.len = 0;
+   msg.data = NULL;
+   
+   result = ldcs_send_msg(connid, &msg);
+
+   procdata->server_stat.clientmsg.cnt++;
+   procdata->server_stat.clientmsg.time+=(ldcs_get_time()-
+                                                   client->query_arrival_time);
+   debug_printf("Handle stat response: self load\n");
+   handle_close_client_query(procdata, nc);
+   
+   return result;
+}
+
+/**
  * Send a request for a metadata up the network
  **/
 static int handle_metadata_request(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, node_peer_t from)
@@ -2532,6 +2601,9 @@ static int handle_metadata_request_recv(ldcs_process_data_t *procdata, ldcs_mess
       case METADATA_IN_PROGRESS:
          add_requestor(metadata_pending_requests(procdata, mdtype), pathname, peer);
          return 0;
+      case METADATA_ORIG_STAT:
+         err_printf("Received network request for stat of local file %s\n", pathname);
+         break;
    }
    err_printf("Unexpected result from handle_howto_metadata: %d\n", (int) stat_result);
    assert(0);

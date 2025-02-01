@@ -70,6 +70,10 @@ int handle_stat(const char *path, struct stat *buf, int flags)
 
    debug_printf3("Asking spindle for stat on %s\n", path);
    result = get_stat_result(ldcsid, path, flags & IS_LSTAT, &exists, buf);
+   if (result == STAT_SELF_OPEN) {
+      debug_printf3("Allowing original stat on %s\n", path);
+      return ORIG_STAT;
+   }
    if (result == -1) {
       /* Spindle level error */
       debug_printf3("Allowing original stat on %s\n", path);
