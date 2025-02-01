@@ -47,6 +47,7 @@ struct spindle_binding_t spindle_bindings[] = {
    { "vfork", (void **) &orig_vfork, "vfork_wrapper", (void *) vfork_wrapper },
    { "readlink", (void **) &orig_readlink, "readlink_wrapper", (void *) readlink_wrapper },
    { "readlinkat", (void **) &orig_readlinkat, "readlinkat_wrapper", (void *) readlinkat_wrapper },
+   { "dlerror", (void **) &orig_dlerror, "dlerror_wrapper", (void *) dlerror_wrapper },   
    { "getenv", (void **) &orig_getenv, NULL, NULL },
    { "setenv", (void **) &orig_setenv, NULL, NULL },
    { "unsetenv", (void **) &orig_unsetenv, NULL, NULL },
