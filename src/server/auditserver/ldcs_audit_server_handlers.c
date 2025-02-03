@@ -413,7 +413,8 @@ static handle_file_result_t handle_howto_file(ldcs_process_data_t *procdata, cha
 
       cache_filedir_result = ldcs_cache_getAlias(file, dir, alias_to);
       if (*alias_to) {
-         /* We don't have the file contents, but we've got an alias that points to something */
+         /* We don't have the file contents, but we've got an alias that 
+            points to something */
          return ALIAS_TO;
       }
 
@@ -535,7 +536,7 @@ static int handle_progress(ldcs_process_data_t *procdata)
 static int handle_client_get_alias(ldcs_process_data_t *procdata, int nc, char *alias_to)
 {
    ldcs_client_t *client = procdata->client_table + nc;
-   debug_printf2("Alias from %s to %s. Shifting processing to target of alias\n",
+   debug_printf2("Alias from '%s' to '%s'. Shifting processing to target of alias\n",
                  client->query_globalpath, alias_to);
    strncpy(client->query_aliasfrom, client->query_globalpath, MAX_PATH_LEN+2);
    strncpy(client->query_globalpath, alias_to, MAX_PATH_LEN+1);
@@ -589,8 +590,8 @@ static int handle_broadcast_dir(ldcs_process_data_t *procdata, char *dir, broadc
    int result;
    int force_broadcast;
 
-   debug_printf2("Sending directory result to other servers\n");      
-   result = ldcs_cache_getNewEntriesForDir(dir, &data, &data_len);
+   debug_printf2("Sending directory result to other servers\n");
+   result = ldcs_cache_encodeDirContents(dir, &data, &data_len);   
    if (result == -1) {
       err_printf("Failed to get entries for directory %s\n", dir);
       return -1;
@@ -1469,7 +1470,7 @@ static int handle_file_errcode(ldcs_process_data_t *procdata, ldcs_message_t *ms
    debug_printf2("Received errcode result %d from read of %s\n", errcode, pathname);
    char filename[MAX_PATH_LEN], dirname[MAX_PATH_LEN];
    parseFilenameNoAlloc(pathname, filename, dirname, MAX_PATH_LEN);
-   ldcs_cache_updateEntry(filename, dirname, NULL, NULL, 0, NULL, 0, errcode);
+   ldcs_cache_updateErrcode(filename, dirname, errcode);
 
    result = handle_broadcast_errorcode(procdata, pathname, errcode);
    if (result == -1)
@@ -1565,25 +1566,15 @@ static int handle_file_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, 
  **/
 static int handle_directory_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, broadcast_t bcast)
 {
-   dirbuffer_iterator_t pos;
-   char *filename, *dirname, *dir = NULL;;
    double starttime = ldcs_get_time();
+   char dirname[MAX_PATH_LEN+1];
 
    debug_printf2("New directory cache entries received from %s\n",
                  bcast == preload_broadcast ? "preload" : "request");
 
-   /* For each directory/file in packet add it to the cache. */
-   foreach_filedir(msg->data, msg->header.len, pos, filename, dirname) {
-      assert(dir == NULL || dir == dirname); /* One directory per packet for now */
-      dir = dirname;
-      if (dirname && !filename) {
-         addEmptyDirectory(dirname);
-         continue;
-      }
-      ldcs_cache_addFileDir(dirname, filename);
-   }
+   ldcs_cache_decodeDirContents(msg->data, msg->header.len, dirname, MAX_PATH_LEN);
 
-   handle_broadcast_dir(procdata, dir, bcast);
+   handle_broadcast_dir(procdata, dirname, bcast);
    
    procdata->server_stat.distdir.cnt++;
    procdata->server_stat.distdir.bytes += msg->header.len;

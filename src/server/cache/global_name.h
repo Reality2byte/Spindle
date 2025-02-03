@@ -17,11 +17,19 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #if !defined(GLOBAL_NAME_H)
 #define GLOBAL_NAME_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 int init_global_name();
 
 int init_global_name_list(void);
 void grow_global_name_list(void);
 void add_global_name(char* pathname, char* localpath);
 char* lookup_global_name(char* localpath);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
