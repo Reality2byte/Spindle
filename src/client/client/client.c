@@ -411,7 +411,16 @@ char *client_library_load(const char *name)
 
    if (!dlopen_filter(orig_file_name)) {
       debug_printf("Library %s was filtered. Not relocating\n", orig_file_name);
-      return (char *) orig_file_name;
+      if (orig_file_name != name) {
+         //Not sure how/if this can happen. The app tried to dlopen a path
+         // that maps to the spindle cache. We unraveled that path to the
+         // original location from the shared file system, and got a path
+         // that shouldn't get relocated.
+         //We'll leak this strdup memory for a path in that case. Oh well.
+         debug_printf2("Warning. Accessing spindle cache location corresponding to non-cachable location: %s", orig_file_name);
+         return strdup(orig_file_name);
+      }
+      return (char *) name;
    }
    
    get_relocated_file(ldcsid, orig_file_name, &newname, &errcode);
