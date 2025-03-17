@@ -140,6 +140,14 @@ static int run_spindle_backend (struct spindle_ctx *ctx)
     if (ctx->backend_pid == 0) {
         /* N.B.: spindleRunBE() blocks, which is why we run it in a child
          */
+
+        /* Reset signal handlers in child, otherwise they are blocked.
+         * Note: this is a stopgap measure for now. Eventually the Flux
+         * job shell will automate this step with an atfork handler.
+         */
+        signal (SIGINT, SIG_DFL);
+        signal (SIGTERM, SIG_DFL);
+
         if (spindleRunBE (ctx->params.port,
                           ctx->params.num_ports,
                           ctx->id,
@@ -179,7 +187,7 @@ static void wait_for_shell_init (flux_future_t *f, void *arg)
     if (ctx->params.opts & OPT_OFF) {
        return;
     }
-    
+
     if (flux_job_event_watch_get (f, &event) < 0)
         shell_die_errno (1, "spindle failed waiting for shell.init event");
     if (!(o = json_loads (event, 0, NULL))
