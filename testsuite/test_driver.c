@@ -30,6 +30,9 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <elf.h>
+#include <link.h>
+#include <sys/mman.h>
 
 #include "spindle.h"
 #include "ccwarns.h"
@@ -100,6 +103,7 @@ typedef struct {
 #define FLAGS_SKIP     (1 << 3)
 #define FLAGS_WONTLOAD (1 << 4)
 #define FLAGS_TLSLIB   (1 << 5)
+#define FLAGS_CHECKSYMT (1 << 6)
 int abort_mode = 0;
 int fork_mode = 0;
 int fork_child = 0;
@@ -164,6 +168,26 @@ open_libraries_t libraries[] = {
    { "libtls18.so", NULL, NULL, NULL, UNLOADED, FLAGS_TLSLIB | FLAGS_SKIP, NULL },
    { "libtls19.so", NULL, NULL, NULL, UNLOADED, FLAGS_TLSLIB | FLAGS_SKIP, NULL },
    { "libtls20.so", NULL, NULL, NULL, UNLOADED, FLAGS_TLSLIB | FLAGS_SKIP, NULL },
+   { "libtest10.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest11.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest12.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest13.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest14.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest15.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest16.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest17.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest18.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest19.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest20.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest50.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest100.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest500.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest1000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest2000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest4000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest6000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest8000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "libtest10000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },   
    { NULL, NULL, NULL, 0, 0 }
 };
 int num_libraries;
@@ -200,14 +224,104 @@ char *libpath(char *s, char *subdir) {
    return path;
 }
 
+static void check_symt(char *path)
+{
+   struct stat buf;
+   int fd = -1, result;
+   void *mmap_result = NULL;
+   unsigned char *base;
+   ElfW(Ehdr) *elf_header;
+   ElfW(Off) section_offset, symt_offset = 0;
+   ElfW(Half) section_cnt;
+   ElfW(Shdr) *section_table, *section_table_end, *sec;
+   ElfW(Xword) symt_size;
+   ElfW(Sym) *symtable, *symtable_end, *sym;
+   int found_non_zero_symbol = 0;
+
+   fd = open(path, O_RDONLY);
+   if (fd == -1) {
+      int error = errno;
+      err_printf("Could not open(%s, O_RDONLY) for symt test: %s\n", path, strerror(error));
+      goto done;
+   }
+   result = fstat(fd, &buf);
+   if (result == -1) {
+      int error = errno;
+      err_printf("Could not fstat(%s (%d)): %s\n", path, fd, strerror(error));
+      goto done;
+   }
+
+   mmap_result = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+   if (mmap_result == MAP_FAILED) {
+      int error = errno;
+      err_printf("Could not mmap %s of size %lu: %s\n", path, buf.st_size, strerror(error));
+      goto done;
+   }
+   base = (unsigned char *) mmap_result;
+
+   if (sizeof(ElfW(Ehdr)) >=  buf.st_size) {
+      err_printf("File size %lu is less than size of elf header %lu\n", buf.st_size, sizeof(ElfW(Ehdr)));
+      goto done;
+   }
+   elf_header = (ElfW(Ehdr) *) mmap_result;
+   section_offset = elf_header->e_shoff;
+   section_cnt = elf_header->e_shnum;
+
+   if (section_offset + (section_cnt*sizeof(ElfW(Shdr))) > buf.st_size) {
+      err_printf("File size %lu is less than section table %lu\n", buf.st_size, (unsigned long) (section_offset + ((sizeof(ElfW(Shdr))*section_cnt))));
+      goto done;
+   }
+   section_table = (ElfW(Shdr) *) (base + section_offset);
+   section_table_end = section_table + section_cnt;
+   for (sec = section_table; sec != section_table_end; sec++) {
+      if (sec->sh_type == SHT_SYMTAB && !sec->sh_addr) {
+         symt_offset = sec->sh_offset;
+         symt_size = sec->sh_size;
+         break;
+      }
+   }
+   if (!symt_offset) {
+      err_printf("Could not find symbol table in %s\n", path);
+      goto done;
+   }
+   if (symt_offset + symt_size > buf.st_size) {
+      err_printf("File size %lu is less than size of symbol table %lu\n", buf.st_size, (unsigned long) (symt_offset + symt_size));
+      goto done;
+   }
+   
+   symtable = (ElfW(Sym) *) (base + symt_offset);
+   symtable_end = (ElfW(Sym) *) (base + symt_offset + symt_size);
+   for (sym = symtable; sym != symtable_end; sym++) {
+      if (sym->st_name) {
+         found_non_zero_symbol = 1;
+         break;
+      }
+   }
+   if (!found_non_zero_symbol) {
+      err_printf("Could not find symbol in %s that was not zeros\n", path);
+      goto done;
+   }
+
+  done:
+   if (mmap_result)
+      munmap(mmap_result, buf.st_size);
+   if (fd != -1)
+      close(fd);
+}
+
 static void open_library(int i)
 {
    char *fullpath, *result;
    if (libraries[i].flags & FLAGS_TLSLIB)
       return;
+   fullpath = libpath(libraries[i].libname, libraries[i].subdir);
+   if (libraries[i].flags & FLAGS_CHECKSYMT) {
+      check_symt(fullpath);
+      return;
+   }   
    if (!(libraries[i].flags & FLAGS_WONTLOAD))
       test_printf("dlstart %s\n", libraries[i].libname);
-   fullpath = libpath(libraries[i].libname, libraries[i].subdir);
+   
    result = dlopen(fullpath, RTLD_LAZY | RTLD_GLOBAL);
    if (libraries[i].flags & FLAGS_NOEXIST) {
       if (result != 0)
@@ -241,6 +355,8 @@ void dependency_mode()
    /* Should be auto loaded */
    int i;
    for (i = 0; i<num_libraries; i++) {
+      if (libraries[i].flags & FLAGS_CHECKSYMT)
+         open_library(i);
       if (libraries[i].flags & FLAGS_NOEXIST || libraries[i].flags & FLAGS_SKIP || libraries[i].flags & FLAGS_WONTLOAD)
          continue;
       libraries[i].opened = STARTUP_LOAD;
