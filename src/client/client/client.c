@@ -423,7 +423,7 @@ char *client_library_load(const char *name)
       return (char *) name;
    }
    
-   get_relocated_file(ldcsid, orig_file_name, &newname, &errcode);
+   get_relocated_file(ldcsid, orig_file_name, 1, &newname, &errcode);
  
    if(!newname) {
       newname = concatStrings(NOT_FOUND_PREFIX, orig_file_name);

@@ -39,8 +39,14 @@ typedef enum {
   LDCS_CACHE_OBJECT_STATUS_UNKNOWN
 } ldcs_hash_object_status_t;
 
+typedef enum {
+   LDCS_CACHE_FILEOBJ_DSO,
+   LDCS_CACHE_FILEOBJ_FILE,
+   LDCS_CACHE_FILEOBJ_EITHER
+} ldcs_hash_fileobj_t;
+   
 ldcs_cache_result_t ldcs_cache_findDirInCache(char *dirname);
-ldcs_cache_result_t ldcs_cache_findFileDirInCache(char *filename, char *dirname, char **localpath, int *errcode);
+ldcs_cache_result_t ldcs_cache_findFileDirInCache(char *filename, char *dirname, ldcs_hash_fileobj_t objt, char **localpath, int *errcode);
 ldcs_cache_result_t ldcs_cache_getAlias(char *filename, char *dirname, char **alias);
 ldcs_cache_result_t ldcs_cache_isReplicated(char *filename, char *dirname, int *replication);
 
@@ -48,13 +54,10 @@ ldcs_cache_result_t ldcs_cache_processDirectory(char *dirname, size_t *bytesread
 
 
 ldcs_cache_result_t ldcs_cache_updateAlias(char *filename, char *dirname, char *alias_to);
-ldcs_cache_result_t ldcs_cache_updateBuffer(char *filename, char *dirname, char *localname, void *buffer, size_t buffer_size, int errcode);
+ldcs_cache_result_t ldcs_cache_updateBuffer(char *filename, char *dirname, char *localname, void *buffer, size_t buffer_size, int errcode, int is_stripped);
 ldcs_cache_result_t ldcs_cache_updateReplication(char *filename, char *dirname, int replication);
 ldcs_cache_result_t ldcs_cache_updateErrcode(char *filename, char *dirname, int errcode);
    
-ldcs_cache_result_t ldcs_cache_updateEntry(char *filename, char *dirname, 
-                                           char *localname, void *buffer, size_t buffer_size, char *alias_to, int is_replicated, int errcode);
-
 
 int ldcs_cache_encodeDirContents(char *dir, char **data, int *len);
 int ldcs_cache_decodeDirContents(char *buffer, size_t len,
@@ -63,7 +66,7 @@ int ldcs_cache_decodeDirContents(char *buffer, size_t len,
 int ldcs_cache_init();
 int ldcs_cache_dump(char *filename);
 
-int ldcs_cache_get_buffer(char *dirname, char *filename, void **buffer, size_t *size, char **alias_to);
+int ldcs_cache_get_buffer(char *dirname, char *filename, ldcs_hash_fileobj_t objt, void **buffer, size_t *size, char **alias_to);
 
 char *ldcs_cache_result_to_str(ldcs_cache_result_t res);
 void ldcs_cache_addFileDir(char *dname, char *fname);

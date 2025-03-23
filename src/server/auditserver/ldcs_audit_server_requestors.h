@@ -25,6 +25,7 @@ int been_requested(requestor_list_t list, char *file);
 void add_requestor(requestor_list_t list, char *file, node_peer_t peer);
 void clear_requestor(requestor_list_t list, char *file);
 int get_requestors(requestor_list_t list, char *file, node_peer_t **requestor_list, int *requestor_list_size);
+int get_requestors2(requestor_list_t list, requestor_list_t list2, char *file, node_peer_t **requestor_list, int *requestor_list_size);
 int peer_requested(requestor_list_t list, char *file, node_peer_t peer);
 
 #endif

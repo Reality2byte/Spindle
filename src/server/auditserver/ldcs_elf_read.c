@@ -150,12 +150,13 @@ static int readLoadableFileSections(FILE *f, unsigned char *buffer, size_t *size
    return 0;
 }
 
-int read_file_and_strip(FILE *f, void *data, size_t *size, int strip, int mod_ro_got) {
+int read_file_and_strip(FILE *f, void *data, size_t *size, int strip, int mod_ro_got, int *was_elf) {
    int result = readLoadableFileSections(f, (unsigned char *) data, size, strip, mod_ro_got);
    if (result == ERR) {
       debug_printf3("Error reading from file\n");
       return -1;
    }
+   *was_elf = (result == NOT_ELF) ? 0 : 1;
    return 0;
 }
 

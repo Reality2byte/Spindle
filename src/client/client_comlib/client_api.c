@@ -37,7 +37,7 @@ static struct lock_t comm_lock;
 #define COMM_LOCK do { if (lock(&comm_lock) == -1) return -1; } while (0)
 #define COMM_UNLOCK unlock(&comm_lock)
    
-int send_file_query(int fd, char* path, char** newpath, int *errcode) {
+int send_file_query(int fd, char* path, int dso, char** newpath, int *errcode) {
    ldcs_message_t message;
    char buffer[MAX_PATH_LEN+1+sizeof(int)];
    int result;
@@ -50,7 +50,7 @@ int send_file_query(int fd, char* path, char** newpath, int *errcode) {
    }
 
    /* Setup packet */
-   message.header.type = LDCS_MSG_FILE_QUERY_EXACT_PATH;
+   message.header.type = dso ? LDCS_MSG_DSO_QUERY_EXACT_PATH : LDCS_MSG_FILE_QUERY_EXACT_PATH;
    message.header.len = path_len;
    message.data = buffer;
    strncpy(message.data, path, MAX_PATH_LEN);

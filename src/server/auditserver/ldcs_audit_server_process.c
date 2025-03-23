@@ -150,8 +150,10 @@ int ldcs_audit_server_process(spindle_args_t *args)
    ldcs_process_data.opts = args->opts;
    ldcs_process_data.msgbundle_cache_size_kb = args->bundle_cachesize_kb;
    ldcs_process_data.msgbundle_timeout_ms = args->bundle_timeout_ms;
-   ldcs_process_data.pending_requests = new_requestor_list();
-   ldcs_process_data.completed_requests = new_requestor_list();
+   ldcs_process_data.dso_requests = new_requestor_list();
+   ldcs_process_data.file_requests = new_requestor_list();   
+   ldcs_process_data.completed_dso_requests = new_requestor_list();
+   ldcs_process_data.completed_file_requests = new_requestor_list();   
    ldcs_process_data.pending_stat_requests = new_requestor_list();
    ldcs_process_data.completed_stat_requests = new_requestor_list();
    ldcs_process_data.pending_lstat_requests = new_requestor_list();

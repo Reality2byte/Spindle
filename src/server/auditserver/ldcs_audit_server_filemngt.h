@@ -25,10 +25,10 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 
 int ldcs_audit_server_filemngt_init (char* location);
 
-int filemngt_read_file(char *filename, void *buffer, size_t *size, int strip, int *err);
+int filemngt_read_file(char *filename, void *buffer, size_t *size, int strip, int *err, int *was_stripped);
 int filemngt_encode_packet(char *filename, void *filecontents, size_t filesize, 
-                           char **buffer, size_t *buffer_size);
-int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename, size_t *buffer_size, int *bytes_read, int *is_elf);
+                           int stripped, char **buffer, size_t *buffer_size);
+int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename, size_t *buffer_size, int *bytes_read, int *is_elf, int *stripped);
 
 typedef enum {
    clt_unknown,
@@ -36,7 +36,9 @@ typedef enum {
    clt_lstat,
    clt_ldso,
    clt_file,
-   clt_numafile
+   clt_numafile,
+   clt_dso,
+   clt_numadso
 } calc_local_t;
 
 char *filemngt_calc_localname(char *global_name, calc_local_t reqtype);

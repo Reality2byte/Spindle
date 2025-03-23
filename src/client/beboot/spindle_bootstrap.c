@@ -275,7 +275,7 @@ static void get_clientlib()
       return;
    }
 
-   get_relocated_file(ldcsid, default_libstr, &client_lib, &errorcode);
+   get_relocated_file(ldcsid, default_libstr, 1, &client_lib, &errorcode);
    if (client_lib == NULL) {
       client_lib = default_libstr;
       err_printf("Failed to relocate client library %s\n", default_libstr);

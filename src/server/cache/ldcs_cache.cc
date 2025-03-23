@@ -56,6 +56,7 @@ struct file_location_hash
    
 struct cached_contents_t {
    cached_contents_t() : buffer(NULL), buffer_size(0) {}
+   void reset() { path = string(); buffer = NULL; buffer_size = 0; }
    string path;
    void *buffer;
    size_t buffer_size;
@@ -128,33 +129,43 @@ ldcs_cache_result_t ldcs_cache_findDirInCache(char *dirname)
    }
 }
 
-static ldcs_cache_result_t findObjInCache(char *filename, char *dirname,
-                                          char **localpath, int *errcode,
-                                          bool get_dso)
+ldcs_cache_result_t ldcs_cache_findFileDirInCache(char *filename, char *dirname,
+                                                  ldcs_hash_fileobj_t objt,
+                                                  char **localpath, int *errcode)
 {
    file_location_t key(dirname, filename);
    cache_t::iterator i = cache.find(key);
    if (i == cache.end()) {
       debug_printf3("Looked up %s %s/%s: Not found\n",
-                    get_dso ? "dso" : "file", dirname, filename);
+                    objt == LDCS_CACHE_FILEOBJ_DSO ? "dso" : (objt == LDCS_CACHE_FILEOBJ_FILE ? "file" : "any"),
+                    dirname, filename);
       *localpath = NULL;
       *errcode = 0;
       return LDCS_CACHE_FILE_NOT_FOUND;
    }
    entry_t *e = i->second;
-   cached_contents_t &contents = get_dso ? e->dso_contents : e->file_contents;
-   *localpath = !contents.path.empty() ? const_cast<char *>(contents.path.c_str()) : NULL;
+   cached_contents_t *contents = NULL;
+   switch (objt) {
+      case LDCS_CACHE_FILEOBJ_DSO:
+         contents = &(e->dso_contents);
+         break;
+      case LDCS_CACHE_FILEOBJ_FILE:
+         contents = &(e->file_contents);
+         break;
+      case LDCS_CACHE_FILEOBJ_EITHER:
+         if (!e->dso_contents.path.empty())
+            contents = &(e->dso_contents);
+         else
+            contents = &(e->file_contents);
+         break;
+   }
+   *localpath = !contents->path.empty() ? const_cast<char *>(contents->path.c_str()) : NULL;
    *errcode = e->errcode;
    debug_printf3("Looked up %s %s/%s: errcode - %d, local - %s\n",
-                 get_dso ? "dso" : "file", dirname, filename,
+                 objt == LDCS_CACHE_FILEOBJ_DSO ? "dso" : (objt == LDCS_CACHE_FILEOBJ_FILE ? "file" : "any"),
+                 dirname, filename, 
                  *errcode, *localpath);
    return LDCS_CACHE_FILE_FOUND;
-}
-
-ldcs_cache_result_t ldcs_cache_findFileDirInCache(char *filename, char *dirname,
-                                                  char **localpath, int *errcode)
-{
-   return findObjInCache(filename, dirname, localpath, errcode, false);
 }
 
 ldcs_cache_result_t ldcs_cache_getAlias(char *filename, char *dirname, char **alias)
@@ -240,21 +251,35 @@ ldcs_cache_result_t ldcs_cache_updateErrcode(char *filename, char *dirname, int 
    }
    entry_t *e = i->second;
    e->errcode = errcode;
+   if (errcode) {
+      e->file_contents.path = string();
+      e->dso_contents.path = string();
+   }
+   debug_printf3("Update %s/%s errcode to %d\n", dirname, filename, errcode);
    return LDCS_CACHE_FILE_FOUND;
 }
 
-static ldcs_cache_result_t ldcs_cache_updateObjBuffer(char *filename, char *dirname,
-               char *localname, void *buffer, size_t buffer_size, int errcode, bool is_dso)
+ldcs_cache_result_t ldcs_cache_updateBuffer(char *filename, char *dirname,
+                                            char *localname,
+                                            void *buffer, size_t buffer_size,
+                                            int errcode, int is_stripped)
 {
    file_location_t key(dirname, filename);
    cache_t::iterator i = cache.find(key);
    if (i == cache.end()) {
       err_printf("Asked to update %s %s/%s, but wasn't found in cache\n",
-                    is_dso ? "dso" : "file", dirname, filename);
+                    is_stripped ? "dso" : "file", dirname, filename);
       return LDCS_CACHE_FILE_NOT_FOUND;
    }
    entry_t *e = i->second;
-   cached_contents_t &contents = is_dso ? e->dso_contents : e->file_contents;
+   if (errcode) {
+      e->dso_contents.reset();
+      e->file_contents.reset();
+      e->errcode = errcode;
+      debug_printf3("Updated cache of %s/%s with errcode %d\n", dirname, filename, errcode);
+      return LDCS_CACHE_FILE_FOUND;
+   }
+   cached_contents_t &contents = is_stripped ? e->dso_contents : e->file_contents;
 
    if (localname)
       contents.path = string(localname);
@@ -262,43 +287,42 @@ static ldcs_cache_result_t ldcs_cache_updateObjBuffer(char *filename, char *dirn
       contents.path = string();
    contents.buffer = buffer;
    contents.buffer_size = buffer_size;
-   e->errcode = errcode;
-   debug_printf3("Updated %s cache of %s/%s with new file information\n",
-                 is_dso ? "dso" : "file", dirname, filename);
-   return LDCS_CACHE_FILE_FOUND;   
+   e->errcode = 0;
+   debug_printf3("Updated %s cache of %s/%s with new file information (%p and %lu; %s)\n",
+                 is_stripped ? "dso" : "file", dirname, filename, buffer, buffer_size, localname);
+   return LDCS_CACHE_FILE_FOUND;
 }
 
-
-ldcs_cache_result_t ldcs_cache_updateBuffer(char *filename, char *dirname,
-                                            char *localname,
-                                            void *buffer, size_t buffer_size, int errcode)
-{
-   return ldcs_cache_updateObjBuffer(filename, dirname, localname, buffer,
-                                     buffer_size, errcode, false);
-}
-
-static int ldcs_cache_get_objbuffer(char *dirname, char *filename,
-                                    void **buffer, size_t *size, char **alias_to,
-                                    bool is_dso)
+int ldcs_cache_get_buffer(char *dirname, char *filename, ldcs_hash_fileobj_t objt, void **buffer, size_t *size, char **alias_to)
 {
    file_location_t key(dirname, filename);
    cache_t::iterator i = cache.find(key);
    if (i == cache.end()) {
       err_printf("Asked to get %s %s/%s buffer, but wasn't found in cache\n",
-                    is_dso ? "dso" : "file", dirname, filename);
+                 objt == LDCS_CACHE_FILEOBJ_DSO ? "dso" : (objt == LDCS_CACHE_FILEOBJ_FILE ? "file" : "any"),                 
+                 dirname, filename);
       return -1;
    }
    entry_t *e = i->second;
-   cached_contents_t &contents = is_dso ? e->dso_contents : e->file_contents;
-   *buffer = contents.buffer;
-   *size = contents.buffer_size;
+   cached_contents_t *contents = NULL;
+   switch (objt) {
+      case LDCS_CACHE_FILEOBJ_DSO:
+         contents = &(e->dso_contents);
+         break;
+      case LDCS_CACHE_FILEOBJ_FILE:
+         contents = &(e->file_contents);
+         break;
+      case LDCS_CACHE_FILEOBJ_EITHER:
+         if (!e->dso_contents.path.empty())
+            contents = &(e->dso_contents);
+         else
+            contents = &(e->file_contents);
+         break;
+   }   
+   *buffer = contents->buffer;
+   *size = contents->buffer_size;
    *alias_to = const_cast<char *>(e->alias.c_str());
    return 0;
-}
-
-int ldcs_cache_get_buffer(char *dirname, char *filename, void **buffer, size_t *size, char **alias_to)
-{
-   return ldcs_cache_get_objbuffer(dirname, filename, buffer, size, alias_to, false);
 }
 
 static void lsAndCacheFiles(string dirname, size_t *bytesread) {
