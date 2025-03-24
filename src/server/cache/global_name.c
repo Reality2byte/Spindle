@@ -103,7 +103,7 @@ static void parse_name(char* localpath, char **dpart, char **fpart, int *index_v
   *fpart = NULL;
   *dpart = NULL;
 
-  dname = ldcs_is_a_localfile(localpath);
+  dname = ldcs_is_a_cachedfile(localpath);
   if (dname == NULL) {
      return;
   }

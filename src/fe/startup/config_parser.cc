@@ -99,8 +99,8 @@ bool ConfigFile::parseLine(string line, int lineno) {
       stringstream ss;
       ss << "Parse error at " << filename << ":" << lineno << " - Unknown option " << name << "\n";
       err_string = ss.str();
-      err_printf("%s\n", err_string.c_str());
-      return false;
+      debug_printf("Warning: %s\n", err_string.c_str());
+      return true;
    }
    const SpindleOption &opt = i->second;
 

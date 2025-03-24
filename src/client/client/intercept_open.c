@@ -43,6 +43,7 @@ int (*orig_open64)(const char *pathname, int flags, ...);
 FILE* (*orig_fopen)(const char *pathname, const char *mode);
 FILE* (*orig_fopen64)(const char *pathname, const char *mode);
 int (*orig_close)(int fd);
+char* (*orig_dlerror)();
 
 /* returns:
    0 if not existent
@@ -62,7 +63,7 @@ static int do_check_file(const char *path, char **newpath) {
    }
    sync_cwd();
 
-   get_relocated_file(ldcsid, myname, &newname, &errcode);
+   get_relocated_file(ldcsid, myname, 0, &newname, &errcode);
 
    if (newname != NULL) {
       *newpath=newname;
@@ -277,3 +278,26 @@ int rtcache_close(int fd)
    return orig_close(fd);
 }
 
+char *dlerror_wrapper()
+{
+   char *message = NULL;
+   if (orig_dlerror) 
+      message = orig_dlerror();
+   if (!message)
+      return NULL;
+   
+   const char *prefix_str = "/__not_exists/";
+   char *spindle_prefix = strstr(message, prefix_str);
+   if (!spindle_prefix)
+      return message;
+   char *i = spindle_prefix;
+   char *j = spindle_prefix + strlen(prefix_str);
+   for (;;) {
+      *i = *j;
+      if (*j == '\0')
+         break;
+      i++;
+      j++;
+   }
+   return message;
+}

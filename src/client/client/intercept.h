@@ -51,6 +51,7 @@ extern int (*orig_close)(int fd);
 extern char* (*orig_getenv)(const char *name);
 extern int (*orig_setenv)(const char *name, const char *value, int overwrite);
 extern int (*orig_unsetenv)(const char *name);
+extern char* (orig_dlerror)();
               
 int rtcache_stat(const char *path, struct stat *buf);
 int rtcache_lstat(const char *path, struct stat *buf);
@@ -76,6 +77,7 @@ int execlp_wrapper(const char *path, const char *arg0, ...);
 int execvp_wrapper(const char *path, char *const argv[]);
 int execvpe_wrapper(const char *path, char *const argv[], const char *envp[]);
 pid_t vfork_wrapper();
+char *dlerror_wrapper();
 
 ssize_t readlink_wrapper(const char *path, char *buf, size_t bufsiz);
 int readlinkat_wrapper(int dirfd, const char *pathname, char *buf, size_t bufsiz);

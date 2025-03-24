@@ -39,11 +39,11 @@ static ssize_t readlink_worker(const char *path, char *buf, size_t bufsiz,
    int location_len;
 
    location_len = strlen(location);   
-   snprintf(spindle_id, sizeof(spindle_id), "spindle.%d", number);
+   snprintf(spindle_id, sizeof(spindle_id), "spindle.%x", number);
 
    if (!strstr(newbuf, spindle_id) ||
        strncmp(location, newbuf, location_len) != 0) {
-      debug_printf3("readlink not intercepting, %s not prefixed by %s\n", newbuf, location);
+      debug_printf3("readlink not intercepting, %s does not contain %s\n", newbuf, spindle_id);
       int len = strlen(newbuf);
       if (len > bufsiz)
          len = bufsiz;
@@ -91,5 +91,5 @@ int readlinkat_wrapper(int dirfd, const char *path, char *buf, size_t bufsiz)
       return -1;
    }
 
-   return (int) readlink_worker(path, buf, bufsiz, newbuf, rl_result);   
+   return (int) readlink_worker(path, buf, bufsiz, newbuf, rl_result);
 }

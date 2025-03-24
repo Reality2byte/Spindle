@@ -209,8 +209,10 @@ void numa_update_local_filename(char *localfilename, int node)
    int i;
    snprintf(node_str, sizeof(node_str), "%06d", node);
    numa_part = strstr(localfilename, "spindlens-numafile-XXXXXX");
+   if (!numa_part)
+      numa_part = strstr(localfilename, "spindlens-numadso-XXXXXX");      
    if (!numa_part) {
-      err_printf("Failed to update localfilename %s with numa replication name, because it wasn't a numa name", localfilename);
+      err_printf("Failed to update localfilename %s with numa replication name, because it wasn't a numa name\n", localfilename);
       return;
    }
    replace_part = numa_part;

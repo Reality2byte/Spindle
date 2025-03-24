@@ -32,6 +32,7 @@ enum SpindleConfigID {
    confLocation,
    confCachePrefix,
    confPythonPrefix,
+   confLocalPrefix,
    confStrip,
    confRelocAout,
    confRelocLibs,
@@ -117,7 +118,8 @@ enum CmdlineShortOptions {
    shortLauncher = 292,
    shortNetwork = 293,
    shortHostbinEnable = 294,
-   shortSpindleLevel = 295
+   shortSpindleLevel = 295,
+   shortLocalPrefix = 296   
 };
 
 enum CmdlineGroups {

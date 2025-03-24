@@ -30,8 +30,6 @@ struct requested_file_struct
 };
 typedef struct requested_file_struct requested_file_t;
 
-
-
 #define INITIAL_PEER_SIZE 8
 #define REQUESTORS_TABLE_SIZE 1024
 
@@ -110,6 +108,41 @@ int get_requestors(requestor_list_t list, char *file, node_peer_t **requestor_li
       return -1;
    *requestor_list = req->requestors;
    *requestor_list_size = req->requestors_num;
+   return 0;
+}
+
+int get_requestors2(requestor_list_t list, requestor_list_t list2, char *file, node_peer_t **requestor_list, int *requestor_list_size)
+{
+   requested_file_t *req1, *req2;
+   req1 = get_requestor(list, file, 0);
+   req2 = get_requestor(list2, file, 0);
+   if (!req1 && !req2)
+      return -1;
+
+   int size1 = req1 ? req1->requestors_num : 0;
+   int size2 = req2 ? req2->requestors_num : 0;
+   int max_size = size1 + size2;
+   int cur_size = 0;
+   node_peer_t *combined_list = malloc(max_size * sizeof(node_peer_t));
+   for (int i = 0; i < size1; i++) {
+      combined_list[cur_size] = req1->requestors[i];
+      cur_size++;
+   }
+   for (int i = 0; i < size2; i++) {
+      int found = 0;
+      for (int j = 0; j < size1; j++) {
+         if (req2->requestors[i] == req1->requestors[j]) {
+            found = 1;
+            break;
+         }
+      }
+      if (found)
+         continue;
+      combined_list[cur_size] = req2->requestors[i];
+      cur_size++;
+   }
+   *requestor_list = combined_list;
+   *requestor_list_size = cur_size;
    return 0;
 }
 

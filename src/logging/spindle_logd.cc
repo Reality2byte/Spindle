@@ -276,7 +276,7 @@ public:
       }
       
       if (!is_from_temp && ret_code != -1 && strstr(filename, "libc.so") == NULL) {
-         std::string msg = std::string("Error: Read shared object from non-ramdisk: ") + std::string(filename);
+         std::string msg = std::string("Error: Read shared object from outside cache: ") + std::string(filename) + "\n";
          logerror(msg);
          return false;
       }

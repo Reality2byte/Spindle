@@ -111,7 +111,7 @@ LTLIBRARIES = $(noinst_LTLIBRARIES)
 libldcs_cache_la_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
 am_libldcs_cache_la_OBJECTS = ldcs_cache.lo ldcs_cache_file_op.lo \
-	ldcs_hash.lo stat_cache.lo global_name.lo \
+	stat_cache.lo global_name.lo \
 	$(top_builddir)/../utils/pathfn.lo
 libldcs_cache_la_OBJECTS = $(am_libldcs_cache_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -135,8 +135,7 @@ depcomp = $(SHELL) $(top_srcdir)/../../scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = $(top_builddir)/../utils/$(DEPDIR)/pathfn.Plo \
 	./$(DEPDIR)/global_name.Plo ./$(DEPDIR)/ldcs_cache.Plo \
-	./$(DEPDIR)/ldcs_cache_file_op.Plo ./$(DEPDIR)/ldcs_hash.Plo \
-	./$(DEPDIR)/stat_cache.Plo
+	./$(DEPDIR)/ldcs_cache_file_op.Plo ./$(DEPDIR)/stat_cache.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -354,7 +353,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LTLIBRARIES = libldcs_cache.la
-libldcs_cache_la_SOURCES = ldcs_cache.c ldcs_cache_file_op.c ldcs_hash.c stat_cache.cc global_name.c $(top_srcdir)/../utils/pathfn.c
+libldcs_cache_la_SOURCES = ldcs_cache.cc ldcs_cache_file_op.c stat_cache.cc global_name.c $(top_srcdir)/../utils/pathfn.c
 AM_CPPFLAGS = -I$(top_srcdir)/comlib -I$(top_srcdir)/../logging -I$(top_srcdir)/auditserver -I$(top_srcdir)/../include -I$(top_srcdir)/../utils
 all: all-am
 
@@ -425,7 +424,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/global_name.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ldcs_cache.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ldcs_cache_file_op.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ldcs_hash.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stat_cache.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -620,7 +618,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/global_name.Plo
 	-rm -f ./$(DEPDIR)/ldcs_cache.Plo
 	-rm -f ./$(DEPDIR)/ldcs_cache_file_op.Plo
-	-rm -f ./$(DEPDIR)/ldcs_hash.Plo
 	-rm -f ./$(DEPDIR)/stat_cache.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -671,7 +668,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/global_name.Plo
 	-rm -f ./$(DEPDIR)/ldcs_cache.Plo
 	-rm -f ./$(DEPDIR)/ldcs_cache_file_op.Plo
-	-rm -f ./$(DEPDIR)/ldcs_hash.Plo
 	-rm -f ./$(DEPDIR)/stat_cache.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

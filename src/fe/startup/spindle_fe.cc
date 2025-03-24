@@ -72,6 +72,7 @@ static int pack_data(spindle_args_t *args, void* &buffer, unsigned &buffer_size)
    buffer_size += args->numa_files ? strlen(args->numa_files) + 1 : 1;
    buffer_size += args->numa_excludes ? strlen(args->numa_excludes) + 1 : 1;
    buffer_size += args->rsh_command ? strlen(args->rsh_command) + 1 : 1;
+   buffer_size += args->local_prefixes ? strlen(args->local_prefixes) + 1 : 1;
 
    unsigned int pos = 0;
    char *buf = (char *) malloc(buffer_size);
@@ -91,6 +92,7 @@ static int pack_data(spindle_args_t *args, void* &buffer, unsigned &buffer_size)
    pack_param(args->numa_files, buf, pos);
    pack_param(args->numa_excludes, buf, pos);
    pack_param(args->rsh_command, buf, pos);
+   pack_param(args->local_prefixes, buf, pos);
    assert(pos == buffer_size);
 
    buffer = (void *) buf;

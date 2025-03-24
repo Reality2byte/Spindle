@@ -25,7 +25,7 @@
 /**
  * Communication functions for sending messages to the server
  **/
-int send_file_query(int fd, char* path, char **newpath, int *errcode);
+int send_file_query(int fd, char* path, int dso, char **newpath, int *errcode);
 int send_dir_cwd(int fd, char *cwd);
 int send_cwd(int fd);
 int send_pid(int fd);
@@ -34,9 +34,11 @@ int send_location(int fd, char *location);
 int send_rankinfo_query(int fd, int *mylrank, int *mylsize, int *mymdrank, int *mymdsize);
 int send_end(int fd);
 int send_existance_test(int fd, char *path, int *exists);
+#define STAT_SELF 1
 int send_stat_request(int fd, char *path, int islstat, char *result);
 int send_ldso_info_request(int fd, const char *ldso_path, char *result_path);
 int send_orig_path_request(int fd, const char *path, char *newpath);
+int send_local_prefix_request(int fd, char **result);
 
 int get_python_prefix(int fd, char **prefix);
 

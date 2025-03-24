@@ -60,11 +60,46 @@ static int strIsPrefix(char *prefix, char *str)
    return (strncmp(prefix, str, strlen(prefix)) == 0);
 }
 
-static int shouldPropogateSpindle(char **envp)
+static char* compilers[] = { "gcc", "g++", "cc", "CC", "clang", "clang++",
+                             "hipcc", "amdclang", "amdclang++",
+                             "craycc", "crayCC",
+                             "ld", "ld.lld",
+                             "mpicc", "mpic++", "mpicxx", NULL };
+
+                             
+static int isCompiler(const char *fname)
+{
+   const char *aout = NULL;
+   const char *lastslash;
+   int i;
+
+   if (!fname)
+      return 0;
+   
+   lastslash = strrchr(fname, '/');
+   if (lastslash) 
+      aout = lastslash+1;
+   else
+      aout = fname;
+
+   for (i = 0; compilers[i] != NULL; i++) {
+      if (strcmp(compilers[i], aout) == 0) {
+         return 1;
+      }
+   }
+   return 0;
+}
+
+static int shouldPropogateSpindle(char **envp, const char *fname)
 {
    int i;
    char *spindle;
 
+   if (isCompiler(fname)){
+      debug_printf2("Not propogating spindle because %s is a compiler.\n", fname);
+      return 0;
+   }
+   
    spindle = orig_getenv ? orig_getenv("SPINDLE") : getenv("SPINDLE");
    if (spindle && (strcasecmp(spindle, "false") == 0 || strcmp("spindle", "0") == 0)) {
       debug_printf2("Not propogating spindle through exec because getenv(\"SPINDLE\") = %s\n", spindle);
@@ -315,7 +350,7 @@ static int find_exec(const char *filepath, char **argv, char *newpath, int newpa
    struct stat buf;
    int reloc_exec;
 
-   *propogate_spindle = shouldPropogateSpindle(envp);   
+   *propogate_spindle = shouldPropogateSpindle(envp, filepath);
 
    if (!filepath) {
       newpath[0] = '\0';
@@ -340,7 +375,11 @@ static int find_exec(const char *filepath, char **argv, char *newpath, int newpa
    sync_cwd();
    
    debug_printf2("Requesting stat on exec of %s to validate file\n", filepath);
-   get_stat_result(ldcsid, (char *) filepath, 0, &exists, &buf);
+   int result = get_stat_result(ldcsid, (char *) filepath, 0, &exists, &buf);
+   if (result == STAT_SELF_OPEN) {
+      result = stat(filepath, &buf);
+      exists = (result != -1);
+   }
    if (!exists) {
       set_errno(ENOENT);
       return -1;
@@ -353,7 +392,7 @@ static int find_exec(const char *filepath, char **argv, char *newpath, int newpa
       return -1;
    }
    debug_printf2("Exec operation requesting file: %s\n", filepath);
-   get_relocated_file(ldcsid, (char *) filepath, &newname, &errcode);
+   get_relocated_file(ldcsid, (char *) filepath, 1, &newname, &errcode);
    debug_printf("Exec file request returned %s -> %s with errcode %d\n",
                 filepath, newname ? newname : "NULL", errcode);
        
@@ -367,7 +406,7 @@ static int find_exec_pathsearch(const char *filepath, char **argv, char *newpath
    int errcode;
    int reloc_exec;
 
-   *propogate_spindle = shouldPropogateSpindle(envp);
+   *propogate_spindle = shouldPropogateSpindle(envp, filepath);
 
    if (!filepath) {
       newpath[0] = '\0';

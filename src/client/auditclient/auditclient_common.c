@@ -143,10 +143,16 @@ unsigned int la_objclose (uintptr_t *cookie)
   debug_printf3("la_objclose() %p\n", cookie);
 
   map = get_linkmap_from_cookie(cookie);
+  debug_printf3("la_objclose is for %s\n", map->l_name ? map->l_name : "[EMPTY]");
   rm_wgot_library(map);
 
   if(cookie == firstcookie) {
-     client_done();
+     debug_printf("Application process is starting to shut itself down\n");
+     /* 
+       Shutting down the client here caused problems when the app dlopen's new libraries
+       while run global dtors during application exit (yes really)
+       client_done(); 
+     */
   }
 
   return spindle_la_objclose(cookie);

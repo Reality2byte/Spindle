@@ -240,7 +240,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
     int numa = 0;
     const char *relocaout = NULL, *reloclibs = NULL, *relocexec = NULL, *relocpython = NULL;
     const char *followfork = NULL, *preload = NULL, *level = NULL;
-    const char *pyprefix = NULL;
+    const char *pyprefix = NULL, *location = NULL;
     char *numafiles = NULL;
 
     if (flux_shell_getopt_unpack (shell, "spindle", "o", &opts) < 0)
@@ -263,7 +263,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
      *  supplied by the user, but not unpacked (This handles typos, etc).
      */
     if (json_unpack_ex (opts, &error, JSON_STRICT,
-                        "{s?i s?i s?i s?i s?s s?s s?s s?s s?s s?s s?i s?s s?s s?s}",
+                        "{s?i s?i s?i s?i s?s s?s s?s s?s s?s s?s s?s s?i s?s s?s s?s}",
                         "noclean", &noclean,
                         "nostrip", &nostrip,
                         "push", &push,
@@ -274,6 +274,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
                         "reloc-exec", &relocexec,
                         "reloc-python", &relocpython,
                         "python-prefix", &pyprefix,
+                        "location", &location,
                         "numa", &numa,
                         "numa-files", &numafiles,
                         "preload", &preload,
@@ -319,6 +320,9 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
             return shell_log_errno ("unable to append to pythonprefix");
         free (ctx->params.pythonprefix);
         ctx->params.pythonprefix = tmp;
+    }
+    if (location) {
+       ctx->params.location = (char *) location;
     }
     if (level) {
        if (strcmp(level, "high") == 0) {

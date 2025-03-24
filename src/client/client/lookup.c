@@ -184,6 +184,9 @@ int get_stat_result(int fd, const char *path, int is_lstat, int *exists, struct 
       
       if (network_result == -1)
          buffer[0] = '\0';
+      if (network_result == STAT_SELF) {
+         return STAT_SELF_OPEN;
+      }
 
       if (use_cache)
          update_cache(cache_name, dir_name, buffer, &errcode, ENOENT);
@@ -205,7 +208,7 @@ int get_stat_result(int fd, const char *path, int is_lstat, int *exists, struct 
    return network_result;
 }
 
-int get_relocated_file(int fd, const char *name, char** newname, int *errorcode)
+int get_relocated_file(int fd, const char *name, int dso, char** newname, int *errorcode)
 {
    int use_cache = (opts & OPT_SHMCACHE);
    int found_file = 0, result;
@@ -219,7 +222,7 @@ int get_relocated_file(int fd, const char *name, char** newname, int *errorcode)
    }
 
    debug_printf2("Send file request to server: %s\n", name);
-   result = send_file_query(fd, (char *) name, newname, errorcode);
+   result = send_file_query(fd, (char *) name, dso, newname, errorcode);
    debug_printf2("Recv file from server: %s\n", *newname ? *newname : "NONE");
 
    if (use_cache) {

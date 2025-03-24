@@ -67,8 +67,8 @@ int ldcs_audit_server_filemngt_init (char* location) {
    return(rc);
 }
 
-/* Returns NULL if not a local file. Otherwise, returns pointer to global portion of string */
-char* ldcs_is_a_localfile (char* filename) {
+/* Returns NULL if not a cached file. Otherwise, returns pointer to global portion of string */
+char* ldcs_is_a_cachedfile (char* filename) {
   int len = strlen(_ldcs_audit_server_tmpdir);
   int norm_len = strlen(normalized_tmpdir);
 
@@ -77,6 +77,16 @@ char* ldcs_is_a_localfile (char* filename) {
   if ( strncmp(normalized_tmpdir, filename, norm_len) == 0 )
      return filename + norm_len + 1;
   return NULL;
+}
+
+extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
+extern int is_local_prefix(const char *path, char **cached_local_prefixes);
+int ldcs_is_a_localfile(ldcs_process_data_t *procdata, char *filename) {
+   static char **cached_localprefixes = NULL;
+   if (!cached_localprefixes) {
+      cached_localprefixes = parse_colonsep_prefixes(procdata->localprefix, procdata->number);
+   }
+   return is_local_prefix(filename, cached_localprefixes);
 }
 
 
@@ -128,7 +138,9 @@ char *filemngt_calc_localname(char *global_name, calc_local_t reqtype)
       case clt_lstat: prefix = "spindlens-fstat"; break;
       case clt_ldso: prefix = "spindlens-ldso"; break;
       case clt_file: prefix = "spindlens-file"; break;
+      case clt_dso: prefix = "spindlens-dso"; break;
       case clt_numafile: prefix = "spindlens-numafile-XXXXXX"; break;
+      case clt_numadso: prefix = "spindlens-numadso-XXXXXX"; break;
    }
    
    snprintf(target, sizeof(target), "%x-%s-%s",
@@ -150,7 +162,8 @@ char *filemngt_calc_localname(char *global_name, calc_local_t reqtype)
    return strdup(target);
 }
 
-int filemngt_read_file(char *filename, void *buffer, size_t *size, int strip, int *errcode)
+int filemngt_read_file(char *filename, void *buffer, size_t *size, int strip,
+                       int *errcode, int *was_stripped)
 {
    FILE *f;
    int result = 0;
@@ -162,23 +175,25 @@ int filemngt_read_file(char *filename, void *buffer, size_t *size, int strip, in
       debug_printf2("Could not read file %s from disk, errcode = %d\n", filename, *errcode);
       return 0;
    }
-
-   result = read_file_and_strip(f, buffer, size, strip);
+   int was_elf;
+   result = read_file_and_strip(f, buffer, size, strip, 0, &was_elf);
    if (result == -1)
       err_printf("Error reading from file %s: %s\n", filename, strerror(errno));
 
+   *was_stripped = (strip && was_elf);
+   
    fclose(f);
    return result;
 }
 
-int filemngt_encode_packet(char *filename, void *filecontents, size_t filesize, 
+int filemngt_encode_packet(char *filename, void *filecontents, size_t filesize, int stripped,
                            char **buffer, size_t *buffer_size)
 {
    int cur_pos = 0;
    int filename_len = strlen(filename) + 1;
    int is_elf = filemngt_is_elf_file(filecontents, *buffer_size);
    //TODO: Remove filesize from allocation if we're doing a non-contig send. Wastes memory.
-   *buffer_size = sizeof(is_elf) + filename_len + sizeof(filename_len) + sizeof(filesize) + filesize;
+   *buffer_size = sizeof(is_elf) + sizeof(stripped) + filename_len + sizeof(filename_len) + sizeof(filesize) + filesize;
    *buffer = (char *) malloc(*buffer_size);
    if (!*buffer) {
       err_printf("Failed to allocate memory for file contents packet for %s\n", filename);
@@ -187,6 +202,9 @@ int filemngt_encode_packet(char *filename, void *filecontents, size_t filesize,
 
    memcpy(*buffer + cur_pos, &is_elf, sizeof(is_elf));
    cur_pos += sizeof(is_elf);
+
+   memcpy(*buffer + cur_pos, &stripped, sizeof(stripped));
+   cur_pos += sizeof(stripped);
    
    memcpy(*buffer + cur_pos, &filename_len, sizeof(filename_len));
    cur_pos += sizeof(filename_len);
@@ -208,7 +226,7 @@ int filemngt_encode_packet(char *filename, void *filecontents, size_t filesize,
    return 0;
 }
 
-int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename, size_t *filesize, int *bytes_read, int *is_elf)
+int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename, size_t *filesize, int *bytes_read, int *is_elf, int *stripped)
 {
    int filename_len = 0;
    int result;
@@ -217,6 +235,10 @@ int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename
       /* We've delayed the file read from the network.  Just read the elf, filename and size here.
          We'll later get the file contents latter by reading directly to mapped memory */
       result = ldcs_audit_server_md_complete_msg_read(peer, msg, is_elf, sizeof(*is_elf));
+      if (result == -1)
+         return -1;
+
+      result = ldcs_audit_server_md_complete_msg_read(peer, msg, stripped, sizeof(*stripped));
       if (result == -1)
          return -1;
       
@@ -239,6 +261,9 @@ int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename
       int pos = 0;
       unsigned char *data = (unsigned char *) msg->data;
       *is_elf = *((int *) (data+pos));
+      pos += sizeof(int);
+
+      *stripped = *((int *) (data+pos));
       pos += sizeof(int);
       
       filename_len = *((int *) (data+pos));

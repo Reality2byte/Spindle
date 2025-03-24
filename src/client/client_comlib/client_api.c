@@ -37,7 +37,7 @@ static struct lock_t comm_lock;
 #define COMM_LOCK do { if (lock(&comm_lock) == -1) return -1; } while (0)
 #define COMM_UNLOCK unlock(&comm_lock)
    
-int send_file_query(int fd, char* path, char** newpath, int *errcode) {
+int send_file_query(int fd, char* path, int dso, char** newpath, int *errcode) {
    ldcs_message_t message;
    char buffer[MAX_PATH_LEN+1+sizeof(int)];
    int result;
@@ -50,7 +50,7 @@ int send_file_query(int fd, char* path, char** newpath, int *errcode) {
    }
 
    /* Setup packet */
-   message.header.type = LDCS_MSG_FILE_QUERY_EXACT_PATH;
+   message.header.type = dso ? LDCS_MSG_DSO_QUERY_EXACT_PATH : LDCS_MSG_FILE_QUERY_EXACT_PATH;
    message.header.len = path_len;
    message.data = buffer;
    strncpy(message.data, path, MAX_PATH_LEN);
@@ -113,7 +113,12 @@ int send_stat_request(int fd, char *path, int is_lstat, char *newpath)
    client_recv_msg_static(fd, &message, LDCS_READ_BLOCK);
 
    COMM_UNLOCK;
-      
+
+   if (message.header.type == LDCS_MSG_STAT_ANSWER_SELF) {
+      debug_printf3("Got stat self response on %s\n", path);
+      newpath[0] = '\0';
+      return STAT_SELF;
+   }
    if (message.header.type != LDCS_MSG_STAT_ANSWER) {
       err_printf("Got unexpected message of type %d\n", message.header.type);
       return -1;
@@ -197,6 +202,21 @@ int send_orig_path_request(int fd, const char *path, char *newpath)
    }
    strncpy(newpath, buffer, MAX_PATH_LEN+1);
 
+   return 0;
+}
+
+int send_local_prefix_request(int fd, char **result)
+{
+   ldcs_message_t message;
+   message.header.type = LDCS_MSG_LOCALPREFIX_REQ;
+   message.header.len = 0;
+
+   debug_printf3("Sending message of type: localprefix_req\n");
+   COMM_LOCK;
+   client_send_msg(fd, &message);
+   client_recv_msg_dynamic(fd, &message, LDCS_READ_BLOCK);
+   COMM_UNLOCK;
+   *result = (char *) message.data;
    return 0;
 }
 

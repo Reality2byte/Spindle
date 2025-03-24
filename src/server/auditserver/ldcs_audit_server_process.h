@@ -91,6 +91,7 @@ struct ldcs_client_struct
   int                  is_stat;
   int                  is_lstat;   
   int                  is_loader;
+  int                  is_dso; 
   int                  numa_node;
   char                 query_filename[MAX_PATH_LEN+1];    /* hash 1st key */
   char                 query_dirname[MAX_PATH_LEN+1];     /* hast 2nd key */
@@ -112,7 +113,7 @@ typedef struct msgbundle_entry_t {
    
 struct ldcs_process_data_struct
 {
-  int client_table_size;
+  int client_table_size; 
   int client_table_used;
   int clients_connected;
   int client_counter;
@@ -126,6 +127,7 @@ struct ldcs_process_data_struct
   char *location;
   char *hostname;
   char *pythonprefix;
+  char *localprefix;
   char *numa_substrs;
   char *numa_excludes;   
   msgbundle_entry_t *msgbundle_entries;
@@ -136,8 +138,10 @@ struct ldcs_process_data_struct
   int preload_done;
   int exit_note_done;
   opt_t opts;
-  requestor_list_t pending_requests;
-  requestor_list_t completed_requests;
+  requestor_list_t dso_requests;
+  requestor_list_t file_requests;   
+  requestor_list_t completed_dso_requests;
+  requestor_list_t completed_file_requests;   
   requestor_list_t pending_stat_requests;
   requestor_list_t completed_stat_requests;
   requestor_list_t pending_lstat_requests;
