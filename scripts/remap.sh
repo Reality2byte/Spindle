@@ -17,7 +17,7 @@ cat <<EOF | $CCLINE -I $SRCDIR -shared -DWORKINGDIR=\"$WORKINGDIR\" -DUNIQ=\"$UN
 #define MAX_PATH_LEN 4096
 #include <string.h>
 
-void get_relocated_file(int ldcs_id, char *orig_exec, char **reloc_exec, int *errcode)
+void get_relocated_file(int ldcs_id, char *orig_exec, int dso, char **reloc_exec, int *errcode)
 {
    *reloc_exec = strdup(WORKINGDIR "/remap2" UNIQ);
    *errcode = 0;
