@@ -70,7 +70,11 @@ fi
 export SPINDLE_FLAGS="--level=high"
 
 ./run_driver_rm $TEST_EXEC $*
+RESULT=$?
 
 if [ x$STARTED_SPINDLE_SESSION == xtrue ]; then
 $SPINDLE --end-session $SESSION_ID
 fi
+
+exit $RESULT
+
