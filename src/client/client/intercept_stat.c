@@ -143,8 +143,9 @@ int rtcache_lstat(const char *path, struct stat *buf)
 int rtcache_xstat(int vers, const char *path, struct stat *buf)
 {
    int result = handle_stat(path, buf, IS_XSTAT);
-   if (result != ORIG_STAT)
+   if (result != ORIG_STAT) {
       return result;
+   }
    return orig_xstat(vers, path, buf);
 }
 

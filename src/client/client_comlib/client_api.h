@@ -39,6 +39,7 @@ int send_stat_request(int fd, char *path, int islstat, char *result);
 int send_ldso_info_request(int fd, const char *ldso_path, char *result_path);
 int send_orig_path_request(int fd, const char *path, char *newpath);
 int send_local_prefix_request(int fd, char **result);
+int send_procmaps_query(int fd, int pid, char *result);
 
 int get_python_prefix(int fd, char **prefix);
 

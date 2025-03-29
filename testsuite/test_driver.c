@@ -13,6 +13,8 @@ have received a copy of the GNU Lesser General Public License along with this
 program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place, Suite 330, Boston, MA 02111-1307 USA
 */
+#define _GNU_SOURCE
+
 #include "config.h"
 #if defined(HAVE_MPI)
 #include <mpi.h>
@@ -33,6 +35,8 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <elf.h>
 #include <link.h>
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 #include "spindle.h"
 #include "ccwarns.h"
@@ -60,6 +64,7 @@ int had_error;
    do {                                                                 \
       snprintf(test_buffer, 4096, "Error - [%s:%u] - " format, __FILE__, __LINE__, ## __VA_ARGS__); \
       spindle_test_log_msg(test_buffer);                                \
+      fprintf(stderr, "%s\n", test_buffer);                             \
       had_error = 1;                                                    \
    } while (0); 
 
@@ -305,8 +310,11 @@ static void check_symt(char *path)
   done:
    if (mmap_result)
       munmap(mmap_result, buf.st_size);
-   if (fd != -1)
-      close(fd);
+   /**
+    * Don't close fds from open. We'll test them later to see if readlink sees spindle paths in them
+    *    if (fd != -1)
+    *       close(fd);
+    */
 }
 
 static void open_library(int i)
@@ -894,6 +902,183 @@ void checkTlsSum()
 
 }
 
+static char* getCacheLocation(char *env_var)
+{
+   char *result, *last_slash;
+
+   result = getenv(env_var);
+   if (!result || result[0] == '\0')
+      return NULL;
+
+   last_slash = strrchr(result, '/');
+   if (!last_slash)
+      return strdup(result);
+   if (last_slash[1] != '\0')
+      return strdup(last_slash+1);
+   while (last_slash != result && last_slash[-1] != '/') last_slash--;
+   return strdup(last_slash);
+}
+
+static int checkLinkForLeak(const char *path, const char *spindle_loc)
+{
+   char link_target[4096];
+   int result, error;
+   memset(link_target, 0, sizeof(link_target));
+
+   result = readlink(path, link_target, sizeof(link_target));
+   if (result == -1) {
+      error = errno;
+      err_printf("Failed to read link %s: %s\n", path, strerror(error));
+      return -1;
+   }
+
+   if (strstr(link_target, spindle_loc)) {
+      err_printf("Link at '%s' has path '%s', which leaks spindle path with '%s'\n", path, link_target, spindle_loc);
+      return -1;
+   }
+
+   return 0;
+}
+
+static int checkPathForLeak(const char *what, const char *path, const char *spindle_loc)
+{
+   if (strstr(path, spindle_loc)) {
+      err_printf("%s: Path '%s' leaks spindle path with '%s'\n", what, path, spindle_loc);
+      return -1;
+   }
+   return 0;
+}
+
+static int leak_check_cb(struct dl_phdr_info *p, size_t psize, void *opaque)
+{
+   char *spindle_loc = (char *) opaque;
+   if (!p->dlpi_name || p->dlpi_name[0] == '\0')
+      return 0;
+   checkPathForLeak("dl_iterate_phdr", p->dlpi_name, spindle_loc);
+   return 0;
+}
+
+static int check_proc_maps(char *path, char *spindle_loc)
+{
+   int fd, error, result;
+   struct stat statbuf;
+   char *maps = NULL;
+   size_t filesize, pos = 0;
+
+   fd = open(path, O_RDONLY);
+   if (fd == -1) {
+      error = errno;
+      err_printf("Failed to open %s: %s\n", path, strerror(error));
+      return -1;
+   }
+
+   result = fstat(fd, &statbuf);
+   if (result == -1) {
+      error = errno;
+      err_printf("Failed to stat %s: %s\n", path, strerror(error));
+      close(fd);
+      return -1;
+   }
+   filesize = statbuf.st_size;
+
+   maps = (char *) malloc(filesize + 1);
+   do {
+      result = read(fd, maps+pos, filesize-pos);
+      if (result == -1 && errno == EINTR)
+         continue;
+      if (result == -1) {
+         error = errno;
+         err_printf("Failed to read from %s: %s\n", path, strerror(error));
+         close(fd);
+         return -1;
+      }
+      pos += result;
+   } while (pos < filesize);
+   maps[filesize] = '\0';
+   close(fd);
+
+   if (strstr(maps, spindle_loc)) {
+      err_printf("Found leaked spindle path '%s' in maps '%s'\n", spindle_loc, path);
+      return -1;
+   }
+
+   free(maps);   
+   return 0;
+}
+
+void check_for_path_leaks()
+{
+   char *spindle_loc = NULL;
+   DIR *proc_fds = NULL;
+   struct dirent *d;
+   char path[4096];
+   struct link_map *lm;
+   char *dlerr_msg = NULL;
+
+   spindle_loc = getCacheLocation("LDCS_LOCATION");
+   if (!spindle_loc)
+      spindle_loc = getCacheLocation("LDCS_ORIG_LOCATION");
+   if (!spindle_loc) {
+      err_printf("Failed to calculate cache location");
+      goto done;
+   }
+
+   /**
+    * Check symlinks in /proc/self/exe and /proc/self/fd/[*]  for leaks of spindle paths.
+    **/
+   proc_fds = opendir("/proc/self/fd");
+   if (!proc_fds) {
+      err_printf("Could not open directory /proc/self/fd");
+      goto done;
+   }
+   for (d = readdir(proc_fds); d != NULL; d = readdir(proc_fds)) {
+      if (d->d_name[0] == '.')
+         continue;
+      strncpy(path, "/proc/self/fd/", sizeof(path));
+      strncat(path, d->d_name, sizeof(path)-1);
+      checkLinkForLeak(path, spindle_loc);
+   }
+   checkLinkForLeak("/proc/self/exe", spindle_loc);
+
+   /**
+    * Check link_maps for leaked spindle paths
+    **/
+   for (lm = _r_debug.r_map; lm != NULL; lm = lm->l_next) {
+      if (!lm->l_name || lm->l_name[0] == '\0')
+         continue;
+      checkPathForLeak("link_map", lm->l_name, spindle_loc);
+   }
+
+   /**
+    * Check libraries in dl_iterate_phdr for leaked paths
+    **/
+   dl_iterate_phdr(leak_check_cb, spindle_loc);
+
+   /**
+    * Check /proc/pid/maps under various aliases for leaked names
+    **/
+   check_proc_maps("/proc/self/maps", spindle_loc);
+   snprintf(path, sizeof(path), "/proc/self/task/%d/maps", getpid());
+   check_proc_maps(path, spindle_loc);
+   snprintf(path, sizeof(path), "/proc/%d/maps", getpid());
+   check_proc_maps(path, spindle_loc);
+
+   /**
+    * Check that dlerror doesn't leak the /__not_exists/ prefix
+    **/
+   dlopen("libnosuchlib.so", RTLD_NOW);
+   dlerr_msg = dlerror();
+   if (dlerr_msg && strstr(dlerr_msg, "/__not_exists/")) {
+      err_printf("Found not exists message in dlerror message: %s\n", dlerr_msg);
+   }
+   
+  done:
+   if (spindle_loc)
+      free(spindle_loc);
+   if (proc_fds)
+      closedir(proc_fds);
+}
+
 void close_libs()
 {
    int i, result;
@@ -933,6 +1118,10 @@ int run_test()
       return -1;
 
    call_funcs();
+   if (had_error)
+      return -1;
+
+   check_for_path_leaks();
    if (had_error)
       return -1;
 

@@ -382,6 +382,37 @@ int send_rankinfo_query(int fd, int *mylrank, int *mylsize, int *mymdrank, int *
    return 0;
 }
 
+int send_procmaps_query(int fd, int pid, char *result)
+{
+   ldcs_message_t message;
+   char buffer[MAX_PATH_LEN+1];
+
+   debug_printf3("Sending procmaps query\n");
+
+   message.header.type = LDCS_MSG_PROCMAPS_REQ;
+   message.header.len = sizeof(int);
+   message.data=buffer;
+   memcpy(message.data, &pid, sizeof(int));
+
+   COMM_LOCK;
+
+   client_send_msg(fd, &message);
+
+   client_recv_msg_static(fd, &message, LDCS_READ_BLOCK);
+
+   COMM_UNLOCK;
+
+   if (message.header.type != LDCS_MSG_PROCMAPS_RESP) {
+      err_printf("Received incorrect response to procmaps query %d\n", message.header.type);
+      assert(0);
+   }
+
+   memcpy(result, buffer, MAX_PATH_LEN);
+   debug_printf3("Received procmaps translation of %d to %s\n", pid, result);
+   
+   return 0;   
+}
+
 int send_end(int fd) {
    ldcs_message_t message;
    

@@ -78,6 +78,8 @@ typedef enum {
    LDCS_MSG_EXIT,
    LDCS_MSG_BUNDLE,
    LDCS_MSG_ALIAS,
+   LDCS_MSG_PROCMAPS_REQ,
+   LDCS_MSG_PROCMAPS_RESP,
    LDCS_MSG_UNKNOWN
 } ldcs_message_ids_t;
 

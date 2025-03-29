@@ -144,7 +144,8 @@ unsigned int la_objclose (uintptr_t *cookie)
 
   map = get_linkmap_from_cookie(cookie);
   debug_printf3("la_objclose is for %s\n", map->l_name ? map->l_name : "[EMPTY]");
-  rm_wgot_library(map);
+  if (map->l_name && map->l_name[0])
+     rm_wgot_library(map);
 
   if(cookie == firstcookie) {
      debug_printf("Application process is starting to shut itself down\n");
