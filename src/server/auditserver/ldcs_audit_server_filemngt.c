@@ -729,4 +729,20 @@ int filemngt_is_elf_file(const char *buffer, size_t buffer_size)
            (buffer[2] == 'L') &&
            (buffer[3] == 'F'));
 }
+
+
+int filemngt_convert_proc_maps(int pid, char *new_maps_filename, int new_maps_filename_size)
+{
+   int result;
+   debug_printf2("Asked to convert /proc/%d/maps to remove spindle paths\n", pid);
    
+   result = translate_proc_pid_maps(_ldcs_audit_server_tmpdir, pid, new_maps_filename, new_maps_filename_size);
+   if (result == -1) {
+      new_maps_filename[0] = '\0';
+      return -1;
+   }
+   
+   debug_printf2("Converted /proc/%d/maps to %s\n", pid, new_maps_filename);
+
+   return 0;
+}

@@ -60,5 +60,6 @@ int filemngt_read_ldsometadata(char *localname, ldso_info_t *ldsoinfo);
 int filemngt_is_elf_file(const char *buffer, size_t buffer_size);
 int filemngt_get_ldso_metadata(char *pathname, ldso_info_t *ldsoinfo);
 int filemngt_realpath(char *pathname, char *realfile);
-
+int filemngt_convert_proc_maps(int pid, char *new_maps_filename, int new_maps_filename_size);
+extern int translate_proc_pid_maps(char *output_dir, int pid, char *output_file, int output_file_size);
 #endif

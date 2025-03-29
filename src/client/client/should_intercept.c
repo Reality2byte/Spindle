@@ -240,8 +240,14 @@ int stat_filter(const char *fname)
       return REDIRECT;
 
    if (is_in_spindle_cache(fname)) {
-      debug_printf3("Redirection stat of %s, which is in spindle cache\n", fname);
-      return REDIRECT;
+      if (!strstr(fname, "spindle_proc_maps_")) {
+         debug_printf3("Redirection stat of %s, which is in spindle cache\n", fname);
+         return REDIRECT;
+      }
+      else {
+         debug_printf3("Allowing stat of rewritten /proc/pid/maps file %s to go to local file\n", fname);
+         return ORIG_CALL;
+      }
    }
    if (is_local_file(fname)) {
       debug_printf3("Not intercepting stat of %s, because local file\n", fname);      

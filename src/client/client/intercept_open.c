@@ -44,6 +44,7 @@ FILE* (*orig_fopen)(const char *pathname, const char *mode);
 FILE* (*orig_fopen64)(const char *pathname, const char *mode);
 int (*orig_close)(int fd);
 char* (*orig_dlerror)();
+static int handle_proc_pid_maps_open(const char *path, char **newpath);
 
 /* returns:
    0 if not existent
@@ -111,6 +112,14 @@ int open_worker(const char *path, int oflag, mode_t mode, int is_64)
    if (!path) {
       return call_orig_open(path, oflag, mode, is_64);
    }
+
+   result = handle_proc_pid_maps_open(path, &newpath);
+   if (result == 1) {
+      rc = call_orig_open(newpath, oflag, mode, is_64);
+      spindle_free(newpath);
+      return rc;
+   }
+   
    result = open_filter(path, oflag);
    if (ldcsid < 0 || result == ORIG_CALL) {
       /* Use the original open */
@@ -180,6 +189,13 @@ FILE *fopen_worker(const char *path, const char *mode, int is_64)
    if (!path) {
       return call_orig_fopen(path, mode, is_64);      
    }
+   result = handle_proc_pid_maps_open(path, &newpath);
+   if (result == 1) {
+      rc = call_orig_fopen(newpath, mode, is_64);
+      spindle_free(newpath);
+      return rc;
+   }
+
    result = fopen_filter(path, mode);
    if (ldcsid < 0 || result == ORIG_CALL) {
       /* Use the original open */
@@ -300,4 +316,72 @@ char *dlerror_wrapper()
       j++;
    }
    return message;
+}
+
+static int is_pid_maps(const char *s) {
+   int i = 0;
+   while (s[i] >= '0' && s[i] <= '9') i++;
+   if (strcmp(s + i, "/maps") != 0)
+      return -1;
+   return atoi(s);
+}
+
+static int is_self_maps(const char *s) {
+   if (strcmp(s, "self/maps") == 0)
+      return getpid();
+   return -1;
+}
+
+static int is_task_maps(const char *s) {
+   const char *t = strstr(s, "/task/");
+   if (!t)
+      return -1;
+   return is_pid_maps(t + 6);
+}
+
+static int handle_proc_pid_maps_open(const char *path, char **newpath)
+{
+   size_t len;
+   pid_t pid = -1, result = -1;
+   int query_result;
+   const char *centerpart;
+   char result_file[MAX_PATH_LEN+1];
+
+   
+   if (strncmp("/proc/", path, 6) != 0)
+      return 0;
+   len = strlen(path);
+   if (strcmp(path + len - 5, "/maps") != 0)
+      return 0;   
+   centerpart = path+6;
+   if ((result = is_pid_maps(centerpart)) != -1) {
+      // Matches pattern /proc/PID/maps"
+      pid = result;
+   }
+   else if ((result = is_self_maps(centerpart)) != -1) {
+      // Matches pattern /proc/self/maps"      
+      pid = result;
+   }
+   else if ((result = is_task_maps(centerpart)) != -1) {
+      // Matches pattern /proc/*/task/PID/maps"      
+      pid = result;
+   }
+   else {
+      debug_printf("Warning: Open /proc/*/maps file, of %s. But could not interpret pattern.\n", path);
+      return 0;
+   }
+
+   debug_printf2("Requesting /proc/maps redirection of pid %d for file %s\n", pid, path);
+   query_result = send_procmaps_query(ldcsid, pid, result_file);
+   if (query_result == -1) {
+      debug_printf2("Problem while communicating with server. Not redirecting /proc/maps open of %s\n", path);
+      return 0;
+   }
+   if (*result_file == '\0') {
+      debug_printf2("Server instructed us to self open /proc/maps file %s\n", path);
+      return 0;
+   }
+   *newpath = spindle_strdup(result_file);
+   debug_printf2("Redirected /proc/maps of pid %d for file %s to file %s\n", pid, path, *newpath);
+   return 1;
 }

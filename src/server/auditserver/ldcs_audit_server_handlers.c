@@ -161,6 +161,7 @@ static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *m
 static int handle_client_metadata(ldcs_process_data_t *procdata, int nc);
 static int handle_client_metadata_result(ldcs_process_data_t *procdata, int nc, metadata_t mdtype);
 static int handle_client_metadata_self(ldcs_process_data_t *procdata, int nc);
+static int handle_client_procmaps_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg);
 static int handle_metadata_request(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, node_peer_t from);
 static int handle_metadata_request_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, metadata_t mdtype, node_peer_t peer);
 static int handle_load_and_broadcast_metadata(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype);
@@ -175,7 +176,6 @@ static int handle_msgbundle(ldcs_process_data_t *procdata, node_peer_t peer, ldc
 static int handle_setup_alias(ldcs_process_data_t *procdata, char *pathname, char *alias_to);
 static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc);
 static int handle_close_client_query(ldcs_process_data_t *procdata, int nc);
-
 /**
  * Query from client to server.  Returns info about client's rank in server data structures. 
  **/
@@ -1857,6 +1857,8 @@ int handle_client_message(ldcs_process_data_t *procdata, int nc, ldcs_message_t 
          return handle_client_fileexist_msg(procdata, nc, msg);
       case LDCS_MSG_ORIGPATH_QUERY:
          return handle_client_origpath_msg(procdata, nc, msg);
+      case LDCS_MSG_PROCMAPS_REQ:
+         return handle_client_procmaps_msg(procdata, nc, msg);
       case LDCS_MSG_END:
          return handle_client_end(procdata, nc);
       default:
@@ -2642,7 +2644,7 @@ static int handle_client_metadata_result(ldcs_process_data_t *procdata, int nc, 
    if (result == -1) {
       debug_printf3("File %s does not yet have stat results\n", client->query_globalpath);
       return 0;
-   }
+   }   
    
    msg.header.type = (mdtype == metadata_stat || mdtype == metadata_lstat) ? LDCS_MSG_STAT_ANSWER : LDCS_MSG_LOADER_DATA_RESP;
    msg.header.len = localpath ? strlen(localpath)+1 : 0;
@@ -2803,6 +2805,46 @@ static int handle_load_and_broadcast_metadata(ldcs_process_data_t *procdata, cha
    }
 
    return 0;
+}
+
+/**
+ * A client is open a /proc/ * /maps file. Create a replacement file that doesn't contain spindle paths
+ * and pass it back to the client.
+ **/
+static int handle_client_procmaps_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg)
+{
+   ldcs_client_t *client;
+   int pid, result;
+   char newfile[MAX_PATH_LEN+1];
+   ldcs_message_t outmsg;
+   
+   assert(nc != -1);
+   client = procdata->client_table + nc;
+
+   assert(msg->header.len == sizeof(int));
+   memcpy(&pid, msg->data, sizeof(int));
+
+   result = filemngt_convert_proc_maps(pid, newfile, sizeof(newfile));
+   if (result == -1) {
+      debug_printf2("Telling client to self open maps file for pid %d\n", pid);
+      newfile[0] = '\0';
+   }
+   else {
+      debug_printf2("Telling client to open /proc/maps at pid %d with file %s\n", pid, newfile);
+      
+   }
+
+   outmsg.header.type = LDCS_MSG_PROCMAPS_RESP;
+   outmsg.header.len = strlen(newfile) + 1;
+   outmsg.data = newfile;
+
+   result = ldcs_send_msg(client->connid, &outmsg);
+   procdata->server_stat.clientmsg.cnt++;
+   procdata->server_stat.clientmsg.time+=(ldcs_get_time() - client->query_arrival_time);
+   handle_close_client_query(procdata, nc);
+   
+   return 0;
+   
 }
 
 /**
