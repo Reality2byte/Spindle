@@ -109,6 +109,7 @@ typedef struct {
 #define FLAGS_WONTLOAD (1 << 4)
 #define FLAGS_TLSLIB   (1 << 5)
 #define FLAGS_CHECKSYMT (1 << 6)
+#define FLAGS_LOCAL (1 << 7)
 int abort_mode = 0;
 int fork_mode = 0;
 int fork_child = 0;
@@ -192,7 +193,8 @@ open_libraries_t libraries[] = {
    { "libtest4000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
    { "libtest6000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
    { "libtest8000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
-   { "libtest10000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },   
+   { "libtest10000.so", NULL, NULL, NULL, UNLOADED, FLAGS_CHECKSYMT | FLAGS_SKIP, NULL },
+   { "liblocal.so", NULL, NULL, NULL, UNLOADED, FLAGS_LOCAL, NULL },
    { NULL, NULL, NULL, 0, 0 }
 };
 int num_libraries;
@@ -317,17 +319,151 @@ static void check_symt(char *path)
     */
 }
 
+static char *get_local_name(int libnum, char *out, int out_size)
+{
+   char *tmpdir;
+   char tmp[MAX_STR_SIZE];
+
+   tmpdir = getenv("TMPDIR");
+   if (!tmpdir)
+      tmpdir = getenv("TMP");
+   if (!tmpdir)
+      tmpdir = "/tmp";
+
+   realpath(tmpdir, tmp);
+
+   snprintf(out, out_size, "%s/%s", tmp, libraries[libnum].libname);
+   out[out_size-1] = '\0';
+   return out;
+}
+
+static void clean_local_libs()
+{
+   char out_filename[MAX_STR_SIZE];
+   int i;
+
+   for (i = 0; libraries[i].libname; i++) {
+      get_local_name(i, out_filename, sizeof(out_filename));
+      unlink(out_filename);
+   }
+}
+
+static char *create_local_file(int libnum)
+{
+   static char out_filename[MAX_STR_SIZE];
+   char hostname[256];
+   char *in_filename, *result_filename = NULL;
+   char *contents = MAP_FAILED;
+   int in_fd = -1, out_fd = -1;
+   int result, i, found = 0;
+   size_t in_size;
+   struct stat statbuf;
+   int timeout = 50;
+   const char *key = "SPINDLE_PLACEHOLDER";
+
+   memset(hostname, 0, sizeof(hostname));
+   gethostname(hostname, sizeof(hostname)-1);
+
+   in_filename = libpath(libraries[libnum].libname, libraries[libnum].subdir);
+   in_fd = open(in_filename, O_RDONLY);
+   if (in_fd == -1) {
+      err_printf("Failed to open %s\n", in_filename);
+      goto done;
+   }
+   result = fstat(in_fd, &statbuf);
+   if (result == -1) {
+      err_printf("Failed to stat %s\n", in_filename);
+      goto done;
+   }
+   in_size = statbuf.st_size;
+
+   contents = (char *) mmap(NULL, in_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, in_fd, 0);
+   if (contents == MAP_FAILED) {
+      err_printf("Failed to mmap %s\n", in_filename);
+      goto done;
+   }
+
+   for (i = 0; i < in_size - strlen(key); i++) {
+      if (contents[i] != key[0])
+         continue;
+      if (contents[i+1] != key[1])
+         continue;
+      if (contents[i+2] != key[2])
+         continue;
+      if (strncmp(contents+i, key, strlen(key)) == 0) {
+         strncpy(contents+i, hostname, in_size - i);
+         found = 1;
+         break;
+      }
+   }
+   if (!found) {
+      err_printf("Failed to find placeholder in %s\n", in_filename);
+      goto done;
+   }
+
+   get_local_name(libnum, out_filename, sizeof(out_filename));
+   out_fd = open(out_filename, O_WRONLY | O_CREAT | O_EXCL, S_IRWXU);
+   if (out_fd == -1 && errno != EEXIST) {
+      err_printf("Failed to open output file %s\n", out_filename);
+      goto done;
+   }
+   if (out_fd != -1) {
+      i = 0;
+      do {
+         result = write(out_fd, contents+i, in_size-i);
+         if (result == -1 && errno == EINTR) {
+            continue;
+         }
+         else if (result == -1) {
+            err_printf("Failed to write to %s", out_filename);
+            goto done;
+         }
+         i += result;
+      } while (i < in_size);
+      close(out_fd);
+      out_fd = -1;
+   }
+
+   while (timeout > 0) {
+      int result = stat(out_filename, &statbuf);
+      if (result == 0 && statbuf.st_size == in_size)
+         break;
+      usleep(1000);
+      timeout--;
+   }
+   if (!timeout) {
+      err_printf("Timed out waiting for %s to be created and reach proper size\n", out_filename);
+      goto done;
+   }
+
+   result_filename = out_filename;
+
+  done:
+   if (contents != MAP_FAILED)
+      munmap(contents, in_size);
+   if (in_fd != -1)
+      close(in_fd);
+   if (out_fd != -1)
+      close(out_fd);
+   return result_filename;
+}
+
+
 static void open_library(int i)
 {
    char *fullpath, *result;
    if (libraries[i].flags & FLAGS_TLSLIB)
       return;
-   fullpath = libpath(libraries[i].libname, libraries[i].subdir);
+   if (!(libraries[i].flags & FLAGS_LOCAL))
+      fullpath = libpath(libraries[i].libname, libraries[i].subdir);
+   else
+      fullpath = create_local_file(i);
+   
    if (libraries[i].flags & FLAGS_CHECKSYMT) {
       check_symt(fullpath);
       return;
    }   
-   if (!(libraries[i].flags & FLAGS_WONTLOAD))
+   if (!(libraries[i].flags & FLAGS_WONTLOAD) && !(libraries[i].flags & FLAGS_LOCAL))
       test_printf("dlstart %s\n", libraries[i].libname);
    
    result = dlopen(fullpath, RTLD_LAZY | RTLD_GLOBAL);
@@ -365,7 +501,9 @@ void dependency_mode()
    for (i = 0; i<num_libraries; i++) {
       if (libraries[i].flags & FLAGS_CHECKSYMT)
          open_library(i);
-      if (libraries[i].flags & FLAGS_NOEXIST || libraries[i].flags & FLAGS_SKIP || libraries[i].flags & FLAGS_WONTLOAD)
+      if (libraries[i].flags & FLAGS_LOCAL)
+         open_library(i);
+      if (libraries[i].flags & FLAGS_NOEXIST || libraries[i].flags & FLAGS_SKIP || libraries[i].flags & FLAGS_WONTLOAD || libraries[i].flags & FLAGS_LOCAL)
          continue;
       libraries[i].opened = STARTUP_LOAD;
       test_printf("dlstart %s\n", libraries[i].libname);
@@ -383,7 +521,7 @@ void ldpreload_mode()
 
    dependency_mode();
    for (i = 0; i < num_libraries; i++) {
-      if (libraries[i].flags & FLAGS_NOEXIST || libraries[i].flags & FLAGS_SKIP)
+      if (libraries[i].flags & FLAGS_NOEXIST || libraries[i].flags & FLAGS_SKIP || libraries[i].flags & FLAGS_LOCAL)
          continue;
       if (strstr(env, libraries[i].libname) == NULL) {
          err_printf("Could not find library %s in LD_PRELOAD (%s)\n", libraries[i].libname, env);
@@ -847,7 +985,7 @@ void check_libraries()
           (!(libraries[i].flags & FLAGS_NOEXIST)) && 
           (!(libraries[i].flags & FLAGS_SKIP)) &&
           (!libraries[i].calc_func)) {
-         err_printf("Didn't open expected library %s\n", libraries[i].libname); 
+         err_printf("Didnocal't open expected library %s\n", libraries[i].libname); 
       }
       if (libraries[i].opened == UNLOADED)
          continue;
@@ -1231,6 +1369,7 @@ int main(int argc, char *argv[])
 
    if (!nompi_mode) {
 #if defined(HAVE_MPI)
+      clean_local_libs();
       result = MPI_Init(&argc, &argv);
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #else
@@ -1254,8 +1393,10 @@ int main(int argc, char *argv[])
       passed = 0;
 
 #if defined(HAVE_MPI)
-   if (!nompi_mode)
+   if (!nompi_mode) {
       MPI_Finalize();
+      clean_local_libs();
+   }
 #endif
 
    if (rank == 0) {

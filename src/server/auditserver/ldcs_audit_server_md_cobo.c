@@ -261,11 +261,24 @@ int ldcs_audit_server_md_trash_bytes(node_peer_t peer, size_t size)
 
 int ldcs_audit_server_md_recv_from_parent(ldcs_message_t *msg)
 {
-   int fd;
+   int fd, rc;
    node_peer_t peer;
 
    cobo_get_parent_socket(&fd);
-   return read_msg(fd, &peer, msg);
+   rc = read_msg(fd, &peer, msg);
+   if (rc == -1) {
+      debug_printf2("Error return during recv from parent.\n");
+      return -1;
+   }
+   return 0;
+}
+
+int ldcs_audit_server_md_is_parent(node_peer_t peer)
+{
+   int fd = -1, peer_fd;
+   cobo_get_parent_socket(&fd);
+   peer_fd = (int) (long) peer;
+   return peer_fd == fd;
 }
 
 int ldcs_audit_server_md_cobo_CB(int fd, int nc, void *data)
@@ -278,8 +291,11 @@ int ldcs_audit_server_md_cobo_CB(int fd, int nc, void *data)
   
    /* receive msg from cobo network */
    rc = read_msg(fd, &peer, &msg);
-   if (rc == -1)
+   if (rc == -1) {
+      debug_printf2("Error return during recv from peer.\n");
+      rc = handle_server_error(ldcs_process_data, peer);
       return -1;
+   }
 
    rc = handle_server_message(ldcs_process_data, peer, &msg);
 

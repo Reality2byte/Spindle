@@ -132,10 +132,22 @@ static void spindle_ctx_destroy (struct spindle_ctx *ctx)
     }
 }
 
+static void onTermSignal(int sig)
+{
+   //Force an exit in the child.
+   spindleForceExitBE();
+
+   //Reset the signal handlers and rethrow the signal. 
+   signal(SIGINT, SIG_DFL);
+   signal(SIGTERM, SIG_DFL);
+   kill(getpid(), sig);
+}
+
 /*  Run spindle backend as a child of the shell
  */
 static int run_spindle_backend (struct spindle_ctx *ctx)
 {
+    enableSpindleForceExitBE();
     ctx->backend_pid = fork ();
     if (ctx->backend_pid == 0) {
         /* N.B.: spindleRunBE() blocks, which is why we run it in a child
@@ -145,8 +157,8 @@ static int run_spindle_backend (struct spindle_ctx *ctx)
          * Note: this is a stopgap measure for now. Eventually the Flux
          * job shell will automate this step with an atfork handler.
          */
-        signal (SIGINT, SIG_DFL);
-        signal (SIGTERM, SIG_DFL);
+        signal(SIGINT, onTermSignal);
+        signal(SIGTERM, onTermSignal);
 
         if (spindleRunBE (ctx->params.port,
                           ctx->params.num_ports,

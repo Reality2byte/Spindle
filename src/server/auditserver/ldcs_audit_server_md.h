@@ -106,6 +106,8 @@ int ldcs_audit_server_md_broadcast_noncontig(ldcs_process_data_t *ldcs_process_d
 
 int ldcs_audit_server_md_get_num_children(ldcs_process_data_t *procdata);
 
+int ldcs_audit_server_md_is_parent(node_peer_t peer);
+   
 #if defined(__cplusplus)
 }
 #endif

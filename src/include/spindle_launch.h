@@ -230,6 +230,16 @@ SPINDLE_EXPORT int spindleHookSpindleArgsIntoExecBE(int spindle_argc, char **spi
    and with the 'location' from the spindle_args_t. */
 SPINDLE_EXPORT int spindleExitBE(const char *location);
 
+/* Sets up spindle to be responsive to spindleForceExit(). This function should be called before spindleRunBE().
+ */
+SPINDLE_EXPORT int enableSpindleForceExitBE();
+   
+/* Forcefully trigger an exit of the spindle be processes. The filesystem will be cleaned up, but the
+   server will disconnect from the spindle network and clients without regard for them continuing to be run.
+   Should only be used during a forceful job termincation. This call should be made by whichever process calls
+   enableForceExit. It is safe to call this function from a signal handler.
+*/
+SPINDLE_EXPORT int spindleForceExitBE();
 
 /* Adds output to spindle's debug loggging, if enabled, using printf-style interface.
    priority can be 1, 2, or 3.  More-verbose debugging output should be a higher 

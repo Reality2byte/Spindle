@@ -24,7 +24,8 @@ extern "C" {
 #include "ldcs_api.h"
 #include "spindle_launch.h"
 #include "stat_cache.h"   
-
+#include "force_exit.h"
+   
 typedef void* requestor_list_t;
 
 /* client description structure */
@@ -137,6 +138,9 @@ struct ldcs_process_data_struct
   int number;
   int preload_done;
   int exit_note_done;
+  int exit_on_client_close;
+  int num_exited_children_peers;
+  int num_exited_parents;
   opt_t opts;
   requestor_list_t dso_requests;
   requestor_list_t file_requests;   
@@ -148,7 +152,7 @@ struct ldcs_process_data_struct
   requestor_list_t completed_lstat_requests;
   requestor_list_t pending_ldso_requests;
   requestor_list_t completed_ldso_requests;
-
+   
   /* multi daemon support */
   int md_rank;
   int md_size;

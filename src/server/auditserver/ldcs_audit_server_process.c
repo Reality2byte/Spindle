@@ -162,6 +162,9 @@ int ldcs_audit_server_process(spindle_args_t *args)
    ldcs_process_data.completed_ldso_requests = new_requestor_list();
    ldcs_process_data.handling_bundle = 0;
    ldcs_process_data.exit_note_done = 0;
+   ldcs_process_data.exit_on_client_close = 0;
+   ldcs_process_data.num_exited_children_peers = 0;
+   ldcs_process_data.num_exited_parents = 0;
    
    if (ldcs_process_data.opts & OPT_PULL) {
       debug_printf("Using PULL model\n");
@@ -219,6 +222,10 @@ int ldcs_audit_server_process(spindle_args_t *args)
 
    msgbundle_init(&ldcs_process_data);
 
+   fd = getForceExitFd();
+   if (fd != -1) {
+      ldcs_listen_register_fd(fd, serverid, forceExitCB, (void *) &ldcs_process_data);
+   }
    return 0;
 }  
 

@@ -226,7 +226,7 @@ const list<SpindleOption> Options = {
      "Colon-seperated list of directories that contain the python install locations." },
    { confCachePrefix, "cache-prefix", shortCachePrefix, groupMisc, cvList, {}, "",
      "Alias for python-prefix" },
-   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR ":$TMPDIR/:/proc/:/dev/",
+   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR ":$TMPDIR/:/proc/:/dev/:/var/:/tmp/",
      "Colon-seperated list of directories that spindle will not cache files out of" },
    { confDebug, "debug", shortDebug, groupMisc, cvBool, {}, "false",
      "If yes, hide spindle from debuggers so they think libraries come from the original locations.  May cause extra overhead." },
