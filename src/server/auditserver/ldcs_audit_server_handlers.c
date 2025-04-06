@@ -1898,6 +1898,18 @@ static int handle_msgbundle(ldcs_process_data_t *procdata, node_peer_t peer, ldc
 }
 
 /**
+ * A parent or child server in the md tree exited.
+ **/
+int handle_server_error(ldcs_process_data_t *procdata, node_peer_t peer)
+{
+   if (ldcs_audit_server_md_is_parent(peer))
+      procdata->num_exited_parents++;
+   else
+      procdata->num_exited_children_peers++;
+   return 0;
+}
+
+/**
  * Handle a message that just arrived from a server
  **/
 int handle_server_message(ldcs_process_data_t *procdata, node_peer_t peer, ldcs_message_t *msg)
@@ -2862,12 +2874,12 @@ static int handle_send_exit_ready_if_done(ldcs_process_data_t *procdata)
       stopprofile();
    }
    
-   if (procdata->opts & OPT_PERSIST) {
+   if (procdata->opts & OPT_PERSIST && !procdata->exit_on_client_close) {
        debug_printf2("Bottom-up exit has been disabled\n");
        return 0;
    }
 
-   if (procdata->sent_exit_ready) {
+   if (procdata->sent_exit_ready && !procdata->num_exited_parents) {
       debug_printf2("Already sent an exit message.  Not sending another\n");
       return 0;
    }
@@ -2877,13 +2889,18 @@ static int handle_send_exit_ready_if_done(ldcs_process_data_t *procdata)
       return 0;
    }
 
-   if ((procdata->opts & OPT_BEEXIT) && (!procdata->exit_note_done)) {
+   if ((procdata->opts & OPT_BEEXIT) && (!procdata->exit_note_done) && (!procdata->exit_on_client_close)) {
       debug_printf2("BE Exit enable, and not signaled with spindleExitBE.  Not exiting\n");
       return 0;
    }
    
    int num_children = ldcs_audit_server_md_get_num_children(procdata);
-   if (procdata->exit_readys_recvd < num_children) {
+   if (procdata->num_exited_children_peers < num_children)
+      num_children -= procdata->num_exited_children_peers;
+   else
+      num_children = 0;
+   
+   if (procdata->exit_readys_recvd < num_children && !procdata->exit_on_client_close) {
       debug_printf2("Not all child servers are ready to exit.\n");
       return 0;
    }
@@ -3000,4 +3017,17 @@ int exit_note_cb(int fd, int serverid, void *data)
    ldcs_listen_unregister_fd(fd);
    
    return eresult;
+}
+
+int set_exit_on_client_close(ldcs_process_data_t *procdata)
+{
+   int result;
+   debug_printf("Marking spindle to exit after last client closes\n");
+   procdata->exit_on_client_close = 1;
+   result = handle_send_exit_ready_if_done(procdata);
+   if (result == -1) {
+      debug_printf("Failure in handle_send_exit_ready_if_done\n");
+      return -1;
+   }
+   return 0;
 }
