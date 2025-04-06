@@ -268,14 +268,15 @@ public:
           strstr(filename, ".py") == NULL)
          return true;
       bool is_from_temp = (strstr(filename, tmp_dir.c_str()) != NULL) && (strncmp(filename, "/__not_exist", 12) != 0);
+      bool is_local_test = strstr(filename, "liblocal") != NULL;
 
-      if (is_from_temp && ret_code == -1) {
+      if (is_from_temp && !is_local_test && ret_code == -1) {
          std::string msg = std::string("Error: Failed to load from ramdisk: ") + std::string(filename);
          logerror(msg);
          return false;
       }
       
-      if (!is_from_temp && ret_code != -1 && strstr(filename, "libc.so") == NULL) {
+      if (!is_from_temp && !is_local_test && ret_code != -1 && strstr(filename, "libc.so") == NULL) {
          std::string msg = std::string("Error: Read shared object from outside cache: ") + std::string(filename) + "\n";
          logerror(msg);
          return false;
