@@ -122,12 +122,15 @@ int dlopen_filter(const char *pathname)
 
 static int is_lib_prefix(const char *pathname, char *last_slash)
 {
+   const char *filepart;
    if (last_slash && strncmp(last_slash, "/lib", 4) != 0)
       return 0;
    if (!last_slash && strncmp(pathname, "lib", 3) != 0)
       return 0;
    int len = strlen(pathname);
-   if (!strstr(last_slash, ".so.") && len > 3 && strncmp(pathname + len - 3, ".so", 3) != 0)
+
+   filepart = last_slash ? last_slash+1 : pathname;
+   if (!strstr(filepart, ".so.") && len > 3 && strncmp(pathname + len - 3, ".so", 3) != 0)
       return 0;
    return 1;
 }
