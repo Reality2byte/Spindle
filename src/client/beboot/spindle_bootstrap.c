@@ -320,6 +320,13 @@ int main(int argc, char *argv[])
       }
    }
 
+   if (isCompiler(cmdline[0])) {
+      debug_printf("Turning off spindle because we're running a compiler: %s\n", cmdline[0]);
+      execvp(cmdline[0], cmdline);
+      fprintf(stderr, "%s: Command not found.\n", cmdline[0]);
+      return -1;
+   }
+
    orig_location = parse_location(symbolic_location, number);
    if (!orig_location) {
       return -1;

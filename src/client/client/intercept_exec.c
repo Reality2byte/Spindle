@@ -60,36 +60,6 @@ static int strIsPrefix(char *prefix, char *str)
    return (strncmp(prefix, str, strlen(prefix)) == 0);
 }
 
-static char* compilers[] = { "gcc", "g++", "cc", "CC", "clang", "clang++",
-                             "hipcc", "amdclang", "amdclang++",
-                             "craycc", "crayCC",
-                             "ld", "ld.lld",
-                             "mpicc", "mpic++", "mpicxx", NULL };
-
-                             
-static int isCompiler(const char *fname)
-{
-   const char *aout = NULL;
-   const char *lastslash;
-   int i;
-
-   if (!fname)
-      return 0;
-   
-   lastslash = strrchr(fname, '/');
-   if (lastslash) 
-      aout = lastslash+1;
-   else
-      aout = fname;
-
-   for (i = 0; compilers[i] != NULL; i++) {
-      if (strcmp(compilers[i], aout) == 0) {
-         return 1;
-      }
-   }
-   return 0;
-}
-
 static int shouldPropogateSpindle(char **envp, const char *fname)
 {
    int i;
