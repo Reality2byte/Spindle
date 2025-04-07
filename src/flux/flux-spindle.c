@@ -543,7 +543,7 @@ static int sp_exit (flux_plugin_t *p,
                     void *data)
 {
     struct spindle_ctx *ctx = flux_plugin_aux_get (p, "spindle");
-    if (ctx->params.opts & OPT_OFF)
+    if (ctx && ctx->params.opts & OPT_OFF)
        return 0;    
     if (ctx && ctx->shell_rank == 0)
         spindleCloseFE (&ctx->params);
