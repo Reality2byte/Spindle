@@ -234,12 +234,16 @@ SPINDLE_EXPORT int spindleExitBE(const char *location);
  */
 SPINDLE_EXPORT int enableSpindleForceExitBE();
    
-/* Forcefully trigger an exit of the spindle be processes. The filesystem will be cleaned up, but the
-   server will disconnect from the spindle network and clients without regard for them continuing to be run.
+/* Forcefully trigger an exit of the spindle be processes. 
+   If set to soft exit, spindle will trigger shutdown when its client and servers finish their last connection.
+   If hard exiting, spindle will clean its cache from the filesystem in expectation for the user to make
+   an exit call.
    Should only be used during a forceful job termincation. This call should be made by whichever process calls
    enableForceExit. It is safe to call this function from a signal handler.
 */
-SPINDLE_EXPORT int spindleForceExitBE();
+#define SPINDLE_EXIT_TYPE_SOFT 0
+#define SPINDLE_EXIT_TYPE_HARD 1
+SPINDLE_EXPORT int spindleForceExitBE(int exit_type);
 
 /* Adds output to spindle's debug loggging, if enabled, using printf-style interface.
    priority can be 1, 2, or 3.  More-verbose debugging output should be a higher 
