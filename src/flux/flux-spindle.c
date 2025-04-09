@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <jansson.h>
 #include <strings.h>
+#include <unistd.h>
 
 #define FLUX_SHELL_PLUGIN_NAME "spindle"
 
@@ -135,31 +136,39 @@ static void spindle_ctx_destroy (struct spindle_ctx *ctx)
 static void onTermSignal(int sig)
 {
    //Force an exit in the child.
-   spindleForceExitBE();
+   spindleForceExitBE(SPINDLE_EXIT_TYPE_SOFT);
+   alarm(5); //Force shutdown in 5 seconds if not otherwise down
+}
 
-   //Reset the signal handlers and rethrow the signal. 
-   signal(SIGINT, SIG_DFL);
-   signal(SIGTERM, SIG_DFL);
-   kill(getpid(), sig);
+static void onAlarm(int sig)
+{
+   spindleForceExitBE(SPINDLE_EXIT_TYPE_HARD);
+   _exit(-1);
 }
 
 /*  Run spindle backend as a child of the shell
  */
 static int run_spindle_backend (struct spindle_ctx *ctx)
 {
-    enableSpindleForceExitBE();
+   sigset_t sset;
+
     ctx->backend_pid = fork ();
     if (ctx->backend_pid == 0) {
+       enableSpindleForceExitBE();
+
+       /* Set signal handlers for ctrl-c and related signals. */       
+       signal(SIGINT, onTermSignal);
+       signal(SIGTERM, onTermSignal);
+       signal(SIGALRM, onAlarm);
+       
+       sigprocmask(SIG_BLOCK, NULL, &sset);
+       sigdelset(&sset, SIGINT);
+       sigdelset(&sset, SIGTERM);
+       sigdelset(&sset, SIGALRM);
+       sigprocmask(SIG_SETMASK, &sset, NULL);
+
         /* N.B.: spindleRunBE() blocks, which is why we run it in a child
          */
-
-        /* Reset signal handlers in child, otherwise they are blocked.
-         * Note: this is a stopgap measure for now. Eventually the Flux
-         * job shell will automate this step with an atfork handler.
-         */
-        signal(SIGINT, onTermSignal);
-        signal(SIGTERM, onTermSignal);
-
         if (spindleRunBE (ctx->params.port,
                           ctx->params.num_ports,
                           ctx->id,

@@ -324,7 +324,7 @@ static char* compilers[] = { "gcc", "g++", "cc", "CC", "clang", "clang++",
                              "craycc", "crayCC",
                              "ld", "ld.lld",
                              "mpicc", "mpic++", "mpicxx",
-                             "make", "gmake", NULL };
+                             "make", "gmake", "cmake", NULL };
 
                              
 int isCompiler(const char *fname)
