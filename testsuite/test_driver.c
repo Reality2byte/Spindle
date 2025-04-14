@@ -391,7 +391,7 @@ static char *create_local_file(int libnum)
       if (contents[i+2] != key[2])
          continue;
       if (strncmp(contents+i, key, strlen(key)) == 0) {
-         strncpy(contents+i, hostname, in_size - i);
+         strncpy(contents+i, hostname, sizeof(hostname)-1);
          found = 1;
          break;
       }
