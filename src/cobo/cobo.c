@@ -52,7 +52,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #define COBO_CONNECT_SLEEP   (10) /* milliseconds -- wait this long before trying a new round of connects() */
 #endif
 #ifndef COBO_CONNECT_TIMELIMIT
-#define COBO_CONNECT_TIMELIMIT (600) /* seconds -- wait this long before giving up for good */
+#define COBO_CONNECT_TIMELIMIT (60) /* seconds -- wait this long before giving up for good */
 #endif
 
 #if defined(_IA64_)
