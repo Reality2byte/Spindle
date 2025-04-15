@@ -269,12 +269,6 @@ static void get_clientlib()
    char *default_libstr = (opts & OPT_SUBAUDIT) ? default_subaudit_libstr : default_audit_libstr;
    int errorcode;
    
-   if (!(opts & OPT_RELOCAOUT)) {
-      debug_printf3("Using default client_lib %s\n", default_libstr);
-      client_lib = default_libstr;
-      return;
-   }
-
    get_relocated_file(ldcsid, default_libstr, 1, &client_lib, &errorcode);
    if (client_lib == NULL) {
       client_lib = default_libstr;
@@ -364,12 +358,10 @@ int main(int argc, char *argv[])
       launch_daemon(location);
    }
    
-   if (opts & OPT_RELOCAOUT) {
-      result = establish_connection();
-      if (result == -1) {
-         err_printf("spindle_bootstrap failed to connect to daemons\n");
-         return -1;
-      }
+   result = establish_connection();
+   if (result == -1) {
+      err_printf("spindle_bootstrap failed to connect to daemons\n");
+      return -1;
    }
 
    if ((opts & OPT_SHMCACHE) && cachesize) {
