@@ -162,6 +162,7 @@ static int handle_client_metadata(ldcs_process_data_t *procdata, int nc);
 static int handle_client_metadata_result(ldcs_process_data_t *procdata, int nc, metadata_t mdtype);
 static int handle_client_metadata_self(ldcs_process_data_t *procdata, int nc);
 static int handle_client_procmaps_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg);
+static int handle_client_pickone_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg);
 static int handle_metadata_request(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, node_peer_t from);
 static int handle_metadata_request_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, metadata_t mdtype, node_peer_t peer);
 static int handle_load_and_broadcast_metadata(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype);
@@ -176,6 +177,7 @@ static int handle_msgbundle(ldcs_process_data_t *procdata, node_peer_t peer, ldc
 static int handle_setup_alias(ldcs_process_data_t *procdata, char *pathname, char *alias_to);
 static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc);
 static int handle_close_client_query(ldcs_process_data_t *procdata, int nc);
+
 /**
  * Query from client to server.  Returns info about client's rank in server data structures. 
  **/
@@ -1859,6 +1861,8 @@ int handle_client_message(ldcs_process_data_t *procdata, int nc, ldcs_message_t 
          return handle_client_origpath_msg(procdata, nc, msg);
       case LDCS_MSG_PROCMAPS_REQ:
          return handle_client_procmaps_msg(procdata, nc, msg);
+      case LDCS_MSG_PICKONE_REQ:
+         return handle_client_pickone_msg(procdata, nc, msg);
       case LDCS_MSG_END:
          return handle_client_end(procdata, nc);
       default:
@@ -2857,6 +2861,56 @@ static int handle_client_procmaps_msg(ldcs_process_data_t *procdata, int nc, ldc
    
    return 0;
    
+}
+
+static int handle_client_pickone_resp(ldcs_process_data_t *procdata, int nc, int you)
+{
+   int result;
+   ldcs_message_t outmsg;
+   ldcs_client_t *client;
+   client = procdata->client_table + nc;
+
+   outmsg.header.type = LDCS_MSG_PICKONE_RESP;
+   outmsg.header.len = sizeof(int);
+   outmsg.data = (void *) &you;
+
+   result = ldcs_send_msg(client->connid, &outmsg);
+   procdata->server_stat.clientmsg.cnt++;
+   procdata->server_stat.clientmsg.time += (ldcs_get_time() - client->query_arrival_time);
+   handle_close_client_query(procdata, nc);
+   
+   return result;
+}
+
+static int handle_client_pickone_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg)
+{
+   char key[MAX_PATH_LEN+1];
+   int already_exists;
+   
+   assert(nc != -1);
+
+   assert(msg->header.len <= sizeof(key));
+   if (msg->header.len)
+      memcpy(key, msg->data, msg->header.len);
+   else
+      strncpy(key, "[NULL]", sizeof(key));
+   key[MAX_PATH_LEN] = '\0';
+
+   already_exists = ldcs_cache_pickone_get(key);
+   if (already_exists) {
+      debug_printf2("Responding to pickone of key %s with 'not you' because this node already responded\n", key);
+      return handle_client_pickone_resp(procdata, nc, 0);
+   }
+   ldcs_cache_pickone_set(key);
+
+   if (ldcs_audit_server_md_is_responsible(procdata, key)) {
+      debug_printf2("Responding to pickone of key %s with 'you'\n", key);
+      return handle_client_pickone_resp(procdata, nc, 1);
+   }
+   else {
+      debug_printf2("Responding to pickone of key %s with 'not you' because this node is not reponsible\n", key);
+      return handle_client_pickone_resp(procdata, nc, 0);
+   }
 }
 
 /**

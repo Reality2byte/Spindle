@@ -71,7 +71,8 @@ int ldcs_cache_get_buffer(char *dirname, char *filename, ldcs_hash_fileobj_t obj
 char *ldcs_cache_result_to_str(ldcs_cache_result_t res);
 void ldcs_cache_addFileDir(char *dname, char *fname);
 
-
+int ldcs_cache_pickone_get(char *key);
+void ldcs_cache_pickone_set(char *key);
 
 #if defined(__cplusplus)
 }
