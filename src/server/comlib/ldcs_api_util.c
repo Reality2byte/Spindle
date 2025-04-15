@@ -86,7 +86,9 @@ char* _message_type_to_str (ldcs_message_ids_t type) {
       STR_CASE(LDCS_MSG_BUNDLE);
       STR_CASE(LDCS_MSG_ALIAS);
       STR_CASE(LDCS_MSG_PROCMAPS_REQ);
-      STR_CASE(LDCS_MSG_PROCMAPS_RESP);      
+      STR_CASE(LDCS_MSG_PROCMAPS_RESP);
+      STR_CASE(LDCS_MSG_PICKONE_REQ);
+      STR_CASE(LDCS_MSG_PICKONE_RESP);
       STR_CASE(LDCS_MSG_UNKNOWN);
    }
    return "unknown";

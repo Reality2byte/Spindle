@@ -22,6 +22,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 
 #include <string>
 #include <unordered_map>
+#include <set>
 #include <utility>
 #include <list>
 #include <cassert>
@@ -487,4 +488,21 @@ char *ldcs_cache_result_to_str(ldcs_cache_result_t res)
       default: result = "INVALID STATE"; break;
    }
    return const_cast<char *>(result);
+}
+
+static set<string> pickone_cache;
+
+int ldcs_cache_pickone_get(char *key)
+{
+   string key_s(key);
+   if (pickone_cache.find(key_s) != pickone_cache.end())
+      return 1;
+   else
+      return 0;
+}
+
+void ldcs_cache_pickone_set(char *key)
+{
+   string key_s(key);
+   pickone_cache.insert(key_s);
 }

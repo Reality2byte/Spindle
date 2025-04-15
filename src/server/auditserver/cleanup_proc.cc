@@ -52,8 +52,8 @@ static bool longest_str_first(const string &a, const string &b)
 
 static void rmDirSet(const set<string> &dirs, const char *prefix_dir)
 {
-   string path_sep("/");
-   size_t prefix_size = strlen(prefix_dir);
+   string path_sep("/");   
+   size_t prefix_size = prefix_dir ? strlen(prefix_dir) : 0;
    
    for (set<string>::const_iterator i = dirs.begin(); i != dirs.end(); i++) {
       DIR *dir = opendir(i->c_str());

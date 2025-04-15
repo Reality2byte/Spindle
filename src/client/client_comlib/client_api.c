@@ -413,6 +413,36 @@ int send_procmaps_query(int fd, int pid, char *result)
    return 0;   
 }
 
+int send_pickone_query(int fd, char *key, int *result)
+{
+   ldcs_message_t message;
+   char buffer[MAX_PATH_LEN+1];
+
+   debug_printf3("Sending pickone query\n");
+
+   strncpy(buffer, key, MAX_PATH_LEN);
+   buffer[MAX_PATH_LEN] = '\0';
+   message.header.type = LDCS_MSG_PICKONE_REQ;
+   message.header.len = key ? strlen(key)+1 : 0;
+   message.data = buffer;
+
+   COMM_LOCK;
+
+   client_send_msg(fd, &message);
+   client_recv_msg_static(fd, &message, LDCS_READ_BLOCK);
+
+   COMM_UNLOCK;
+
+   if (message.header.type != LDCS_MSG_PICKONE_RESP) {
+      err_printf("Received incorrect response to procmaps query %d\n", message.header.type);
+      assert(0);
+   }
+
+   *result = *((int *) message.data);
+   debug_printf2("Pickone for '%s' returned %d\n", key, *result);
+   return 0;
+}
+
 int send_end(int fd) {
    ldcs_message_t message;
    

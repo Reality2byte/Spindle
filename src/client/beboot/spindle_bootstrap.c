@@ -46,7 +46,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 char spindle_daemon[] = LIBEXECDIR "/spindle_be";
 char spindle_interceptlib[] = PROGLIBDIR "/libspindleint.so";
 
-int ldcsid;
+int ldcsid = -1;
 unsigned int shm_cachesize;
 
 static int rankinfo[4]={-1,-1,-1,-1};
@@ -269,12 +269,6 @@ static void get_clientlib()
    char *default_libstr = (opts & OPT_SUBAUDIT) ? default_subaudit_libstr : default_audit_libstr;
    int errorcode;
    
-   if (!(opts & OPT_RELOCAOUT)) {
-      debug_printf3("Using default client_lib %s\n", default_libstr);
-      client_lib = default_libstr;
-      return;
-   }
-
    get_relocated_file(ldcsid, default_libstr, 1, &client_lib, &errorcode);
    if (client_lib == NULL) {
       client_lib = default_libstr;
@@ -290,6 +284,35 @@ void test_log(const char *name)
 {
 }
 
+static int handle_exec_failure(char **cmdline, int errno_val)
+{
+   int result;
+   int one_per_job;
+   const char *errmsg;
+   const char *executable;
+   errmsg = strerror(errno_val);
+   executable = cmdline && cmdline[0] ? cmdline[0] : "[NULL]";
+   if (ldcsid == -1) {
+      debug_printf("Exec failure on %s without server setup: %s\n", executable, errmsg);
+      fprintf(stderr, "%s: %s\n", executable, errmsg);
+      return -1;
+   }
+
+   result = send_pickone_query(ldcsid, "bootstrap exec failure", &one_per_job);
+   if (result == -1) {
+      debug_printf("Exec and pickone failure on %s: %s\n", executable, errmsg);
+      fprintf(stderr, "%s: %s\n", executable, errmsg);
+      return -1;
+   }
+
+   if (one_per_job) {
+      debug_printf("Exec failure on %s: %s\n", executable, errmsg);
+      fprintf(stderr, "%s: %s\n", executable, errmsg);
+      return -1;
+   }
+   return -1;
+}
+
 /**
  * Are you staring at this strange code after running TotalView (or another debugger)?
  *
@@ -298,7 +321,7 @@ void test_log(const char *name)
  **/
 int main(int argc, char *argv[])
 {
-   int error, result;
+   int result;
    char **j, *spindle_env;
 
    LOGGING_INIT_PREEXEC("Client");
@@ -315,16 +338,14 @@ int main(int argc, char *argv[])
       if (strcasecmp(spindle_env, "false") == 0 || strcmp(spindle_env, "0") == 0) {
          debug_printf("Turning off spindle from bootstrapper because SPINDLE is %s\n", spindle_env);
          execvp(cmdline[0], cmdline);
-         fprintf(stderr, "%s: Command not found.\n", cmdline[0]);
-         return -1;
+         return handle_exec_failure(cmdline, errno);
       }
    }
 
    if (isCompiler(cmdline[0])) {
       debug_printf("Turning off spindle because we're running a compiler: %s\n", cmdline[0]);
       execvp(cmdline[0], cmdline);
-      fprintf(stderr, "%s: Command not found.\n", cmdline[0]);
-      return -1;
+      return handle_exec_failure(cmdline, errno);
    }
 
    orig_location = parse_location(symbolic_location, number);
@@ -337,12 +358,10 @@ int main(int argc, char *argv[])
       launch_daemon(location);
    }
    
-   if (opts & OPT_RELOCAOUT) {
-      result = establish_connection();
-      if (result == -1) {
-         err_printf("spindle_bootstrap failed to connect to daemons\n");
-         return -1;
-      }
+   result = establish_connection();
+   if (result == -1) {
+      err_printf("spindle_bootstrap failed to connect to daemons\n");
+      return -1;
    }
 
    if ((opts & OPT_SHMCACHE) && cachesize) {
@@ -381,12 +400,10 @@ int main(int argc, char *argv[])
     **/
    setup_environment();
    execvp(executable, cmdline);
+   
 
    /**
     * Exec error handling
     **/
-   error = errno;
-   err_printf("Error execing app: %s\n", strerror(error));
-
-   return -1;
+   return handle_exec_failure(cmdline, errno);
 }
