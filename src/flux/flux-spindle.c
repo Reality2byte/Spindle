@@ -17,6 +17,33 @@
 
 #include <spindle_launch.h>
 
+#define debug_printf(PRIORITY, FORMAT, ...)                         \
+   do {                                                             \
+      spindle_debug_printf(PRIORITY, FORMAT "\n", ## __VA_ARGS__);  \
+      shell_debug(FORMAT, ## __VA_ARGS__);                          \
+   } while (0)
+
+#define err_printf(PRIORITY, FORMAT, ...)                            \
+   do {                                                              \
+      spindle_debug_printf(PRIORITY, FORMAT "\n", ## __VA_ARGS__);   \
+      shell_die(1, FORMAT, ## __VA_ARGS__);                          \
+   } while (0)
+
+#define errno_printf(PRIORITY, FORMAT, ...)                          \
+   do {                                                              \
+      spindle_debug_printf(PRIORITY, FORMAT "\n", ## __VA_ARGS__);   \
+      shell_die_errno(1, FORMAT, ## __VA_ARGS__);                    \
+   } while (0)
+
+#define logerrno_printf(PRIORITY, FORMAT, ...)                        \
+   do {                                                               \
+      int log_errno_result;                                           \
+      spindle_debug_printf(PRIORITY, FORMAT "\n", ## __VA_ARGS__);    \
+      log_errno_result = shell_log_errno(FORMAT, ## __VA_ARGS__);     \
+      return log_errno_result;                                        \
+   } while (0)
+
+
 struct spindle_ctx {
     spindle_args_t params;   /* Spindle parameters                        */
     int flags;               /* Spindle args initialzation flags          */
@@ -83,6 +110,23 @@ error:
     return NULL;
 }
 
+static int spindle_is_enabled(struct spindle_ctx *ctx)
+{
+   char *spindle_env;
+
+   spindle_env = getenv("SPINDLE");
+   if (spindle_env) {
+      if (strcasecmp(spindle_env, "false") == 0 || strcmp(spindle_env, "0") == 0) {
+         return 0;
+      }
+   }
+
+   if (ctx->params.opts & OPT_OFF) {
+      return 0;
+   }
+
+   return 1;
+}
 
 /*  Create a spindle plugin ctx from jobid 'id', shell rank 'rank',
  *   and an Rv1 json object.
@@ -152,45 +196,55 @@ static int run_spindle_backend (struct spindle_ctx *ctx)
 {
    sigset_t sset;
 
-    ctx->backend_pid = fork ();
-    if (ctx->backend_pid == 0) {
-       enableSpindleForceExitBE();
+   if (!spindle_is_enabled(ctx)) {
+      debug_printf(1, "Spindle disabled. Not starting BE");
+      return 0;
+   }
+   
+   ctx->backend_pid = fork ();
+   if (ctx->backend_pid == 0) {
+      enableSpindleForceExitBE();
 
-       /* Set signal handlers for ctrl-c and related signals. */       
-       signal(SIGINT, onTermSignal);
-       signal(SIGTERM, onTermSignal);
-       signal(SIGALRM, onAlarm);
+      /* Set signal handlers for ctrl-c and related signals. */       
+      signal(SIGINT, onTermSignal);
+      signal(SIGTERM, onTermSignal);
+      signal(SIGALRM, onAlarm);
        
-       sigprocmask(SIG_BLOCK, NULL, &sset);
-       sigdelset(&sset, SIGINT);
-       sigdelset(&sset, SIGTERM);
-       sigdelset(&sset, SIGALRM);
-       sigprocmask(SIG_SETMASK, &sset, NULL);
+      sigprocmask(SIG_BLOCK, NULL, &sset);
+      sigdelset(&sset, SIGINT);
+      sigdelset(&sset, SIGTERM);
+      sigdelset(&sset, SIGALRM);
+      sigprocmask(SIG_SETMASK, &sset, NULL);
 
-        /* N.B.: spindleRunBE() blocks, which is why we run it in a child
-         */
-        if (spindleRunBE (ctx->params.port,
-                          ctx->params.num_ports,
-                          ctx->id,
-                          OPT_SEC_MUNGE,
-                          NULL) < 0) {
-            fprintf (stderr, "spindleRunBE failed!\n");
-            exit (1);
-        }
-        exit (0);
-    }
-    shell_debug ("started spindle backend pid = %u", ctx->backend_pid);
-    return 0;
+      /* N.B.: spindleRunBE() blocks, which is why we run it in a child
+       */
+      if (spindleRunBE (ctx->params.port,
+                        ctx->params.num_ports,
+                        ctx->id,
+                        OPT_SEC_MUNGE,
+                        NULL) < 0) {
+         fprintf (stderr, "spindleRunBE failed!\n");
+         exit (1);
+      }
+      exit (0);
+   }
+   debug_printf(2, "started spindle backend pid = %u", ctx->backend_pid);
+   return 0;
 }
 
 /*  Run spindle frontend. Only in shell rank 0.
  */
 static void run_spindle_frontend (struct spindle_ctx *ctx)
 {
-        /* Blocks untile backends connect */
-        if (spindleInitFE ((const char **) ctx->hosts, &ctx->params) < 0)
-            shell_die (1, "spindleInitFE");
-        shell_debug ("started spindle frontend");
+   if (!spindle_is_enabled(ctx)) {
+      debug_printf(2, "Spindle disabled. Not starting BE");
+      return;
+   }
+
+   /* Blocks untile backends connect */
+   if (spindleInitFE ((const char **) ctx->hosts, &ctx->params) < 0)
+      err_printf(1, "spindleInitFE");
+   debug_printf(2, "started spindle frontend");
 }
 
 /*  Callback for watching the exec eventlog
@@ -210,10 +264,10 @@ static void wait_for_shell_init (flux_future_t *f, void *arg)
     }
 
     if (flux_job_event_watch_get (f, &event) < 0)
-        shell_die_errno (1, "spindle failed waiting for shell.init event");
+        errno_printf(1, "spindle failed waiting for shell.init event");
     if (!(o = json_loads (event, 0, NULL))
             || json_unpack (o, "{s:s}", "name", &name) < 0)
-        shell_die_errno (1, "failed to get event name");
+        errno_printf(1, "failed to get event name");
     if (strcmp (name, "shell.init") == 0) {
         rc = json_unpack (o,
                 "{s:{s:i s:i}}",
@@ -244,7 +298,7 @@ static int parse_yesno(opt_t *opt, opt_t flag, const char *yesno)
    else if (strcasecmp(yesno, "yes") == 0 || strcasecmp(yesno, "true") == 0 || strcasecmp(yesno, "1") == 0)
       *opt |= 1;
    else
-      return shell_log_errno ("Error in spindle option: Expected 'yes' or 'no', got %s", yesno);
+      logerrno_printf(1, "Error in spindle option: Expected 'yes' or 'no', got %s", yesno);
    return 0;
 }
 
@@ -300,7 +354,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
                         "numa-files", &numafiles,
                         "preload", &preload,
                         "level", &level) < 0)
-        return shell_log_errno ("Error in spindle option: %s", error.text);
+       logerrno_printf (1, "Error in spindle option: %s", error.text);
 
     if (noclean)
         ctx->params.opts |= OPT_NOCLEAN;
@@ -338,7 +392,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
     if (pyprefix) {
         char *tmp;
         if (asprintf (&tmp, "%s:%s", ctx->params.pythonprefix, pyprefix) < 0)
-            return shell_log_errno ("unable to append to pythonprefix");
+           logerrno_printf (1, "unable to append to pythonprefix");
         free (ctx->params.pythonprefix);
         ctx->params.pythonprefix = tmp;
     }
@@ -407,21 +461,22 @@ static int sp_init (flux_plugin_t *p,
     const char *debug;
     const char *tmpdir;
     const char *test;
+    const char *spindle_enabled;
 
     if (!(shell = flux_plugin_get_shell (p))
         || !(h = flux_shell_get_flux (shell)))
-        return shell_log_errno ("failed to get shell or flux handle");
+       logerrno_printf (1, "failed to get shell or flux handle");
 
     if (flux_shell_getopt (shell, "spindle", NULL) != 1)
         return 0;
-
-    shell_debug ("initializing spindle for use with flux");
 
     /*  If SPINDLE_DEBUG is set in the environment of the job, propagate
      *  it into the shell so we get spindle debugging for this session.
      */
     if ((debug = flux_shell_getenv (shell, "SPINDLE_DEBUG")))
         setenv ("SPINDLE_DEBUG", debug, 1);
+
+    debug_printf(1, "initializing spindle for use with flux");
 
     /*  The spindle testsuite requires SPINDLE_TEST
      */
@@ -436,6 +491,10 @@ static int sp_init (flux_plugin_t *p,
         tmpdir = "/tmp";
     setenv ("TMPDIR", tmpdir, 1);
 
+    spindle_enabled = flux_shell_getenv (shell, "SPINDLE");
+    if (spindle_enabled)
+       setenv("SPINDLE", spindle_enabled, 1);
+
     /*  Get the jobid, R, and shell rank
      */
     if (flux_shell_info_unpack (shell,
@@ -443,7 +502,7 @@ static int sp_init (flux_plugin_t *p,
                                 "jobid", &id,
                                 "R", &R,
                                 "rank", &shell_rank) < 0)
-        return shell_log_errno ("Failed to unpack shell info");
+       logerrno_printf (1, "Failed to unpack shell info");
 
     /*  Create an object for spindle related context.
      *
@@ -456,7 +515,7 @@ static int sp_init (flux_plugin_t *p,
                                 ctx,
                                 (flux_free_f) spindle_ctx_destroy) < 0) {
         spindle_ctx_destroy (ctx);
-        return shell_log_errno ("failed to create spindle ctx");
+        logerrno_printf (1, "failed to create spindle ctx");
     }
 
     /*  Fill in the spindle_args_t with defaults from Spindle.
@@ -469,7 +528,7 @@ static int sp_init (flux_plugin_t *p,
                                     0,
                                     NULL,
                                     NULL) < 0)
-        return shell_log_errno ("fillInSpindleArgsCmdlineFE failed");
+       logerrno_printf (1, "fillInSpindleArgsCmdlineFE failed");
 
 
     /*  Read other spindle options from spindle option in jobspec:
@@ -477,6 +536,10 @@ static int sp_init (flux_plugin_t *p,
     if (sp_getopts (shell, ctx) < 0)
         return -1;
     if (ctx->params.opts & OPT_OFF) {
+       return 0;
+    }
+
+    if (!spindle_is_enabled(ctx)) {
        return 0;
     }
     
@@ -525,8 +588,9 @@ static int sp_task (flux_plugin_t *p,
                     flux_plugin_arg_t *arg,
                     void *data)
 {
+    debug_printf(1, "In flux plugin sp_task");   
     struct spindle_ctx *ctx = flux_plugin_aux_get (p, "spindle");
-    if (ctx && ctx->argc > 0 && !(ctx->params.opts & OPT_OFF)) {
+    if (ctx && ctx->argc > 0 && spindle_is_enabled(ctx)) {
         int i;
         flux_shell_t *shell = flux_plugin_get_shell (p);
         flux_shell_task_t *task = flux_shell_current_task (shell);
@@ -551,7 +615,10 @@ static int sp_exit (flux_plugin_t *p,
                     flux_plugin_arg_t *arg,
                     void *data)
 {
+    debug_printf(1, "In flux plugin sp_exit");
     struct spindle_ctx *ctx = flux_plugin_aux_get (p, "spindle");
+    if (!spindle_is_enabled(ctx))
+       return 0;
     if (ctx && ctx->params.opts & OPT_OFF)
        return 0;    
     if (ctx && ctx->shell_rank == 0)
