@@ -837,6 +837,7 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
             break;
          case confShmcacheSize:
             args.shm_cache_size = (unsigned int) numresult;
+            setopt(args.opts, OPT_SHMCACHE, (numresult != 0));
             break;
          case confDebug:
             setopt(args.opts, OPT_DEBUG, boolresult);
