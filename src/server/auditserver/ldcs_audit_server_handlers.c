@@ -177,6 +177,7 @@ static int handle_msgbundle(ldcs_process_data_t *procdata, node_peer_t peer, ldc
 static int handle_setup_alias(ldcs_process_data_t *procdata, char *pathname, char *alias_to);
 static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc);
 static int handle_close_client_query(ldcs_process_data_t *procdata, int nc);
+static int handle_alive_msg(ldcs_process_data_t *procdata, ldcs_message_t *msg);
 
 /**
  * Query from client to server.  Returns info about client's rank in server data structures. 
@@ -1959,6 +1960,9 @@ int handle_server_message(ldcs_process_data_t *procdata, node_peer_t peer, ldcs_
          return handle_msgbundle(procdata, peer, msg);
       case LDCS_MSG_ALIAS:
          return handle_alias_recv(procdata, msg, request_broadcast);
+      case LDCS_MSG_ALIVE_REQ:
+      case LDCS_MSG_ALIVE_RESP:
+         return handle_alive_msg(procdata, msg);
       default:
          err_printf("Received unexpected message from node: %d\n", (int) msg->header.type);
          assert(0);
@@ -2911,6 +2915,62 @@ static int handle_client_pickone_msg(ldcs_process_data_t *procdata, int nc, ldcs
       debug_printf2("Responding to pickone of key %s with 'not you' because this node is not reponsible\n", key);
       return handle_client_pickone_resp(procdata, nc, 0);
    }
+}
+
+/**
+ * Handle alive message, which is a broadcast/response ping through all servers
+ */
+static int handle_alive_msg(ldcs_process_data_t *procdata, ldcs_message_t *msg)
+{
+   int result;
+   int num_children;
+   ldcs_message_t resp_msg;
+   
+   num_children = ldcs_audit_server_md_get_num_children(procdata);
+
+   if (msg->header.type == LDCS_MSG_ALIVE_REQ) {
+      assert(procdata->num_alives == 0);
+      if (num_children) {
+         debug_printf2("Broadcasting alive message to %d children\n", num_children);
+         result = spindle_broadcast(procdata, msg);
+         if (result == -1) {
+            debug_printf("Failure broadcasting alive message\n");
+            return -1;
+         }
+         msgbundle_force_flush(procdata);  
+      }
+   }
+   else if (msg->header.type == LDCS_MSG_ALIVE_RESP) {
+      procdata->num_alives++;
+      debug_printf2("Recd alive message for %d/%d children\n", procdata->num_alives, num_children);
+   }
+
+   if (num_children == procdata->num_alives) {
+      debug_printf2("Responding to parent with alive message. Child count matches alives (%d == %d)\n", procdata->num_alives, num_children);
+      procdata->num_alives = 0;
+      resp_msg.header.type = LDCS_MSG_ALIVE_RESP;
+      resp_msg.header.len = 0;
+      resp_msg.data = NULL;
+
+      if (ldcs_audit_server_md_is_responsible(procdata, "")) {
+         result = ldcs_audit_server_md_to_frontend(procdata, &resp_msg);
+         if (result == -1) {
+            debug_printf("Failure sending alive resp to FE\n");
+            return -1;
+         }
+      }
+      else {
+         result = spindle_forward_query(procdata, &resp_msg);
+         if (result == -1) {
+            debug_printf("Failure forwarding alive query to parent\n");
+            return -1;
+         }
+         msgbundle_force_flush(procdata);         
+      }      
+   }
+
+   
+   return 0;
 }
 
 /**

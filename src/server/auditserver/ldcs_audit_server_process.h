@@ -141,6 +141,7 @@ struct ldcs_process_data_struct
   int exit_on_client_close;
   int num_exited_children_peers;
   int num_exited_parents;
+  int num_alives;
   opt_t opts;
   requestor_list_t dso_requests;
   requestor_list_t file_requests;   

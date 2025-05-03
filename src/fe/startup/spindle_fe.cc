@@ -40,6 +40,9 @@ static const char *logging_file = USAGE_LOGGING_FILE;
 static const char *logging_file = NULL;
 #endif
 static const char spindle_bootstrap[] = LIBEXECDIR "/spindle_bootstrap";
+static bool sendAndWaitForAlive();
+
+#define STARTUP_TIMEOUT 60
 
 using namespace std;
 
@@ -416,6 +419,9 @@ int spindleInitFE(const char **hosts, spindle_args_t *params)
       cleanPreloadMsg(preload_msg);
    }
 
+   /* Wait for servers to indicate startup */
+   sendAndWaitForAlive();
+
    return 0;   
 }
 
@@ -469,4 +475,26 @@ pid_t getRSHPidFE()
 void markRSHPidReapedFE()
 {
    clear_fe_rsh_pid();
+}
+
+static bool sendAndWaitForAlive()
+{
+   int result;
+   ldcs_message_t alive_req_msg;
+   alive_req_msg.header.type = LDCS_MSG_ALIVE_REQ;
+   alive_req_msg.header.len = 0;
+   alive_req_msg.data = NULL;
+   
+   result = ldcs_audit_server_fe_broadcast(&alive_req_msg, NULL);
+   if (result == -1) {
+      debug_printf("Failure sending alive message\n");
+      return false;
+   }
+
+   result = ldcs_audit_server_fe_md_waitfor_alive(STARTUP_TIMEOUT);
+   if (result == -1) {
+      debug_printf("Failure waiting for alive message\n");
+      return false;
+   }
+   return true;
 }

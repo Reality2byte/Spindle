@@ -22,6 +22,11 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "config.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
 
 static int read_msg(int fd, ldcs_message_t *msg)
 {
@@ -91,6 +96,74 @@ int ldcs_audit_server_fe_md_waitfor_close()
          return 0;
       err_printf("Unexpected message of type %d\n", (int) out_msg.header.type);
    }
+}
+
+static int wait_for_read_or_timeout(int fd, int timeout_seconds)
+{
+   int nfds, result, error;
+   fd_set rset;
+   struct timeval timeout;
+
+   timeout.tv_sec = timeout_seconds;
+   timeout.tv_usec = 0;
+   
+   for (;;) {
+      FD_ZERO(&rset);
+      FD_SET(fd, &rset);
+      nfds = fd+1;
+
+      result = select(nfds, &rset, NULL, NULL, &timeout);
+      if (result == -1 && errno == EINTR) {
+         continue;
+      }
+      else if (result == -1) {
+         error = errno;
+         err_printf("Failure during select call: %s\n", strerror(error));
+         return -1;
+      }
+      else if (result == 0) {
+         err_printf("Timeout during select call\n");
+         return -2;
+      }
+      else if (result == 1 && FD_ISSET(fd, &rset)) {
+         return 0;
+      }
+      else {
+         err_printf("Unexpected return code %d during select\n", result);
+         return -1;
+      }
+   }
+}
+                                    
+int ldcs_audit_server_fe_md_waitfor_alive(int timeout_seconds)
+{
+   int fd, result;
+   ldcs_message_t out_msg;
+
+   debug_printf2("Blocking while waiting for spindle alive\n");
+
+   cobo_server_get_root_socket(&fd);
+
+   result = wait_for_read_or_timeout(fd, timeout_seconds);
+   if (result == -1) {
+      err_printf("Error waiting for alive message to be ready\n");
+      return -1;
+   }
+   else if (result == -2) {
+      err_printf("Timeout waiting for alive message\n");
+      return -1;
+   }
+   
+   memset(&out_msg, 0, sizeof(out_msg));
+   result = read_msg(fd, &out_msg);
+   if (result == -1) {
+      err_printf("ERROR reading message while waiting for server alive\n");
+      return -1;
+   }
+   if (out_msg.header.type == LDCS_MSG_ALIVE_RESP)
+      return 0;
+   err_printf("Unexpected message of type %d\n", (int) out_msg.header.type);
+   return -1;
 }
 
 int ldcs_audit_server_fe_md_close ( void *data  ) {
