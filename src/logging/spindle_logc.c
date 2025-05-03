@@ -94,7 +94,7 @@ void spawnLogDaemon(char *tempdir)
          exit(0);
       }
       else {
-         exit(0);
+         _exit(0);
       }
    }
    else 
@@ -312,8 +312,12 @@ void init_spindle_debugging(char *name, int survive_exec)
    else {
       if (log_level)
          debug_fd = setup_connection("spindle_log");
-      if (run_tests)
+      if (run_tests) {
          test_fd = setup_connection("spindle_test");
+         if (test_fd == -1) {
+            fprintf(stderr, "ERROR: Spindle test log daemon did not spawn\n");
+         }
+      }
    }
 
    setConnectionSurvival(debug_fd, survive_exec);
