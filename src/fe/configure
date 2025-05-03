@@ -685,6 +685,8 @@ SOCKETS_TRUE
 PIPES_FALSE
 PIPES_TRUE
 SRUN_PATH
+BLD_FLUXPLUGIN_FALSE
+BLD_FLUXPLUGIN_TRUE
 TESTRM
 AR_FLAGS
 MAINT
@@ -5611,7 +5613,7 @@ else
 fi
 
 
-ac_config_files="$ac_config_files logging/Makefile cobo/Makefile comlib/Makefile openmpi_intercept/Makefile launchmon/Makefile startup/Makefile hostbin/Makefile Makefile"
+ac_config_files="$ac_config_files logging/Makefile cobo/Makefile comlib/Makefile openmpi_intercept/Makefile launchmon/Makefile flux/Makefile startup/Makefile hostbin/Makefile Makefile"
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
 $as_echo_n "checking whether ln -s works... " >&6; }
@@ -16537,6 +16539,14 @@ if test "x$ENABLE_FLUX_PLUGIN" == "xtrue"; then
 $as_echo "#define ENABLE_FLUX_PLUGIN 1" >>confdefs.h
 
 fi
+ if test "x$ENABLE_FLUX_PLUGIN" = "xtrue"; then
+  BLD_FLUXPLUGIN_TRUE=
+  BLD_FLUXPLUGIN_FALSE='#'
+else
+  BLD_FLUXPLUGIN_TRUE='#'
+  BLD_FLUXPLUGIN_FALSE=
+fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for glibc dtv allocation bug" >&5
 $as_echo_n "checking for glibc dtv allocation bug... " >&6; }
@@ -18147,6 +18157,10 @@ if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
   as_fn_error $? "conditional \"MAINTAINER_MODE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${BLD_FLUXPLUGIN_TRUE}" && test -z "${BLD_FLUXPLUGIN_FALSE}"; then
+  as_fn_error $? "conditional \"BLD_FLUXPLUGIN\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${PIPES_TRUE}" && test -z "${PIPES_FALSE}"; then
   as_fn_error $? "conditional \"PIPES\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -19177,6 +19191,7 @@ do
     "comlib/Makefile") CONFIG_FILES="$CONFIG_FILES comlib/Makefile" ;;
     "openmpi_intercept/Makefile") CONFIG_FILES="$CONFIG_FILES openmpi_intercept/Makefile" ;;
     "launchmon/Makefile") CONFIG_FILES="$CONFIG_FILES launchmon/Makefile" ;;
+    "flux/Makefile") CONFIG_FILES="$CONFIG_FILES flux/Makefile" ;;
     "startup/Makefile") CONFIG_FILES="$CONFIG_FILES startup/Makefile" ;;
     "hostbin/Makefile") CONFIG_FILES="$CONFIG_FILES hostbin/Makefile" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;

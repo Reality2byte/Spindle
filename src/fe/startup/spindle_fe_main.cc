@@ -116,13 +116,13 @@ int main(int argc, char *argv[])
    }
    params->number = config.getNumber();
 
-   init_session(params, config);
-
    Launcher *launcher = newLauncher(params, config);
    if (!launcher) {
       fprintf(stderr, "Internal error while initializing spindle\n");
       return -1;
    }
+   
+   init_session(params, config, launcher);
 
    debug_printf("Spawning spindle daemons\n");
    result = launcher->setupDaemons();
@@ -160,6 +160,7 @@ int main(int argc, char *argv[])
             }
             debug_printf("Done calling spindleInitFE\n");
             initialized_spindle = true;            
+            signal_init_done();
          }
          else if (task->isJobDone()) {
             debug_printf("Job completed\n");
@@ -242,10 +243,12 @@ int main(int argc, char *argv[])
             return -1;
          }
          debug_printf("Done calling spindleInitFE\n");
+         signal_init_done();         
          initialized_spindle = true;
       }
 
       if (do_shutdown) {
+         launcher->handleShutdown();
          spindleCloseFE(params);
          LOGGING_FINI;
          return nonzero_rc;
@@ -269,12 +272,12 @@ static bool getNextTask(Launcher *launcher, spindle_args_t *params, vector<JobTa
    char **app_argv;      
    static bool init_done = false;
 
-   if (!init_done) {
+   if (!(params->opts & OPT_SESSION) && !init_done) {
+      debug_printf("Not in session mode, and running single job. Adding init/run/shutdown tasks to task queue\n");
       JobTask *init = new JobTask();
       init->setInit();
       tasks.push_back(init);
-   }
-   if (!(params->opts & OPT_SESSION) && !init_done) {
+      
       JobTask *runapp = new JobTask();
       config.getApplicationCmdline(app_argc, app_argv);
       runapp->setLaunch(1, app_argc, app_argv);
@@ -288,7 +291,14 @@ static bool getNextTask(Launcher *launcher, spindle_args_t *params, vector<JobTa
       init_done = true;
       return true;
    }
-      
+   if (!init_done) {
+      debug_printf("Adding init task to job queue\n");
+      JobTask *init = new JobTask();
+      init->setInit();
+      tasks.push_back(init);
+      init_done = true;
+      return true;
+   }
 
    int launcher_fd = launcher->getJobFinishFD();
    int session_fd = get_session_fd();

@@ -94,7 +94,9 @@ target_triplet = @target@
 bin_PROGRAMS = spindle$(EXEEXT)
 @COBO_TRUE@am__append_1 = $(top_builddir)/comlib/libfe_cobo.la $(top_builddir)/cobo/libldcs_cobo.la
 @MSOCKET_TRUE@am__append_2 = $(top_builddir)/comlib/libfe_msocket.la
-@LMON_TRUE@am__append_3 = $(top_builddir)/launchmon/libfelmon.la
+@BLD_FLUXPLUGIN_TRUE@am__append_3 = $(FLUX_CORE_LIBS) $(FLUX_HOSTLIST_LIBS) $(top_builddir)/flux/libfluxsessionfe.la
+@BLD_FLUXPLUGIN_TRUE@am__append_4 = -I$(top_srcdir)/../flux
+@LMON_TRUE@am__append_5 = $(top_builddir)/launchmon/libfelmon.la
 subdir = startup
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../../m4/libtool.m4 \
@@ -196,11 +198,18 @@ am_spindle_OBJECTS = spindle-spindle_fe_main.$(OBJEXT) \
 	spindle-parse_launcher_args.$(OBJEXT) \
 	spindle-launcher.$(OBJEXT) spindle-spindle_session.$(OBJEXT) \
 	spindle-launch_slurm.$(OBJEXT) spindle-launch_lsf.$(OBJEXT) \
-	$(am__objects_4)
+	spindle-launch_flux.$(OBJEXT) $(am__objects_4)
 spindle_OBJECTS = $(am_spindle_OBJECTS)
+@BLD_FLUXPLUGIN_TRUE@am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1) \
+@BLD_FLUXPLUGIN_TRUE@	$(am__DEPENDENCIES_1) \
+@BLD_FLUXPLUGIN_TRUE@	$(top_builddir)/flux/libfluxsessionfe.la
 spindle_DEPENDENCIES = $(am__DEPENDENCIES_2) \
 	$(top_builddir)/openmpi_intercept/libparseompi.la \
-	$(top_builddir)/hostbin/libhostbin.la $(am__append_3)
+	$(top_builddir)/hostbin/libhostbin.la $(am__DEPENDENCIES_4) \
+	$(am__append_5)
+spindle_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(spindle_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -240,6 +249,7 @@ am__depfiles_remade = $(top_builddir)/../utils/$(DEPDIR)/libspindlefe_la-keyfile
 	./$(DEPDIR)/libspindlefe_static_la-spindle_fe.Plo \
 	./$(DEPDIR)/spindle-config_mgr.Po \
 	./$(DEPDIR)/spindle-config_parser.Po \
+	./$(DEPDIR)/spindle-launch_flux.Po \
 	./$(DEPDIR)/spindle-launch_lsf.Po \
 	./$(DEPDIR)/spindle-launch_slurm.Po \
 	./$(DEPDIR)/spindle-launcher.Po \
@@ -484,11 +494,13 @@ libspindlefe_la_LDFLAGS = -version-info $(SPINDLEFE_LIB_VERSION)
 libspindlefe_static_la_CPPFLAGS = $(libspindlefe_la_CPPFLAGS)
 libspindlefe_static_la_SOURCES = $(libspindlefe_la_SOURCES)
 libspindlefe_static_la_LIBADD = $(libspindlefe_la_LIBADD)
-spindle_CPPFLAGS = $(CORE_CPPFLAGS) -DSPINDLEEXE
-spindle_SOURCES = spindle_fe_main.cc spindle_fe_serial.cc parse_launcher.cc parse_launcher_args.cc launcher.cc spindle_session.cc launch_slurm.cc launch_lsf.cc $(CORE_SOURCES)
+spindle_CPPFLAGS = $(CORE_CPPFLAGS) -DSPINDLEEXE $(am__append_4)
+spindle_SOURCES = spindle_fe_main.cc spindle_fe_serial.cc parse_launcher.cc parse_launcher_args.cc launcher.cc spindle_session.cc launch_slurm.cc launch_lsf.cc launch_flux.cc $(CORE_SOURCES)
 spindle_LDADD = $(CORE_LDADD) \
 	$(top_builddir)/openmpi_intercept/libparseompi.la \
-	$(top_builddir)/hostbin/libhostbin.la $(am__append_3)
+	$(top_builddir)/hostbin/libhostbin.la $(am__append_3) \
+	$(am__append_5)
+@BLD_FLUXPLUGIN_TRUE@spindle_LDFLAGS = $(fluxplugin-ldflags) -Wl,--allow-multiple-definition
 all: all-am
 
 .SUFFIXES:
@@ -668,7 +680,7 @@ $(top_builddir)/../utils/spindle-rshlaunch.$(OBJEXT):  \
 
 spindle$(EXEEXT): $(spindle_OBJECTS) $(spindle_DEPENDENCIES) $(EXTRA_spindle_DEPENDENCIES) 
 	@rm -f spindle$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(spindle_OBJECTS) $(spindle_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(spindle_LINK) $(spindle_OBJECTS) $(spindle_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -702,6 +714,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libspindlefe_static_la-spindle_fe.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spindle-config_mgr.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spindle-config_parser.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spindle-launch_flux.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spindle-launch_lsf.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spindle-launch_slurm.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spindle-launcher.Po@am__quote@ # am--include-marker
@@ -1062,6 +1075,20 @@ spindle-launch_lsf.obj: launch_lsf.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o spindle-launch_lsf.obj `if test -f 'launch_lsf.cc'; then $(CYGPATH_W) 'launch_lsf.cc'; else $(CYGPATH_W) '$(srcdir)/launch_lsf.cc'; fi`
 
+spindle-launch_flux.o: launch_flux.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT spindle-launch_flux.o -MD -MP -MF $(DEPDIR)/spindle-launch_flux.Tpo -c -o spindle-launch_flux.o `test -f 'launch_flux.cc' || echo '$(srcdir)/'`launch_flux.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spindle-launch_flux.Tpo $(DEPDIR)/spindle-launch_flux.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='launch_flux.cc' object='spindle-launch_flux.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o spindle-launch_flux.o `test -f 'launch_flux.cc' || echo '$(srcdir)/'`launch_flux.cc
+
+spindle-launch_flux.obj: launch_flux.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT spindle-launch_flux.obj -MD -MP -MF $(DEPDIR)/spindle-launch_flux.Tpo -c -o spindle-launch_flux.obj `if test -f 'launch_flux.cc'; then $(CYGPATH_W) 'launch_flux.cc'; else $(CYGPATH_W) '$(srcdir)/launch_flux.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spindle-launch_flux.Tpo $(DEPDIR)/spindle-launch_flux.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='launch_flux.cc' object='spindle-launch_flux.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o spindle-launch_flux.obj `if test -f 'launch_flux.cc'; then $(CYGPATH_W) 'launch_flux.cc'; else $(CYGPATH_W) '$(srcdir)/launch_flux.cc'; fi`
+
 spindle-spindle_fe.o: spindle_fe.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT spindle-spindle_fe.o -MD -MP -MF $(DEPDIR)/spindle-spindle_fe.Tpo -c -o spindle-spindle_fe.o `test -f 'spindle_fe.cc' || echo '$(srcdir)/'`spindle_fe.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spindle-spindle_fe.Tpo $(DEPDIR)/spindle-spindle_fe.Po
@@ -1316,6 +1343,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libspindlefe_static_la-spindle_fe.Plo
 	-rm -f ./$(DEPDIR)/spindle-config_mgr.Po
 	-rm -f ./$(DEPDIR)/spindle-config_parser.Po
+	-rm -f ./$(DEPDIR)/spindle-launch_flux.Po
 	-rm -f ./$(DEPDIR)/spindle-launch_lsf.Po
 	-rm -f ./$(DEPDIR)/spindle-launch_slurm.Po
 	-rm -f ./$(DEPDIR)/spindle-launcher.Po
@@ -1396,6 +1424,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libspindlefe_static_la-spindle_fe.Plo
 	-rm -f ./$(DEPDIR)/spindle-config_mgr.Po
 	-rm -f ./$(DEPDIR)/spindle-config_parser.Po
+	-rm -f ./$(DEPDIR)/spindle-launch_flux.Po
 	-rm -f ./$(DEPDIR)/spindle-launch_lsf.Po
 	-rm -f ./$(DEPDIR)/spindle-launch_slurm.Po
 	-rm -f ./$(DEPDIR)/spindle-launcher.Po

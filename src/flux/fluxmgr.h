@@ -14,18 +14,30 @@ program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-#if !defined(SPINDLE_SESSION_H_)
-#define SPINDLE_SESSION_H_
+#if !defined(FLUXMGR_H_)
+#define FLUXMGR_H_
 
-#include "spindle_launch.h"
-#include "launcher.h"
-#include "config_mgr.h"
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
-int init_session(spindle_args_t *args, const ConfigMap &config, Launcher *launcher);
-int get_session_runcmds(app_id_t &appid, int &app_argc, char** &app_argv, bool &session_complete);
-int get_session_fd();
-int return_session_cmd(app_id_t appid, int app_argc, char **app_argv);
-void signal_init_done();
-void mark_session_job_done(app_id_t appid, int rc);
+#include <flux/core.h>
+   
+int fluxmgr_init();
+void fluxmgr_close();
+int fluxmgr_is_headnode();
+int fluxmgr_add_to_kvs(const char *daemon_args, const char *bootstrap_args, const char *default_session);
+int fluxmgr_get_from_kvs(char **daemon_args, int timeout_seconds);
+int fluxmgr_get_default_session(char **default_session);
+int fluxmgr_get_bootstrap(flux_t *fhandle, char **bootstrap_args);   
+int fluxmgr_rm_from_kvs();
+int fluxmgr_is_active();
+int fluxmgr_waitfor(int timeout);
+char **fluxmgr_get_hostlist();
+void fluxmgr_free_hostlist(char **hostlist);
 
+#if defined(__cplusplus)
+}
+#endif
+   
 #endif

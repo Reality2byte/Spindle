@@ -14,18 +14,20 @@ program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-#if !defined(SPINDLE_SESSION_H_)
-#define SPINDLE_SESSION_H_
+#if !defined(SESSIONMGR_H_)
+#define SESSIONMGR_H_
 
-#include "spindle_launch.h"
-#include "launcher.h"
-#include "config_mgr.h"
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
-int init_session(spindle_args_t *args, const ConfigMap &config, Launcher *launcher);
-int get_session_runcmds(app_id_t &appid, int &app_argc, char** &app_argv, bool &session_complete);
-int get_session_fd();
-int return_session_cmd(app_id_t appid, int app_argc, char **app_argv);
-void signal_init_done();
-void mark_session_job_done(app_id_t appid, int rc);
+int spindle_session_start(int argc, char **argv, const char *session_dir);
+int spindle_session_stop(const char *session_dir);
+char **strip_start_from_argv(int argc, char **argv);
+const char *get_session_dir();
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif

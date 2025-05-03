@@ -691,6 +691,8 @@ SOCKETS_TRUE
 PIPES_FALSE
 PIPES_TRUE
 SRUN_PATH
+BLD_FLUXPLUGIN_FALSE
+BLD_FLUXPLUGIN_TRUE
 TESTRM
 AR_FLAGS
 MAINT
@@ -16534,6 +16536,14 @@ if test "x$ENABLE_FLUX_PLUGIN" == "xtrue"; then
 $as_echo "#define ENABLE_FLUX_PLUGIN 1" >>confdefs.h
 
 fi
+ if test "x$ENABLE_FLUX_PLUGIN" = "xtrue"; then
+  BLD_FLUXPLUGIN_TRUE=
+  BLD_FLUXPLUGIN_FALSE='#'
+else
+  BLD_FLUXPLUGIN_TRUE='#'
+  BLD_FLUXPLUGIN_FALSE=
+fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for glibc dtv allocation bug" >&5
 $as_echo_n "checking for glibc dtv allocation bug... " >&6; }
@@ -18189,6 +18199,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
   as_fn_error $? "conditional \"MAINTAINER_MODE\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BLD_FLUXPLUGIN_TRUE}" && test -z "${BLD_FLUXPLUGIN_FALSE}"; then
+  as_fn_error $? "conditional \"BLD_FLUXPLUGIN\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${PIPES_TRUE}" && test -z "${PIPES_FALSE}"; then

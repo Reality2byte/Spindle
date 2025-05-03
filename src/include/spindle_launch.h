@@ -79,6 +79,7 @@ extern "C" {
 #define jsrun_launcher (1 << 7)             /* Launched via IBM's jsrun launcher */
 #define lrun_launcher (1 << 8)              /* Launched via LLNL's wrappers around jsrun */
 #define flux_plugin_launcher (1 << 9)       /* Launched via flux's plugin */
+#define flux_session_launcher (1 << 10)     /* Launched via flux's session mode */
 
 /* Possible values for startup_type, describe how Spindle servers are started */
 #define startup_serial 0                    /* Job is non-parallel app, and server is forked/exec */
@@ -147,7 +148,10 @@ typedef struct {
    /* Colon-seperated list of directory prefixes that spindle will not build caches out of. 
       Local storage directores can be placed here.
    */
-   char *local_prefixes;   
+   char *local_prefixes;
+
+   /* If running in a session, the key for that session */
+   char *session_key;
 } spindle_args_t;
 
 /* Functions used to startup Spindle on the front-end. Init returns after finishing start-up,

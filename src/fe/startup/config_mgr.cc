@@ -130,7 +130,15 @@ using namespace std;
 #define RSHCMD_STR ""
 #endif
 
-const list<SpindleOption> Options = {
+const list<SpindleOption> *Options;
+
+void initOptionsList()
+{
+   if (Options)
+      return;
+   
+   Options = new list<SpindleOption>(
+   {
    { confCmdlineNewgroup, "", shortNone, groupReloc, cvBool, {}, "",
      "These options specify what types of files should be loaded through the Spindle network" },
    { confRelocAout, "reloc-aout", shortRelocAout, groupReloc, cvBool, {}, "true",
@@ -194,14 +202,16 @@ const list<SpindleOption> Options = {
      "Enables hostbin startup mode. (Derecated for launcher=hostbin)" },
    { confHostbin, "hostbin", shortHostbin, groupLauncher, cvString, {}, HOSTBIN_PATH_STR,
      "Path to a script that returns the hostlist for a job on a cluster." },   
-   { confJoblauncher, "launcher", shortLauncher, groupLauncher, cvEnum, { "slurm", "flux", "slurm-plugin", "serial", "hostbin", "unknown" }, DEFAULT_LAUNCHER_STR,
+   { confJoblauncher, "launcher", shortLauncher, groupLauncher, cvEnum, { "slurm", "flux", "flux-plugin", "slurm-plugin", "serial", "hostbin", "unknown" }, DEFAULT_LAUNCHER_STR,
      "Sets the launcher to the specified value." },
 
    { confCmdlineNewgroup, "", shortNone, groupSession, cvBool, {}, "",
      "Options for managing sessions, which can run multiple jobs out of one spindle cache." },
    { confStartSession, "start-session", shortStartSession, groupSession, cvBool, {}, "",
+     "Start a persistent Spindle session." },
+   { confStartMultiSession, "start-multi-session", shortStartMultiSession, groupSession, cvBool, {}, "",
      "Start a persistent Spindle session and print the session-id to stdout." },
-   { confEndSession, "end-session", shortEndSession, groupSession, cvString, {}, "",
+   { confEndSession, "end-session", shortEndSession, groupSession, cvStringOptional, {}, "",
      "End a persistent Spindle session with the given session-id." },
    { confRunSession, "run-in-session", shortRunSession, groupSession, cvString, {}, "",
      "Run a new job in the given session." },
@@ -254,7 +264,8 @@ const list<SpindleOption> Options = {
      "Enable starting daemons with an rsh tree, if the startup mode supports it." },
    { confRshCommand, "rsh-command", shortRSHCmd, groupMisc, cvString, {}, RSHCMD_STR,
      "The command to run rsh/ssh, when doing RSH startup mode." }
-};
+  } );
+}
 
 pair<bool, bool> strToBool(string s)
 {
@@ -456,6 +467,9 @@ void ConfigMap::debugPrint() const {
          case cvList:
             debug_printf("CONFIG: %s = %s\n", opt.cmdline_long, values.c_str());
             continue;
+         case cvStringOptional:
+            debug_printf("CONFIG: %s = %s\n", opt.cmdline_long, values.empty() ? "[PRESENT]" : values.c_str());
+            continue;
          case cvEnum:
             pair<bool, string> result = strToEnum(name, values);
             typeerror = !result.first;
@@ -526,7 +540,8 @@ bool ConfigMap::isSet(SpindleConfigID name) const {
 }
 
 bool getDefaultsConfigMap(ConfigMap &confmap, string &errstring) {
-   for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++) {
+   initOptionsList();
+   for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++) {
       const SpindleOption &opt = *i;
       if (opt.config_id == confCmdlineOnly || opt.config_id == confCmdlineNewgroup)
          continue;
@@ -542,6 +557,7 @@ bool getDefaultsConfigMap(ConfigMap &confmap, string &errstring) {
 }
 
 bool gatherAllConfigInfo(int argc, char *argv[], bool inExecutable, ConfigMap &config, string &errmessage) {
+   initOptionsList();
    ConfigMap defaults("[DEFAULTS]");
    bool result;
 
@@ -651,6 +667,8 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
          case cvString:
          case cvList:
             //strresult already set to value
+            break;
+         case cvStringOptional:
             break;
          case cvEnum: {
             pair<bool, string> result = getValueEnum(name);
@@ -785,10 +803,15 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
                args.use_launcher = srun_launcher;
                debug_printf("launcher = %u\n", args.startup_type);
             }
-            else if (strresult == "flux") {
+            else if (strresult == "flux-plugin") {
                debug_printf("Setting flux_plugin_launcher as job launcher\n");
                args.startup_type = startup_external;
                args.use_launcher = flux_plugin_launcher;
+            }
+            else if (strresult == "flux") {
+               debug_printf("Setting flux_session_launcher as job launcher\n");
+               args.startup_type = startup_mpi;
+               args.use_launcher = flux_session_launcher;
             }
             else if (strresult == "slurm-plugin") {
                debug_printf("Setting slurm_plugin_launcher as job launcher\n");
@@ -891,6 +914,7 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
             args.rsh_command = getstr(strresult, alloc_strs);
             break;
          case confStartSession:
+         case confStartMultiSession:
             setopt(args.opts, OPT_SESSION, boolresult);
             break;
          case confEndSession:
@@ -917,6 +941,8 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
 session_status_t ConfigMap::getSessionStatus() const
 {
    if (isSet(confStartSession))
+      return sstatus_start;
+   else if (isSet(confStartMultiSession))
       return sstatus_start;
    else if (isSet(confEndSession))
       return sstatus_end;
@@ -1026,7 +1052,7 @@ const map<SpindleConfigID, const SpindleOption&> &getOptionsByID()
 {
    static map<SpindleConfigID, const SpindleOption&> optsbyid;
    if (optsbyid.empty()) {
-      for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++) {
+      for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++) {
          const SpindleOption &opt = *i;
          if (opt.config_id == confCmdlineOnly || opt.config_id == confCmdlineNewgroup)
             continue;
@@ -1040,7 +1066,7 @@ const map<CmdlineShortOptions, const SpindleOption&> &getOptionsByKey()
 {
    static map<CmdlineShortOptions, const SpindleOption&> optsbyshort;
    if (optsbyshort.empty()) {
-      for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++) {
+      for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++) {
          const SpindleOption &opt = *i;
          if (opt.cmdline_key == shortNone)
             continue;
@@ -1054,7 +1080,7 @@ const map<string, const SpindleOption&> &getOptionsByLongName()
 {
    static map<string, const SpindleOption&> optsbylong;
    if (optsbylong.empty()) {
-      for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++) {
+      for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++) {
          const SpindleOption &opt = *i;
          if (!opt.cmdline_long || opt.cmdline_long[0] == '\0')
             continue;

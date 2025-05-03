@@ -15,6 +15,7 @@
 @SET_MAKE@
 
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -90,6 +91,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
+pkglibexec_PROGRAMS = spindle_flux_session$(EXEEXT)
 subdir = src/flux
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
@@ -106,6 +108,9 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+am__installdirs = "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(libdir)" \
+	"$(DESTDIR)$(rcdir)"
+PROGRAMS = $(pkglibexec_PROGRAMS)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -133,23 +138,41 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(rcdir)"
-LTLIBRARIES = $(lib_LTLIBRARIES)
+LTLIBRARIES = $(lib_LTLIBRARIES) $(noinst_LTLIBRARIES)
 am__DEPENDENCIES_1 =
-libspindleflux_la_DEPENDENCIES =  \
+libfluxsession_la_DEPENDENCIES =  \
 	$(top_builddir)/src/server/startup/libspindlebe_static.la \
 	$(top_builddir)/src/fe/startup/libspindlefe_static.la \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
-am_libspindleflux_la_OBJECTS = libspindleflux_la-flux-spindle.lo
-libspindleflux_la_OBJECTS = $(am_libspindleflux_la_OBJECTS)
+am_libfluxsession_la_OBJECTS = libfluxsession_la-sessionmgr.lo \
+	libfluxsession_la-fluxmgr.lo libfluxsession_la-procmgr.lo \
+	libfluxsession_la-spindlefemgr.lo \
+	libfluxsession_la-spindlebemgr.lo
+libfluxsession_la_OBJECTS = $(am_libfluxsession_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+libfluxsession_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(libfluxsession_la_LDFLAGS) $(LDFLAGS) \
+	-o $@
+libspindleflux_la_DEPENDENCIES =  \
+	$(top_builddir)/src/server/startup/libspindlebe_static.la \
+	$(top_builddir)/src/fe/startup/libspindlefe_static.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) libfluxsession.la
+am_libspindleflux_la_OBJECTS = libspindleflux_la-flux-spindle.lo
+libspindleflux_la_OBJECTS = $(am_libspindleflux_la_OBJECTS)
 libspindleflux_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(AM_CFLAGS) $(CFLAGS) $(libspindleflux_la_LDFLAGS) $(LDFLAGS) \
 	-o $@
+am__dirstamp = $(am__leading_dot)dirstamp
+am_spindle_flux_session_OBJECTS = spindle_flux_session-main.$(OBJEXT) \
+	$(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.$(OBJEXT) \
+	$(top_builddir)/src/utils/spindle_flux_session-parseloc.$(OBJEXT)
+spindle_flux_session_OBJECTS = $(am_spindle_flux_session_OBJECTS)
+spindle_flux_session_DEPENDENCIES = libfluxsession.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -165,7 +188,15 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/libspindleflux_la-flux-spindle.Plo
+am__depfiles_remade = $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Po \
+	$(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Po \
+	./$(DEPDIR)/libfluxsession_la-fluxmgr.Plo \
+	./$(DEPDIR)/libfluxsession_la-procmgr.Plo \
+	./$(DEPDIR)/libfluxsession_la-sessionmgr.Plo \
+	./$(DEPDIR)/libfluxsession_la-spindlebemgr.Plo \
+	./$(DEPDIR)/libfluxsession_la-spindlefemgr.Plo \
+	./$(DEPDIR)/libspindleflux_la-flux-spindle.Plo \
+	./$(DEPDIR)/spindle_flux_session-main.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -185,8 +216,28 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libspindleflux_la_SOURCES)
-DIST_SOURCES = $(libspindleflux_la_SOURCES)
+CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CXXFLAGS) $(CXXFLAGS)
+AM_V_CXX = $(am__v_CXX_@AM_V@)
+am__v_CXX_ = $(am__v_CXX_@AM_DEFAULT_V@)
+am__v_CXX_0 = @echo "  CXX     " $@;
+am__v_CXX_1 = 
+CXXLD = $(CXX)
+CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
+am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
+am__v_CXXLD_0 = @echo "  CXXLD   " $@;
+am__v_CXXLD_1 = 
+SOURCES = $(libfluxsession_la_SOURCES) $(libspindleflux_la_SOURCES) \
+	$(spindle_flux_session_SOURCES)
+DIST_SOURCES = $(libfluxsession_la_SOURCES) \
+	$(libspindleflux_la_SOURCES) $(spindle_flux_session_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -374,9 +425,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 libver = `$(top_srcdir)/LIB_VERSION spindleflux`
-lib_LTLIBRARIES = \
-	libspindleflux.la
-
+lib_LTLIBRARIES = libspindleflux.la
+noinst_LTLIBRARIES = libfluxsession.la
 rcdir = $(PKGSYSCONF_DIR)
 rc_DATA = spindle.rc
 libspindleflux_la_SOURCES = \
@@ -391,7 +441,8 @@ libspindleflux_la_LIBADD = \
 	$(top_builddir)/src/server/startup/libspindlebe_static.la \
 	$(top_builddir)/src/fe/startup/libspindlefe_static.la \
 	$(FLUX_CORE_LIBS) \
-	$(FLUX_HOSTLIST_LIBS)
+	$(FLUX_HOSTLIST_LIBS) \
+	libfluxsession.la
 
 libspindleflux_la_LDFLAGS = \
 	$(fluxplugin_ldflags) \
@@ -399,10 +450,22 @@ libspindleflux_la_LDFLAGS = \
    -version-info $(libver) \
 	-module
 
+spindle_flux_session_SOURCES = main.cc $(top_srcdir)/src/utils/spindle_mkdir.c $(top_srcdir)/src/utils/parseloc.c
+spindle_flux_session_CPPFLAGS = -I$(top_srcdir)/src/flux -I$(top_srcdir)/src/logging -I$(top_srcdir)/src/include
+spindle_flux_session_LDADD = libfluxsession.la
+libfluxsession_la_SOURCES = sessionmgr.c fluxmgr.c procmgr.c spindlefemgr.c spindlebemgr.c
+libfluxsession_la_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/src/flux $(FLUX_CORE_CFLAGS) $(FLUX_HOSTLIST_CFLAGS)
+libfluxsession_la_LDFLAGS = $(fluxplugin_ldflags) -Wl,--allow-multiple-definition
+libfluxsession_la_LIBADD = \
+	$(top_builddir)/src/server/startup/libspindlebe_static.la \
+	$(top_builddir)/src/fe/startup/libspindlefe_static.la \
+	$(FLUX_CORE_LIBS) \
+	$(FLUX_HOSTLIST_LIBS)
+
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .lo .o .obj
+.SUFFIXES: .c .cc .lo .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -432,6 +495,55 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+install-pkglibexecPROGRAMS: $(pkglibexec_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	@list='$(pkglibexec_PROGRAMS)'; test -n "$(pkglibexecdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(pkglibexecdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(pkglibexecdir)" || exit 1; \
+	fi; \
+	for p in $$list; do echo "$$p $$p"; done | \
+	sed 's/$(EXEEXT)$$//' | \
+	while read p p1; do if test -f $$p \
+	 || test -f $$p1 \
+	  ; then echo "$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n;h' \
+	    -e 's|.*|.|' \
+	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
+	sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
+	    else { print "f", $$3 "/" $$4, $$1; } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	    test -z "$$files" || { \
+	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(pkglibexecdir)$$dir'"; \
+	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(pkglibexecdir)$$dir" || exit $$?; \
+	    } \
+	; done
+
+uninstall-pkglibexecPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(pkglibexec_PROGRAMS)'; test -n "$(pkglibexecdir)" || list=; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
+	      -e 's/$$/$(EXEEXT)/' \
+	`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(pkglibexecdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(pkglibexecdir)" && rm -f $$files
+
+clean-pkglibexecPROGRAMS:
+	@list='$(pkglibexec_PROGRAMS)'; test -n "$$list" || exit 0; \
+	echo " rm -f" $$list; \
+	rm -f $$list || exit $$?; \
+	test -n "$(EXEEXT)" || exit 0; \
+	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
+	echo " rm -f" $$list; \
+	rm -f $$list
 
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
@@ -468,16 +580,55 @@ clean-libLTLIBRARIES:
 	  rm -f $${locs}; \
 	}
 
+clean-noinstLTLIBRARIES:
+	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
+	@list='$(noinst_LTLIBRARIES)'; \
+	locs=`for p in $$list; do echo $$p; done | \
+	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
+	      sort -u`; \
+	test -z "$$locs" || { \
+	  echo rm -f $${locs}; \
+	  rm -f $${locs}; \
+	}
+
+libfluxsession.la: $(libfluxsession_la_OBJECTS) $(libfluxsession_la_DEPENDENCIES) $(EXTRA_libfluxsession_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libfluxsession_la_LINK)  $(libfluxsession_la_OBJECTS) $(libfluxsession_la_LIBADD) $(LIBS)
+
 libspindleflux.la: $(libspindleflux_la_OBJECTS) $(libspindleflux_la_DEPENDENCIES) $(EXTRA_libspindleflux_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libspindleflux_la_LINK) -rpath $(libdir) $(libspindleflux_la_OBJECTS) $(libspindleflux_la_LIBADD) $(LIBS)
+$(top_builddir)/src/utils/$(am__dirstamp):
+	@$(MKDIR_P) $(top_builddir)/src/utils
+	@: > $(top_builddir)/src/utils/$(am__dirstamp)
+$(top_builddir)/src/utils/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(top_builddir)/src/utils/$(DEPDIR)
+	@: > $(top_builddir)/src/utils/$(DEPDIR)/$(am__dirstamp)
+$(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.$(OBJEXT):  \
+	$(top_builddir)/src/utils/$(am__dirstamp) \
+	$(top_builddir)/src/utils/$(DEPDIR)/$(am__dirstamp)
+$(top_builddir)/src/utils/spindle_flux_session-parseloc.$(OBJEXT):  \
+	$(top_builddir)/src/utils/$(am__dirstamp) \
+	$(top_builddir)/src/utils/$(DEPDIR)/$(am__dirstamp)
+
+spindle_flux_session$(EXEEXT): $(spindle_flux_session_OBJECTS) $(spindle_flux_session_DEPENDENCIES) $(EXTRA_spindle_flux_session_DEPENDENCIES) 
+	@rm -f spindle_flux_session$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(spindle_flux_session_OBJECTS) $(spindle_flux_session_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f $(top_builddir)/src/utils/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libfluxsession_la-fluxmgr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libfluxsession_la-procmgr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libfluxsession_la-sessionmgr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libfluxsession_la-spindlebemgr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libfluxsession_la-spindlefemgr.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libspindleflux_la-flux-spindle.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spindle_flux_session-main.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -509,12 +660,113 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
+libfluxsession_la-sessionmgr.lo: sessionmgr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libfluxsession_la-sessionmgr.lo -MD -MP -MF $(DEPDIR)/libfluxsession_la-sessionmgr.Tpo -c -o libfluxsession_la-sessionmgr.lo `test -f 'sessionmgr.c' || echo '$(srcdir)/'`sessionmgr.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libfluxsession_la-sessionmgr.Tpo $(DEPDIR)/libfluxsession_la-sessionmgr.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sessionmgr.c' object='libfluxsession_la-sessionmgr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libfluxsession_la-sessionmgr.lo `test -f 'sessionmgr.c' || echo '$(srcdir)/'`sessionmgr.c
+
+libfluxsession_la-fluxmgr.lo: fluxmgr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libfluxsession_la-fluxmgr.lo -MD -MP -MF $(DEPDIR)/libfluxsession_la-fluxmgr.Tpo -c -o libfluxsession_la-fluxmgr.lo `test -f 'fluxmgr.c' || echo '$(srcdir)/'`fluxmgr.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libfluxsession_la-fluxmgr.Tpo $(DEPDIR)/libfluxsession_la-fluxmgr.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fluxmgr.c' object='libfluxsession_la-fluxmgr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libfluxsession_la-fluxmgr.lo `test -f 'fluxmgr.c' || echo '$(srcdir)/'`fluxmgr.c
+
+libfluxsession_la-procmgr.lo: procmgr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libfluxsession_la-procmgr.lo -MD -MP -MF $(DEPDIR)/libfluxsession_la-procmgr.Tpo -c -o libfluxsession_la-procmgr.lo `test -f 'procmgr.c' || echo '$(srcdir)/'`procmgr.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libfluxsession_la-procmgr.Tpo $(DEPDIR)/libfluxsession_la-procmgr.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='procmgr.c' object='libfluxsession_la-procmgr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libfluxsession_la-procmgr.lo `test -f 'procmgr.c' || echo '$(srcdir)/'`procmgr.c
+
+libfluxsession_la-spindlefemgr.lo: spindlefemgr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libfluxsession_la-spindlefemgr.lo -MD -MP -MF $(DEPDIR)/libfluxsession_la-spindlefemgr.Tpo -c -o libfluxsession_la-spindlefemgr.lo `test -f 'spindlefemgr.c' || echo '$(srcdir)/'`spindlefemgr.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libfluxsession_la-spindlefemgr.Tpo $(DEPDIR)/libfluxsession_la-spindlefemgr.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='spindlefemgr.c' object='libfluxsession_la-spindlefemgr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libfluxsession_la-spindlefemgr.lo `test -f 'spindlefemgr.c' || echo '$(srcdir)/'`spindlefemgr.c
+
+libfluxsession_la-spindlebemgr.lo: spindlebemgr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libfluxsession_la-spindlebemgr.lo -MD -MP -MF $(DEPDIR)/libfluxsession_la-spindlebemgr.Tpo -c -o libfluxsession_la-spindlebemgr.lo `test -f 'spindlebemgr.c' || echo '$(srcdir)/'`spindlebemgr.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libfluxsession_la-spindlebemgr.Tpo $(DEPDIR)/libfluxsession_la-spindlebemgr.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='spindlebemgr.c' object='libfluxsession_la-spindlebemgr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libfluxsession_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libfluxsession_la-spindlebemgr.lo `test -f 'spindlebemgr.c' || echo '$(srcdir)/'`spindlebemgr.c
+
 libspindleflux_la-flux-spindle.lo: flux-spindle.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libspindleflux_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libspindleflux_la-flux-spindle.lo -MD -MP -MF $(DEPDIR)/libspindleflux_la-flux-spindle.Tpo -c -o libspindleflux_la-flux-spindle.lo `test -f 'flux-spindle.c' || echo '$(srcdir)/'`flux-spindle.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libspindleflux_la-flux-spindle.Tpo $(DEPDIR)/libspindleflux_la-flux-spindle.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='flux-spindle.c' object='libspindleflux_la-flux-spindle.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libspindleflux_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libspindleflux_la-flux-spindle.lo `test -f 'flux-spindle.c' || echo '$(srcdir)/'`flux-spindle.c
+
+$(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.o: $(top_builddir)/src/utils/spindle_mkdir.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT $(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.o -MD -MP -MF $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Tpo -c -o $(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.o `test -f '$(top_builddir)/src/utils/spindle_mkdir.c' || echo '$(srcdir)/'`$(top_builddir)/src/utils/spindle_mkdir.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Tpo $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_builddir)/src/utils/spindle_mkdir.c' object='$(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o $(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.o `test -f '$(top_builddir)/src/utils/spindle_mkdir.c' || echo '$(srcdir)/'`$(top_builddir)/src/utils/spindle_mkdir.c
+
+$(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.obj: $(top_builddir)/src/utils/spindle_mkdir.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT $(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.obj -MD -MP -MF $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Tpo -c -o $(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.obj `if test -f '$(top_builddir)/src/utils/spindle_mkdir.c'; then $(CYGPATH_W) '$(top_builddir)/src/utils/spindle_mkdir.c'; else $(CYGPATH_W) '$(srcdir)/$(top_builddir)/src/utils/spindle_mkdir.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Tpo $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_builddir)/src/utils/spindle_mkdir.c' object='$(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o $(top_builddir)/src/utils/spindle_flux_session-spindle_mkdir.obj `if test -f '$(top_builddir)/src/utils/spindle_mkdir.c'; then $(CYGPATH_W) '$(top_builddir)/src/utils/spindle_mkdir.c'; else $(CYGPATH_W) '$(srcdir)/$(top_builddir)/src/utils/spindle_mkdir.c'; fi`
+
+$(top_builddir)/src/utils/spindle_flux_session-parseloc.o: $(top_builddir)/src/utils/parseloc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT $(top_builddir)/src/utils/spindle_flux_session-parseloc.o -MD -MP -MF $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Tpo -c -o $(top_builddir)/src/utils/spindle_flux_session-parseloc.o `test -f '$(top_builddir)/src/utils/parseloc.c' || echo '$(srcdir)/'`$(top_builddir)/src/utils/parseloc.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Tpo $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_builddir)/src/utils/parseloc.c' object='$(top_builddir)/src/utils/spindle_flux_session-parseloc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o $(top_builddir)/src/utils/spindle_flux_session-parseloc.o `test -f '$(top_builddir)/src/utils/parseloc.c' || echo '$(srcdir)/'`$(top_builddir)/src/utils/parseloc.c
+
+$(top_builddir)/src/utils/spindle_flux_session-parseloc.obj: $(top_builddir)/src/utils/parseloc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT $(top_builddir)/src/utils/spindle_flux_session-parseloc.obj -MD -MP -MF $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Tpo -c -o $(top_builddir)/src/utils/spindle_flux_session-parseloc.obj `if test -f '$(top_builddir)/src/utils/parseloc.c'; then $(CYGPATH_W) '$(top_builddir)/src/utils/parseloc.c'; else $(CYGPATH_W) '$(srcdir)/$(top_builddir)/src/utils/parseloc.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Tpo $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_builddir)/src/utils/parseloc.c' object='$(top_builddir)/src/utils/spindle_flux_session-parseloc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o $(top_builddir)/src/utils/spindle_flux_session-parseloc.obj `if test -f '$(top_builddir)/src/utils/parseloc.c'; then $(CYGPATH_W) '$(top_builddir)/src/utils/parseloc.c'; else $(CYGPATH_W) '$(srcdir)/$(top_builddir)/src/utils/parseloc.c'; fi`
+
+.cc.o:
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ $<
+
+.cc.obj:
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+.cc.lo:
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCXX_TRUE@	$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCXX_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
+
+spindle_flux_session-main.o: main.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT spindle_flux_session-main.o -MD -MP -MF $(DEPDIR)/spindle_flux_session-main.Tpo -c -o spindle_flux_session-main.o `test -f 'main.cc' || echo '$(srcdir)/'`main.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spindle_flux_session-main.Tpo $(DEPDIR)/spindle_flux_session-main.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='main.cc' object='spindle_flux_session-main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o spindle_flux_session-main.o `test -f 'main.cc' || echo '$(srcdir)/'`main.cc
+
+spindle_flux_session-main.obj: main.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT spindle_flux_session-main.obj -MD -MP -MF $(DEPDIR)/spindle_flux_session-main.Tpo -c -o spindle_flux_session-main.obj `if test -f 'main.cc'; then $(CYGPATH_W) 'main.cc'; else $(CYGPATH_W) '$(srcdir)/main.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spindle_flux_session-main.Tpo $(DEPDIR)/spindle_flux_session-main.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='main.cc' object='spindle_flux_session-main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spindle_flux_session_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o spindle_flux_session-main.obj `if test -f 'main.cc'; then $(CYGPATH_W) 'main.cc'; else $(CYGPATH_W) '$(srcdir)/main.cc'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -630,9 +882,9 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES) $(DATA)
+all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(rcdir)"; do \
+	for dir in "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(rcdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -661,6 +913,8 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-test -z "$(top_builddir)/src/utils/$(DEPDIR)/$(am__dirstamp)" || rm -f $(top_builddir)/src/utils/$(DEPDIR)/$(am__dirstamp)
+	-test -z "$(top_builddir)/src/utils/$(am__dirstamp)" || rm -f $(top_builddir)/src/utils/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -668,10 +922,19 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
+	clean-noinstLTLIBRARIES clean-pkglibexecPROGRAMS \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/libspindleflux_la-flux-spindle.Plo
+		-rm -f $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Po
+	-rm -f $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Po
+	-rm -f ./$(DEPDIR)/libfluxsession_la-fluxmgr.Plo
+	-rm -f ./$(DEPDIR)/libfluxsession_la-procmgr.Plo
+	-rm -f ./$(DEPDIR)/libfluxsession_la-sessionmgr.Plo
+	-rm -f ./$(DEPDIR)/libfluxsession_la-spindlebemgr.Plo
+	-rm -f ./$(DEPDIR)/libfluxsession_la-spindlefemgr.Plo
+	-rm -f ./$(DEPDIR)/libspindleflux_la-flux-spindle.Plo
+	-rm -f ./$(DEPDIR)/spindle_flux_session-main.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -694,7 +957,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-libLTLIBRARIES
+install-exec-am: install-libLTLIBRARIES install-pkglibexecPROGRAMS
 
 install-html: install-html-am
 
@@ -717,7 +980,15 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/libspindleflux_la-flux-spindle.Plo
+		-rm -f $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-parseloc.Po
+	-rm -f $(top_builddir)/src/utils/$(DEPDIR)/spindle_flux_session-spindle_mkdir.Po
+	-rm -f ./$(DEPDIR)/libfluxsession_la-fluxmgr.Plo
+	-rm -f ./$(DEPDIR)/libfluxsession_la-procmgr.Plo
+	-rm -f ./$(DEPDIR)/libfluxsession_la-sessionmgr.Plo
+	-rm -f ./$(DEPDIR)/libfluxsession_la-spindlebemgr.Plo
+	-rm -f ./$(DEPDIR)/libfluxsession_la-spindlefemgr.Plo
+	-rm -f ./$(DEPDIR)/libspindleflux_la-flux-spindle.Plo
+	-rm -f ./$(DEPDIR)/spindle_flux_session-main.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -734,24 +1005,28 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-libLTLIBRARIES uninstall-rcDATA
+uninstall-am: uninstall-libLTLIBRARIES uninstall-pkglibexecPROGRAMS \
+	uninstall-rcDATA
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-am clean \
-	clean-generic clean-libLTLIBRARIES clean-libtool cscopelist-am \
+	clean-generic clean-libLTLIBRARIES clean-libtool \
+	clean-noinstLTLIBRARIES clean-pkglibexecPROGRAMS cscopelist-am \
 	ctags ctags-am distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
 	install-info-am install-libLTLIBRARIES install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-rcDATA \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	mostlyclean-local pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-libLTLIBRARIES uninstall-rcDATA
+	install-pdf-am install-pkglibexecPROGRAMS install-ps \
+	install-ps-am install-rcDATA install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool mostlyclean-local pdf \
+	pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-libLTLIBRARIES uninstall-pkglibexecPROGRAMS \
+	uninstall-rcDATA
 
 .PRECIOUS: Makefile
 

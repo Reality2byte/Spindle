@@ -78,6 +78,7 @@ fi
 if test "x$ENABLE_FLUX_PLUGIN" == "xtrue"; then
   AC_DEFINE([ENABLE_FLUX_PLUGIN], [1], [Flux with via plugin is enabled])
 fi
+AM_CONDITIONAL([BLD_FLUXPLUGIN], [test "x$ENABLE_FLUX_PLUGIN" = "xtrue"])
 
 AC_MSG_CHECKING([for glibc dtv allocation bug])
 if test "x`${SPINDLE_SOURCE_ROOT}/scripts/dtvtest/run_dtvtest.sh ${SPINDLE_SOURCE_ROOT}/scripts/dtvtest ${SPINDLE_BUILD_ROOT}/dtvtest '$CC' '$CFLAGS'`" == "x0"; then

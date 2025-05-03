@@ -28,9 +28,15 @@ libspindlefe_static_la_LIBADD = $(libspindlefe_la_LIBADD)
 
 
 spindle_CPPFLAGS = $(CORE_CPPFLAGS) -DSPINDLEEXE
-spindle_SOURCES = spindle_fe_main.cc spindle_fe_serial.cc parse_launcher.cc parse_launcher_args.cc launcher.cc spindle_session.cc launch_slurm.cc launch_lsf.cc $(CORE_SOURCES)
+spindle_SOURCES = spindle_fe_main.cc spindle_fe_serial.cc parse_launcher.cc parse_launcher_args.cc launcher.cc spindle_session.cc launch_slurm.cc launch_lsf.cc launch_flux.cc $(CORE_SOURCES)
 
 spindle_LDADD = $(CORE_LDADD) $(top_builddir)/openmpi_intercept/libparseompi.la $(top_builddir)/hostbin/libhostbin.la
+
+if BLD_FLUXPLUGIN
+spindle_LDADD += $(FLUX_CORE_LIBS) $(FLUX_HOSTLIST_LIBS) $(top_builddir)/flux/libfluxsessionfe.la
+spindle_LDFLAGS = $(fluxplugin-ldflags) -Wl,--allow-multiple-definition
+spindle_CPPFLAGS += -I$(top_srcdir)/../flux
+endif
 
 if LMON
 spindle_LDADD += $(top_builddir)/launchmon/libfelmon.la

@@ -166,8 +166,8 @@ am__define_uniq_tagged_files = \
 ETAGS = etags
 CTAGS = ctags
 CSCOPE = cscope
-DIST_SUBDIRS = logging cobo comlib openmpi_intercept launchmon hostbin \
-	startup
+DIST_SUBDIRS = logging cobo comlib openmpi_intercept launchmon flux \
+	hostbin startup
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/../../scripts/ar-lib \
 	$(top_srcdir)/../../scripts/compile \
@@ -371,7 +371,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @LMON_TRUE@BUILD_LMON = launchmon
-SUBDIRS = logging cobo comlib openmpi_intercept $(BUILD_LMON) hostbin startup
+@BLD_FLUXPLUGIN_TRUE@BUILD_FLUX = flux
+SUBDIRS = logging cobo comlib openmpi_intercept $(BUILD_LMON) $(BUILD_FLUX) hostbin startup
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
