@@ -60,6 +60,7 @@ enum SpindleConfigID {
    confMsgcacheBuffer,
    confMsgcacheTimeout,
    confCleanupProc,
+   confExecExcludes,
    confEnableRsh,
    confRshCommand,
    confStartSession,
@@ -121,7 +122,8 @@ enum CmdlineShortOptions {
    shortNetwork = 294,
    shortHostbinEnable = 295,
    shortSpindleLevel = 296,
-   shortLocalPrefix = 297   
+   shortLocalPrefix = 297,
+   shortExecExcludes = 298
 };
 
 enum CmdlineGroups {

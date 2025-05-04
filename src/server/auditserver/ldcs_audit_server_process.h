@@ -129,6 +129,7 @@ struct ldcs_process_data_struct
   char *hostname;
   char *pythonprefix;
   char *localprefix;
+  char *exec_excludes;
   char *numa_substrs;
   char *numa_excludes;   
   msgbundle_entry_t *msgbundle_entries;

@@ -319,21 +319,58 @@ int read_buffer(char *localname, char *buffer, int size)
    return 0;
 }
 
-static char* compilers[] = { "gcc", "g++", "cc", "CC", "clang", "clang++",
-                             "hipcc", "amdclang", "amdclang++",
-                             "craycc", "crayCC",
-                             "ld", "ld.lld",
-                             "mpicc", "mpic++", "mpicxx",
-                             "make", "gmake", "cmake", NULL };
+extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
+extern int number;
+int get_dirlists(char ***prefixes, char ***eexecs)
+{
+   static char **local_prefixes = NULL;
+   static char **exec_excludes = NULL;
+   static int did_query = 0;
+   char *local_str = NULL, *exec_str = NULL, *to_free = NULL;
+   int result;
 
-                             
-int isCompiler(const char *fname)
+   if (did_query) {
+      if (prefixes)
+         *prefixes = local_prefixes;
+      if (eexecs) 
+         *eexecs = exec_excludes;
+      return 0;
+   }
+
+   did_query = 1;
+   result = send_dirlists_request(ldcsid, &local_str, &exec_str, &to_free);
+   if (result == -1) {
+      debug_printf("Returning error from get_dirlists because of send error\n");
+      return -1;
+   }
+
+   local_prefixes = parse_colonsep_prefixes(local_str, number);
+   exec_excludes = parse_colonsep_prefixes(exec_str, number);
+
+   if (to_free)
+      spindle_free(to_free);
+   
+   if (prefixes)
+      *prefixes = local_prefixes;
+   if (eexecs)
+      *eexecs = exec_excludes;
+   return result;
+}
+
+int isExecExcluded(const char *fname)
 {
    const char *aout = NULL;
    const char *lastslash;
-   int i;
+   char **exec_excludes = NULL;
+   int i, result;
 
    if (!fname)
+      return 0;
+
+   result = get_dirlists(NULL, &exec_excludes);
+   if (result == -1)
+      return -1;
+   if (!exec_excludes)
       return 0;
    
    lastslash = strrchr(fname, '/');
@@ -342,8 +379,8 @@ int isCompiler(const char *fname)
    else
       aout = fname;
 
-   for (i = 0; compilers[i] != NULL; i++) {
-      if (strcmp(compilers[i], aout) == 0) {
+   for (i = 0; exec_excludes[i] != NULL; i++) {
+      if (strcmp(exec_excludes[i], aout) == 0) {
          return 1;
       }
    }

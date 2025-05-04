@@ -38,6 +38,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "spindle_launch.h"
 #include "shmcache.h"
 #include "ccwarns.h"
+#include "exec_util.h"
 
 errno_location_t app_errno_location;
 
@@ -453,9 +454,14 @@ static void read_python_prefixes(int fd, char **path)
    }
 }
 
-int get_local_prefixes(char **prefixes)
+int get_local_prefixes(char ***prefixes)
 {
-   return send_local_prefix_request(ldcsid, prefixes);
+   return get_dirlists(prefixes, NULL);
+}
+
+int get_exec_excludes(char ***eexcludes)
+{
+   return get_dirlists(NULL, eexcludes);
 }
 
 python_path_t *pythonprefixes = NULL;

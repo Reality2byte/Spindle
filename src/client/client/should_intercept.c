@@ -48,21 +48,16 @@ int is_in_spindle_cache(const char *pathname)
 }
 
 extern int is_local_prefix(const char *path, char **cached_local_prefixes);
-extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
-extern int number;
 
 static int is_local_file(const char *pathname)
 {
-   static char **cached_local_prefixes = NULL;
-   if (!cached_local_prefixes) {
-      char *colonsep_list = NULL;
-      int result = get_local_prefixes(&colonsep_list);
-      if (result == -1) {
-         return -1;
-      }
-      cached_local_prefixes = parse_colonsep_prefixes(colonsep_list, number);
-   }
-   return is_local_prefix(pathname, cached_local_prefixes);
+   char **local_prefixes = NULL;
+   int result;
+
+   result = get_local_prefixes(&local_prefixes);
+   if (result == -1)
+      return -1;
+   return is_local_prefix(pathname, local_prefixes);
 }
 
 static int is_python_path(const char *pathname)

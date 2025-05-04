@@ -130,6 +130,7 @@ using namespace std;
 #define RSHCMD_STR ""
 #endif
 
+#define DEFAULT_EXEC_EXCLUDE_LIST "gcc:g++:cc:CC:clang:clang++:hipcc:amdclang:amdclang++:craycc:crayCC:ld:ld.lld:mpicc:mpic++:mpicxx:make:gmake:cmake"
 const list<SpindleOption> *Options;
 
 void initOptionsList()
@@ -236,6 +237,8 @@ void initOptionsList()
      "Colon-seperated list of directories that contain the python install locations." },
    { confCachePrefix, "cache-prefix", shortCachePrefix, groupMisc, cvList, {}, "",
      "Alias for python-prefix" },
+   { confExecExcludes, "exec-excludes", shortExecExcludes, groupMisc, cvList, {}, DEFAULT_EXEC_EXCLUDE_LIST,
+     "Colon-seperated list of executable names that should not be run under spindle." },
    { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR ":$TMPDIR/:/proc/:/dev/:/var/:/tmp/",
      "Colon-seperated list of directories that spindle will not cache files out of" },
    { confDebug, "debug", shortDebug, groupMisc, cvBool, {}, "false",
@@ -699,6 +702,9 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
          case confCachePrefix:
          case confPythonPrefix:
             args.pythonprefix = getstr(strresult, alloc_strs);
+            break;
+         case confExecExcludes:
+            args.exec_excludes = getstr(strresult, alloc_strs);
             break;
          case confLocalPrefix:
             args.local_prefixes = getstr(strresult, alloc_strs);

@@ -175,7 +175,7 @@ static int handle_cache_ldso(ldcs_process_data_t *procdata, char *pathname, int 
                              ldso_info_t *ldsoinfo, char **localname);
 static int handle_msgbundle(ldcs_process_data_t *procdata, node_peer_t peer, ldcs_message_t *msg);
 static int handle_setup_alias(ldcs_process_data_t *procdata, char *pathname, char *alias_to);
-static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc);
+static int handle_client_dirlists_req(ldcs_process_data_t *procdata, int nc);
 static int handle_close_client_query(ldcs_process_data_t *procdata, int nc);
 static int handle_alive_msg(ldcs_process_data_t *procdata, ldcs_message_t *msg);
 
@@ -234,11 +234,13 @@ static int handle_pythonprefix_query(ldcs_process_data_t *procdata, int nc)
    return 0;
 }
 
-static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc)
+static int handle_client_dirlists_req(ldcs_process_data_t *procdata, int nc)
 {
    ldcs_message_t msg;
    int connid;
    ldcs_client_t *client;
+   char *buffer;
+   int len, local_len, ee_len;
 
    assert(nc != -1);
    client = procdata->client_table + nc;
@@ -246,13 +248,28 @@ static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc)
    if (client->state != LDCS_CLIENT_STATUS_ACTIVE || connid < 0)
       return 0;
 
-   msg.header.type = LDCS_MSG_LOCALPREFIX_RESP;
-   msg.header.len = strlen(procdata->localprefix) + 1;
-   msg.data = procdata->localprefix;
+   local_len = strlen(procdata->localprefix) + 1;
+   ee_len = strlen(procdata->exec_excludes) + 1;
+   msg.header.type = LDCS_MSG_DIRLISTS_RESP;
+   msg.header.len = sizeof(local_len) + local_len + sizeof(ee_len) + ee_len;
+
+   buffer = (char *) malloc(msg.header.len);
+   len = 0;
+   memcpy(buffer + len, &local_len, sizeof(local_len));
+   len += sizeof(local_len);
+   memcpy(buffer + len, procdata->localprefix, local_len);
+   len += local_len;
+   memcpy(buffer + len, &ee_len, sizeof(ee_len));
+   len += sizeof(ee_len);
+   memcpy(buffer + len, procdata->exec_excludes, ee_len);
+   len += ee_len;
+   assert(len == msg.header.len);
+   msg.data = buffer;
    
    ldcs_send_msg(connid, &msg);
    procdata->server_stat.clientmsg.cnt++;
    procdata->server_stat.clientmsg.time += ldcs_get_time() - client->query_arrival_time;
+   free(buffer);
    return 0;
 }
 
@@ -1846,8 +1863,8 @@ int handle_client_message(ldcs_process_data_t *procdata, int nc, ldcs_message_t 
          return handle_pythonprefix_query(procdata, nc);
       case LDCS_MSG_MYRANKINFO_QUERY:
          return handle_client_myrankinfo_msg(procdata, nc, msg);
-      case LDCS_MSG_LOCALPREFIX_REQ:
-         return handle_client_localprefix_req(procdata, nc);
+      case LDCS_MSG_DIRLISTS_REQ:
+         return handle_client_dirlists_req(procdata, nc);
       case LDCS_MSG_FILE_QUERY:
       case LDCS_MSG_FILE_QUERY_EXACT_PATH:
       case LDCS_MSG_DSO_QUERY:

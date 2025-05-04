@@ -65,8 +65,8 @@ static int shouldPropogateSpindle(char **envp, const char *fname)
    int i;
    char *spindle;
 
-   if (isCompiler(fname)){
-      debug_printf2("Not propogating spindle because %s is a compiler.\n", fname);
+   if (isExecExcluded(fname)){
+      debug_printf2("Not propogating spindle because %s is excluded.\n", fname);
       return 0;
    }
    

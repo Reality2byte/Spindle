@@ -69,7 +69,8 @@ FILE *fopen_worker(const char *path, const char *mode, int is_64);
 void remap_executable();
 int get_ldso_metadata(signed int *binding_offset);
 
-int get_local_prefixes(char **prefixes);
+int get_local_prefixes(char ***prefixes);
+int get_exec_excludes(char ***eexcludes);
 int get_relocated_file(int fd, const char *name, int dso, char** newname, int *errcode);
 #define STAT_SELF_OPEN 1
 int get_stat_result(int fd, const char *path, int is_lstat, int *exists, struct stat *buf);

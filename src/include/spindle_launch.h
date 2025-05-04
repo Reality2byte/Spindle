@@ -152,6 +152,9 @@ typedef struct {
 
    /* If running in a session, the key for that session */
    char *session_key;
+
+   /* Executable names to exclude from spindle and not run on */
+   char *exec_excludes;
 } spindle_args_t;
 
 /* Functions used to startup Spindle on the front-end. Init returns after finishing start-up,
