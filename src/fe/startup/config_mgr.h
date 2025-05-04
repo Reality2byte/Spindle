@@ -183,6 +183,7 @@ class ConfigMap
   public:
    ConfigMap();
    ConfigMap(std::string origin_);
+   std::string mergeLists(std::string value, std::string existing);
    bool mergeOnto(const ConfigMap &other);
    bool set(SpindleConfigID name, std::string value, std::string &errstring);
    void debugPrint() const;

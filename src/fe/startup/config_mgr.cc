@@ -130,6 +130,12 @@ using namespace std;
 #define RSHCMD_STR ""
 #endif
 
+#if defined(PYTHON_INST_PREFIX)
+#define PYTHON_PREFIX_DEFAULT PYTHON_INST_PREFIX
+#else
+#define PYTHON_PREFIX_DEFAULT ""
+#endif
+
 #define DEFAULT_EXEC_EXCLUDE_LIST "gcc:g++:cc:CC:clang:clang++:hipcc:amdclang:amdclang++:craycc:crayCC:ld:ld.lld:mpicc:mpic++:mpicxx:make:gmake:cmake"
 const list<SpindleOption> *Options;
 
@@ -233,13 +239,13 @@ void initOptionsList()
      "Runs spindle in audit or subaudit mode. Subaudit is needed for certain glibc versions on PPC systems." },
    { confShmcacheSize, "shmcache-size", shortSharedCacheSize, groupMisc, cvInteger, {}, SHMCACHE_SIZE_STR,
      "Size of client shared memory cache in kb, which can be used to improve performance if multiple processes are running on each node." },
-   { confPythonPrefix, "python-prefix", shortPythonPrefix, groupMisc, cvList, {}, "",
+   { confPythonPrefix, "python-prefix", shortPythonPrefix, groupMisc, cvList, {}, PYTHON_PREFIX_DEFAULT,
      "Colon-seperated list of directories that contain the python install locations." },
    { confCachePrefix, "cache-prefix", shortCachePrefix, groupMisc, cvList, {}, "",
      "Alias for python-prefix" },
    { confExecExcludes, "exec-excludes", shortExecExcludes, groupMisc, cvList, {}, DEFAULT_EXEC_EXCLUDE_LIST,
      "Colon-seperated list of executable names that should not be run under spindle." },
-   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR ":$TMPDIR/:/proc/:/dev/:/var/:/tmp/",
+   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR,
      "Colon-seperated list of directories that spindle will not cache files out of" },
    { confDebug, "debug", shortDebug, groupMisc, cvBool, {}, "false",
      "If yes, hide spindle from debuggers so they think libraries come from the original locations.  May cause extra overhead." },
@@ -347,6 +353,27 @@ void ConfigMap::setApplicationCmdline(int argc, char **argv)
    }
 }
 
+#define LIST_RESET_TOKEN "NONE"
+#define LIST_RESET_TOKEN_SIZE 4
+string ConfigMap::mergeLists(string value, string existing)
+{
+   std::size_t pos = value.find(LIST_RESET_TOKEN);
+   if (pos == string::npos) {
+      return existing.empty() ? value : value + ":" + existing; 
+   }
+   std::size_t next_term_start = pos + LIST_RESET_TOKEN_SIZE;
+   bool none_starts_term = (pos == 0) || (value[pos-1] == ':');
+   bool none_ends_term = (next_term_start == value.length()) || (value[next_term_start] == ':');
+   if (!none_starts_term || !none_ends_term) {
+      return existing.empty() ? value : value + ":" + existing; 
+   }
+
+   if (next_term_start == value.length())
+      return std::string();
+   else
+      return value.substr(next_term_start + 1);
+}
+
 bool ConfigMap::mergeOnto(const ConfigMap &other)
 {
    for (map<SpindleConfigID, string>::const_iterator i = other.name_values.begin(); i != other.name_values.end(); i++) {
@@ -364,9 +391,9 @@ bool ConfigMap::mergeOnto(const ConfigMap &other)
       string existing_value = existing_valuei != name_values.end() ? existing_valuei->second : "";
       
       string newvalue;
-      if (conftype == cvList && !existing_value.empty()) {
-         newvalue = value + ":" + existing_value;
-         debug_printf3("Config parsing merging lists for %s '%s' and '%s' from configmap %s to %s\n",
+      if (conftype == cvList) {
+         newvalue = mergeLists(value, existing_value);
+         debug_printf3("Config parsing merging lists for %s '%s' and '%s' from configmap %s to '%s'\n",
                        opt.cmdline_long, existing_value.c_str(), value.c_str(), other.origin.c_str(), newvalue.c_str());
       }
       else if (!existing_value.empty() && existing_value != value) {
@@ -701,7 +728,10 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
          }
          case confCachePrefix:
          case confPythonPrefix:
-            args.pythonprefix = getstr(strresult, alloc_strs);
+            if (args.pythonprefix)
+               args.pythonprefix = getstr(string(args.pythonprefix) + string(":") + strresult, true);
+            else
+               args.pythonprefix = getstr(strresult, alloc_strs);
             break;
          case confExecExcludes:
             args.exec_excludes = getstr(strresult, alloc_strs);
