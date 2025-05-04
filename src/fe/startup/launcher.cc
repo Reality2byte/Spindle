@@ -210,8 +210,9 @@ bool ForkLauncher::getReturnCodes(bool &daemon_done, int &daemon_ret,
 
 extern Launcher *createSlurmLauncher(spindle_args_t *params, ConfigMap &config);
 extern Launcher *createLSFLauncher(spindle_args_t *params, ConfigMap &config);
+#if defined(ENABLE_FLUX_PLUGIN)
 extern Launcher *createFluxSessionLauncher(spindle_args_t *params, ConfigMap &config);
-
+#endif
 
 Launcher *createMPILauncher(spindle_args_t *params, ConfigMap &config)
 {
@@ -233,8 +234,10 @@ Launcher *createMPILauncher(spindle_args_t *params, ConfigMap &config)
    switch (launcher) {
       case srun_launcher:
          return createSlurmLauncher(params, config);
+#if defined(ENABLE_FLUX_PLUGIN)
       case flux_session_launcher:
          return createFluxSessionLauncher(params, config);
+#endif
       case lrun_launcher:
       case jsrun_launcher:
          return createLSFLauncher(params, config);
