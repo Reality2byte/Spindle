@@ -23,7 +23,7 @@ if [ $1 == --end-session ] ; then
     if [ x$2 == xANONYMOUS_SESSION ] ; then
         $SPINDLE --end-session
     else
-        $SPINDLE $*
+        $SPINDLE $1=$2
     fi
     exit 0
 fi
