@@ -362,7 +362,7 @@ static int find_exec(const char *filepath, char **argv, char *newpath, int newpa
       return -1;
    }
    debug_printf2("Exec operation requesting file: %s\n", filepath);
-   get_relocated_file(ldcsid, (char *) filepath, 1, &newname, &errcode);
+   get_relocated_file(ldcsid, (char *) filepath, 1, &newname, &errcode, NULL);
    debug_printf("Exec file request returned %s -> %s with errcode %d\n",
                 filepath, newname ? newname : "NULL", errcode);
        

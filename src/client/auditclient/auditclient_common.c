@@ -38,6 +38,8 @@ void la_preinit(uintptr_t *cookie) AUDIT_EXPORT;
 unsigned int la_objclose (uintptr_t *cookie) AUDIT_EXPORT;
 
 extern unsigned int spindle_la_version(unsigned int version);
+extern void restore_pathpatch();
+
 unsigned int la_version(unsigned int version)
 {
    int result = client_init();
@@ -59,6 +61,7 @@ char *la_objsearch(const char *name, uintptr_t *cookie, unsigned int flag)
                  (flag == LA_SER_CONFIG) ?  "LA_SER_CONFIG" :
                  (flag == LA_SER_SECURE) ?  "LA_SER_SECURE" :
                  "???");
+   restore_pathpatch();   
 
    /* check if direct name given --> return name  */
    if (!strchr(name, '/')) {
@@ -84,13 +87,13 @@ unsigned int la_objopen(struct link_map *map, Lmid_t lmid, uintptr_t *cookie)
       to convert from cookies to link_maps.
    */
       
-      
    debug_printf3("la_objopen(): loading %s, link_map = %p, lmid = %s, cookie = %p\n",
                  map->l_name, map,
                  (lmid == LM_ID_BASE) ?  "LM_ID_BASE" :
                  (lmid == LM_ID_NEWLM) ? "LM_ID_NEWLM" : 
                  "???", 
                  cookie);
+   restore_pathpatch();      
 
    if (!firstcookie) {
       firstcookie = cookie;
@@ -118,6 +121,7 @@ void la_activity (uintptr_t *cookie, unsigned int flag)
                  (flag == LA_ACT_DELETE) ?     "LA_ACT_DELETE" :
                  "???");
 
+   restore_pathpatch();      
    if (flag == LA_ACT_CONSISTENT) {
       mark_newlibs_as_need_writable_got();
    }

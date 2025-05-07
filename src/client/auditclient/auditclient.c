@@ -25,6 +25,8 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <stdlib.h>
 #include <unistd.h>
 
+extern void restore_pathpatch();
+
 unsigned int spindle_la_version(unsigned int version)
 {
    patchDTV_init();
@@ -38,6 +40,7 @@ void spindle_la_activity (uintptr_t *cookie, unsigned int flag)
                  (flag == LA_ACT_ADD) ?        "LA_ACT_ADD" :
                  (flag == LA_ACT_DELETE) ?     "LA_ACT_DELETE" :
                  "???");
+   restore_pathpatch();   
    if (flag == LA_ACT_CONSISTENT) {
       patchDTV_check();
       lookup_libc_symbols();
@@ -47,7 +50,8 @@ void spindle_la_activity (uintptr_t *cookie, unsigned int flag)
 
 unsigned int spindle_la_objopen(struct link_map *map, Lmid_t lmid, uintptr_t *cookie)
 {
-   patch_on_linkactivity(map);
+   restore_pathpatch();
+   patch_on_linkactivity(map);   
    return LA_FLG_BINDTO | LA_FLG_BINDFROM;
 }
 

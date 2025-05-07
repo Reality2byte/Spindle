@@ -208,7 +208,7 @@ int get_stat_result(int fd, const char *path, int is_lstat, int *exists, struct 
    return network_result;
 }
 
-int get_relocated_file(int fd, const char *name, int dso, char** newname, int *errorcode)
+int get_relocated_file(int fd, const char *name, int dso, char** newname, int *errorcode, int *direxists)
 {
    int use_cache = (opts & OPT_SHMCACHE);
    int found_file = 0, result;
@@ -216,9 +216,14 @@ int get_relocated_file(int fd, const char *name, int dso, char** newname, int *e
 
    if (use_cache) {
       debug_printf2("Looking up %s in shared cache\n", name);
-      found_file = check_cache(name, "", cache_name, dir_name, ENOENT, errorcode, newname);
-      if (found_file)
+      found_file = check_cache(name, "", cache_name, dir_name, SPINDLE_ENODIR, errorcode, newname);
+      if (found_file) {
+         if (direxists) 
+            *direxists = (*errorcode == SPINDLE_ENODIR) ? 0 : 1;
+         if (*errorcode == SPINDLE_ENODIR)
+            *errorcode = ENOENT;
          return 0;
+      }
    }
 
    debug_printf2("Send file request to server: %s\n", name);
@@ -228,8 +233,11 @@ int get_relocated_file(int fd, const char *name, int dso, char** newname, int *e
    if (use_cache) {
       update_cache(cache_name, dir_name, *newname, errorcode, ENOENT);
    }
+   if (direxists) 
+      *direxists = (*errorcode == SPINDLE_ENODIR) ? 0 : 1;
    if (*errorcode == SPINDLE_ENODIR)
       *errorcode = ENOENT;
+   
 
    return result;
 }

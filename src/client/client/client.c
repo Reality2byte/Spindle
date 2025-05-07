@@ -377,10 +377,45 @@ int client_done()
 
 extern int dlopen_filter(const char *name);
 
+static char patch[4096];
+static char *last_patch_location = NULL;
+static int last_patch_len;
+static const char *stat_not_found_prefix = NOT_FOUND_PREFIX "/";
+
+static void pathpatch_old_name(char *filename)
+{
+   int len;
+   for (len = 0; filename[len] != '\0' && stat_not_found_prefix[len] != '\0'; len++);
+   if (len == 0) {
+      patch[0] = '\0';
+      last_patch_location = NULL;
+      return;
+   }
+
+   memcpy(patch, filename, len);
+   memcpy(filename, stat_not_found_prefix, len);
+   last_patch_location = filename;
+   last_patch_len = len;
+}
+
+void restore_pathpatch()
+{
+   if (!last_patch_location || !last_patch_len)
+      return;
+   if (strncmp(last_patch_location, stat_not_found_prefix, last_patch_len) != 0) {
+      last_patch_location = NULL;
+      last_patch_len = 0;
+      return;
+   }      
+   memcpy(last_patch_location, patch, last_patch_len);
+   last_patch_location = NULL;
+   last_patch_len = 0;
+}
+
 char *client_library_load(const char *name)
 {
    char *newname;
-   int errcode;
+   int errcode, direxists;
    char fixed_name[MAX_PATH_LEN+1];
 
    check_for_fork();
@@ -424,10 +459,12 @@ char *client_library_load(const char *name)
       return (char *) name;
    }
    
-   get_relocated_file(ldcsid, orig_file_name, 1, &newname, &errcode);
+   get_relocated_file(ldcsid, orig_file_name, 1, &newname, &errcode, &direxists);
  
    if(!newname) {
       newname = concatStrings(NOT_FOUND_PREFIX, orig_file_name);
+      if (!direxists)
+         pathpatch_old_name(orig_file_name);
    }
    else {
       patch_on_load_success(newname, orig_file_name, name);

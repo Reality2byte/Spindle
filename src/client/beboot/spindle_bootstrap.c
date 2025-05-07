@@ -269,7 +269,7 @@ static void get_clientlib()
    char *default_libstr = (opts & OPT_SUBAUDIT) ? default_subaudit_libstr : default_audit_libstr;
    int errorcode;
    
-   get_relocated_file(ldcsid, default_libstr, 1, &client_lib, &errorcode);
+   get_relocated_file(ldcsid, default_libstr, 1, &client_lib, &errorcode, NULL);
    if (client_lib == NULL) {
       client_lib = default_libstr;
       err_printf("Failed to relocate client library %s\n", default_libstr);
