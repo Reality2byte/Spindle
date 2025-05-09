@@ -66,6 +66,9 @@ static int is_python_path(const char *pathname)
 
    assert(pythonprefixes);
    for (i = 0; pythonprefixes[i].path != NULL; i++) {
+      if (pythonprefixes[i].regexpr && matches_spindle_regex(pythonprefixes[i].regexpr, pathname)) {
+         return 1;
+      }
       if (strncmp(pythonprefixes[i].path, pathname, pythonprefixes[i].pathsize) == 0)
          return 1;
    }

@@ -529,10 +529,12 @@ void parse_python_prefixes(int fd)
          *next = '\0';
       pythonprefixes[j].path = cur;
       pythonprefixes[j].pathsize = strlen(cur);
+      pythonprefixes[j].regexpr = parse_spindle_regex_str(cur);
       i += pythonprefixes[j].pathsize+1;
    }
    pythonprefixes[num_pythonprefixes].path = NULL;
    pythonprefixes[num_pythonprefixes].pathsize = 0;
+   pythonprefixes[num_pythonprefixes].regexpr = NULL;
 
    for (i = 0; pythonprefixes[i].path != NULL; i++)
       debug_printf3("Python path # %d = %s\n", i, pythonprefixes[i].path);

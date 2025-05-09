@@ -25,6 +25,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <link.h>
 
 #include "spindle_launch.h"
+#include "spindle_regex.h"
 
 #define NOT_FOUND_PREFIX "/__not_exists"
 
@@ -83,6 +84,7 @@ int fetch_from_cache(const char *name, char **newname);
 typedef struct {
    char *path;
    int pathsize;
+   spindle_regex_t regexpr;
 } python_path_t;
 extern python_path_t *pythonprefixes;
 void parse_python_prefixes(int fd);
