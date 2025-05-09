@@ -103,5 +103,6 @@ struct spindle_binding_t {
 void init_bindings_hash();
 struct spindle_binding_t *lookup_in_binding_hash(const char *name);
 struct spindle_binding_t *get_bindings();
+int init_intercept_ldso_stat();
 
 #endif

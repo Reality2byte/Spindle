@@ -200,7 +200,7 @@ static void setupSecurity(spindle_args_t *params)
 
 int getApplicationArgsFE(spindle_args_t *params, int *spindle_argc, char ***spindle_argv)
 {
-   char number_s[32], opt_s[32], cachesize_s[32], security_s[32];
+   char number_s[32], opt_s[64], cachesize_s[32], security_s[32];
    char port_s[32], numports_s[32], uniqueid_s[32], daemonargc_s[32];
    int n = 0;
 
@@ -345,6 +345,7 @@ static void printSpindleFlags(opt_t opts) {
    printFlag(opts, OPT_STOPRELOC, "OPT_STOPRELOC", ss);
    printFlag(opts, OPT_NUMA, "OPT_NUMA", ss);
    printFlag(opts, OPT_OFF, "OPT_OFF", ss);
+   printFlag(opts, OPT_PATCHLDSO, "OPT_PATCHLDSO", ss);
    ss << ", ";
    if (OPT_GET_SEC(opts) == OPT_SEC_MUNGE) ss << "OPT_SEC_MUNGE";
    if (OPT_GET_SEC(opts) == OPT_SEC_KEYLMON) ss << "OPT_SEC_KEYLMON";

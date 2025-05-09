@@ -136,6 +136,12 @@ using namespace std;
 #define PYTHON_PREFIX_DEFAULT ""
 #endif
 
+#if BINARY_PATCH_LDSO == 1
+#define DEFAULT_PATCH_LDSO "true"
+#else
+#define DEFAULT_PATCH_LDSO "false"
+#endif
+
 #define DEFAULT_EXEC_EXCLUDE_LIST "gcc:g++:cc:CC:clang:clang++:hipcc:amdclang:amdclang++:craycc:crayCC:ld:ld.lld:mpicc:mpic++:mpicxx:make:gmake:cmake"
 const list<SpindleOption> *Options;
 
@@ -249,6 +255,8 @@ void initOptionsList()
      "Colon-seperated list of directories that spindle will not cache files out of" },
    { confDebug, "debug", shortDebug, groupMisc, cvBool, {}, "false",
      "If yes, hide spindle from debuggers so they think libraries come from the original locations.  May cause extra overhead." },
+   { confPatchLdso, "patch-ldso", shortPatchLdso, groupMisc, cvBool, {}, DEFAULT_PATCH_LDSO,
+     "Enables or disables dynamic binary patching of ld.so to better intercept stat calls." },
    { confPreload, "preload", shortPreload, groupMisc, cvString, {}, "",
      "Provides a text file containing a white-space separated list of files that should be relocated to each node before execution begins" },
    { confStrip, "strip", shortStrip, groupMisc, cvBool, {}, "true", 
@@ -955,8 +963,10 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
             break;
          case confEndSession:
          case confRunSession:
-            setopt(args.opts, OPT_SESSION, !strresult.empty());
-            
+            setopt(args.opts, OPT_SESSION, !strresult.empty());            
+            break;
+         case confPatchLdso:
+            setopt(args.opts, OPT_PATCHLDSO, boolresult);
             break;
       }
    }

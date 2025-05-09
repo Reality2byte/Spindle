@@ -25,6 +25,7 @@
 #include "client_heap.h"
 #include "client_api.h"
 #include "should_intercept.h"
+#include "patch_interception.h"
 
 #define INTERCEPT_STAT
 #if defined(INSTR_LIB)
@@ -56,13 +57,13 @@ int handle_stat(const char *path, struct stat *buf, int flags)
    }
    sync_cwd();
 
-   debug_printf3("Spindle considering stat call %s%sstat%s(%s)\n", 
+   debug_printf2("Spindle considering stat call %s%sstat%s(%s)\n", 
                  flags & IS_LSTAT ? "l" : "", 
                  flags & IS_XSTAT ? "x" : "",
                  flags & IS_64 ? "64" : "", 
                  path);
 
-   if (stat_filter(path) == ORIG_CALL) {
+   if ((!(flags & FROM_LDSO)) && stat_filter(path) == ORIG_CALL) {
       /* Not used by stat, means run the original */
       debug_printf3("Allowing original stat on %s\n", path);
       return ORIG_STAT;
@@ -82,7 +83,10 @@ int handle_stat(const char *path, struct stat *buf, int flags)
 
    if (!exists) {
       debug_printf3("File %s does not exist as per stat call\n", path);
-      set_errno(ENOENT);
+      if (flags & FROM_LDSO)
+         return ENOENT;
+      else
+         set_errno(ENOENT);
       return -1;
    }
    
@@ -197,3 +201,52 @@ int rtcache_fxstat64(int vers, int fd, struct stat *buf)
    return orig_fxstat64(vers, fd, buf);
 }
 
+static int *ldso_errno;
+int ldso_xstat(int ver, const char *filename, struct stat *buf)
+{
+   int result;
+   result = handle_stat(filename, buf, FROM_LDSO);
+   if (result != 0) {
+      if (*ldso_errno)
+         *ldso_errno = -result;
+      return -1;
+   }
+   return 0;
+}
+
+int ldso_lxstat(int ver, const char *filename, struct stat *buf)
+{
+   int result;
+   result = handle_stat(filename, buf, FROM_LDSO | IS_LSTAT);   
+   if (result != 0) {
+      if (*ldso_errno)
+         *ldso_errno = -result;
+      return -1;
+   }
+   return 0;
+}
+
+int init_intercept_ldso_stat()
+{
+   long int stat_offset = 0, lstat_offset = 0, errno_offset = 0;
+   int result;
+   
+   result = get_ldso_metadata_statdata(&stat_offset, &lstat_offset, &errno_offset);
+   if (result == -1) {
+      debug_printf2("Not patching ld.so stat calls because ld.so metadata collection returned incomplete\n");
+      return -1;
+   }
+
+   debug_printf2("Installing binary patch mapping ld.so's stat() mapping to our ldso_xstat()\n");
+   result = install_ldso_patch(stat_offset, ldso_xstat);
+   if (result == -1)
+      return -1;
+
+   debug_printf2("Installing binary patch mapping ld.so's lstat() mapping to our ldso_lxstat()\n");
+   result = install_ldso_patch(lstat_offset, ldso_lxstat);
+   if (result == -1)
+      return -1;
+
+   ldso_errno = calc_ldso_errno(errno_offset);
+   return 0;
+}

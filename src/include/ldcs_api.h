@@ -157,6 +157,9 @@ void mark_exit();
 
 typedef struct {
    int64_t binding_offset;
+   int64_t stat_offset;
+   int64_t lstat_offset;
+   int64_t errno_offset;
 } ldso_info_t;
 
 #define MAX_PATH_LEN 4096

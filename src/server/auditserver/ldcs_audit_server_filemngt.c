@@ -7,7 +7,7 @@ This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License (as published by the Free Software
 Foundation) version 2.1 dated February 1999.  This program is distributed in the
 hope that it will be useful, but WITHOUT ANY WARRANTY; without even the IMPLIED
-WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms 
+WARRANTY OF MECHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms 
 and conditions of the GNU Lesser General Public License for more details.  You should 
 have received a copy of the GNU Lesser General Public License along with this 
 program; if not, write to the Free Software Foundation, Inc., 59 Temple
@@ -508,6 +508,10 @@ int filemngt_read_stat(char *localname, struct stat *buf)
 #error Unknown architecture
 #endif
 
+const char *stat_names[] = { "__xstat", "_xstat", "__xstat64", NULL };
+const char *lstat_names[] = { "__lxstat", "_lxstat", "__lxstat64", NULL };
+const char *errno_names[] = { "rtld_errno", NULL };
+
 #define filemngt_ldso_elfx(filemngt_ldso_elfX, ElfX_Ehdr, ElfX_Shdr, ElfX_Sym, ElfX_Off, ElfX_Phdr) \
 static int filemngt_ldso_elfX(unsigned char *base, ldso_info_t *ldsoinfo) \
 {                                                                       \
@@ -520,6 +524,9 @@ static int filemngt_ldso_elfX(unsigned char *base, ldso_info_t *ldsoinfo) \
    int match_resolve, match_profile;                                    \
    char *names, *name;                                                  \
    unsigned long resolve_offset = 0, profile_offset = 0;                \
+   unsigned long stat_offset = 0;                                       \
+   unsigned long lstat_offset = 0;                                      \
+   unsigned long errno_offset = 0;                                      \
                                                                         \
    ehdr = (ElfX_Ehdr *) base;                                           \
    shdr = (ElfX_Shdr *) (base + ehdr->e_shoff);                         \
@@ -542,6 +549,27 @@ static int filemngt_ldso_elfX(unsigned char *base, ldso_info_t *ldsoinfo) \
          cur = syms + j;                                                \
          name = names + cur->st_name;                                   \
                                                                         \
+         if (!stat_offset) {                                            \
+            for (k = 0; stat_names[k]; k++) {                           \
+               if (strcmp(name, stat_names[k]) == 0) {                  \
+                  stat_offset = cur->st_value;                          \
+               }                                                        \
+            }                                                           \
+         }                                                              \
+         if (!lstat_offset) {                                           \
+            for (k = 0; lstat_names[k]; k++) {                          \
+               if (strcmp(name, lstat_names[k]) == 0) {                 \
+                  lstat_offset = cur->st_value;                         \
+               }                                                        \
+            }                                                           \
+         }                                                              \
+         if (!errno_offset) {                                          \
+            for (k = 0; errno_names[k]; k++) {                          \
+               if (strcmp(name, errno_names[k]) == 0) {                 \
+                  errno_offset = cur->st_value;                         \
+               }                                                        \
+            }                                                           \
+         }                                                              \
          match_resolve = (strcmp(name, "_dl_runtime_resolve") == 0);    \
          match_profile = (strcmp(name, PROFILE_FUNC_NAME) == 0);        \
                                                                         \
@@ -578,15 +606,24 @@ static int filemngt_ldso_elfX(unsigned char *base, ldso_info_t *ldsoinfo) \
                                                                         \
    if (!resolve_offset) {                                               \
       debug_printf("WARNING: Could not find symbol _dl_runtime_resolve in dynamic linker\n"); \
-      return -1;                                                        \
    }                                                                    \
                                                                         \
    if (!profile_offset) {                                               \
       debug_printf("WARNING: Could not find symbol _dl_runtime_profile in dynamic linker\n"); \
-      return -1;                                                        \
+   }                                                                    \
+                                                                        \
+   if (stat_offset) {                                                   \
+      debug_printf("WARNING: Could not find symbol stat in dynamic linker\n"); \
+   }                                                                    \
+                                                                        \
+   if (!lstat_offset) {                                                 \
+      debug_printf("WARNING: Could not find symbol fstat in dynamic linker\n"); \
    }                                                                    \
                                                                         \
    ldsoinfo->binding_offset = (signed long) (resolve_offset - profile_offset); \
+   ldsoinfo->stat_offset = stat_offset;                                 \
+   ldsoinfo->lstat_offset = lstat_offset;                               \
+   ldsoinfo->errno_offset = errno_offset;                               \
    return 0;                                                            \
 }
 
@@ -640,7 +677,6 @@ static int ldso_metadata_sym(char *pathname, ldso_info_t *ldsoinfo)
       goto done;
    }
    
-   
    ret = 0;
   done:
 
@@ -684,6 +720,9 @@ static int ldso_metadata_run(char *pathname, ldso_info_t *ldsoinfo)
    }
 
    ldsoinfo->binding_offset = (signed long) (resolve_offset - profile_offset);
+   ldsoinfo->stat_offset = 0;
+   ldsoinfo->lstat_offset = 0;
+   ldsoinfo->errno_offset = 0;
    return 0;
 }
 #endif

@@ -17356,6 +17356,33 @@ fi
   fi
 fi
 
+#Check if we can safely do dynamic patching on ld.so on this system
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether it is safe to binary patch ld.so on this system" >&5
+$as_echo_n "checking whether it is safe to binary patch ld.so on this system... " >&6; }
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test -d ${srcdir}/scripts; then rootsrcdir=${srcdir}; else rootsrcdir=${srcdir}/../..; fi
+auxdir=${rootsrcdir}/scripts
+${auxdir}/rewrite.sh ${rootsrcdir}/src . $CC
+if test "x$?" == "x0"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+   PATCH_LDSO=1
+else
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+   PATCH_LDSO=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define BINARY_PATCH_LDSO $PATCH_LDSO
+_ACEOF
+
+
 if test "x$GLIBC_BE_DIR" = "x"; then
   # Get glibc location on front-end
   CAT=`which cat`

@@ -39,6 +39,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "shmcache.h"
 #include "ccwarns.h"
 #include "exec_util.h"
+#include "intercept.h"
 
 errno_location_t app_errno_location;
 
@@ -74,6 +75,7 @@ ElfW(Addr) libc_loadoffset, interp_loadoffset;
 char *location;
 char *orig_location;
 int number;
+static int have_stat_patches;
 
 static char *concatStrings(const char *str1, const char *str2) 
 {
@@ -202,7 +204,7 @@ static int init_server_connection()
    rankinfo_s = getenv("LDCS_RANKINFO");
    opts_s = getenv("LDCS_OPTIONS");
    cachesize_s = getenv("LDCS_CACHESIZE");
-   opts = atol(opts_s);
+   opts = strtoul(opts_s, NULL, 10);
    shm_cachesize = atoi(cachesize_s) * 1024;
 
    if (strchr(location, '$')) {
@@ -335,6 +337,7 @@ void set_errno(int newerrno)
 
 int client_init()
 {
+  int result;
   int initial_run = 0;
   LOGGING_INIT("Client");
   check_for_fork();
@@ -360,6 +363,14 @@ int client_init()
      remap_executable(ldcsid);
   }
 
+  if (opts & OPT_PATCHLDSO) {
+     result = init_intercept_ldso_stat();
+     have_stat_patches = (result == 0);
+  }
+  else {
+     have_stat_patches = 0;
+  }
+  
   return 0;
 }
 
@@ -385,6 +396,9 @@ static const char *stat_not_found_prefix = NOT_FOUND_PREFIX "/";
 static void pathpatch_old_name(char *filename)
 {
    int len;
+   if (have_stat_patches)
+      return;
+   
    for (len = 0; filename[len] != '\0' && stat_not_found_prefix[len] != '\0'; len++);
    if (len == 0) {
       patch[0] = '\0';
@@ -400,6 +414,8 @@ static void pathpatch_old_name(char *filename)
 
 void restore_pathpatch()
 {
+   if (have_stat_patches)
+      return;   
    if (!last_patch_location || !last_patch_len)
       return;
    if (strncmp(last_patch_location, stat_not_found_prefix, last_patch_len) != 0) {
@@ -545,15 +561,21 @@ static int read_ldso_metadata(char *localname, ldso_info_t *ldsoinfo)
    return read_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
 }
 
-int get_ldso_metadata(signed int *binding_offset)
+static ldso_info_t *load_ldso_metadata()
 {
-   ldso_info_t info;
-   int found_file = 0;
+   static ldso_info_t info;
+   static int ldso_read = 0;
+   
+   int found_file = 0, result;
    char cachename[MAX_PATH_LEN+1];
    char filename[MAX_PATH_LEN+1];
    char *ldso_info_name = NULL;
    int use_cache = (opts & OPT_SHMCACHE) && (shm_cachesize > 0);
 
+   if (ldso_read)
+      return &info;
+   ldso_read = 1;
+   
    find_interp_name();
    debug_printf2("Requesting interpreter metadata for %s\n", interp_name);
 
@@ -571,8 +593,31 @@ int get_ldso_metadata(signed int *binding_offset)
       ldso_info_name = filename;
    }
 
-   read_ldso_metadata(ldso_info_name, &info);
+   result = read_ldso_metadata(ldso_info_name, &info);
+   if (result == -1)
+      return NULL;
+   
+   return &info;
+}
 
-   *binding_offset = info.binding_offset;
+int get_ldso_metadata_bindingoffset(signed int *binding_offset)
+{
+   ldso_info_t *ldsoinfo = load_ldso_metadata();
+   if (!ldsoinfo)
+      return -1;
+   *binding_offset = ldsoinfo->binding_offset;
+   return 0;
+}
+
+int get_ldso_metadata_statdata(signed long *stat_offset, signed long *lstat_offset, signed long *errno_offset)
+{
+   ldso_info_t *ldsoinfo = load_ldso_metadata();
+   if (!ldsoinfo)
+      return -1;
+   if (!ldsoinfo->stat_offset || !ldsoinfo->lstat_offset || !ldsoinfo->errno_offset)
+      return -1;
+   *stat_offset = ldsoinfo->stat_offset;
+   *lstat_offset = ldsoinfo->lstat_offset;
+   *errno_offset = ldsoinfo->errno_offset;
    return 0;
 }

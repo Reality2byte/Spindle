@@ -63,12 +63,14 @@ void remove_libc_rogot();
 #define IS_64    (1 << 0)
 #define IS_LSTAT (1 << 1)
 #define IS_XSTAT (1 << 2)
+#define FROM_LDSO (1 << 3)
 #define ORIG_STAT -2
 int handle_stat(const char *path, struct stat *buf, int flags);
 int open_worker(const char *path, int oflag, mode_t mode, int is_64);
 FILE *fopen_worker(const char *path, const char *mode, int is_64);
 void remap_executable();
-int get_ldso_metadata(signed int *binding_offset);
+int get_ldso_metadata_bindingoffset(signed int *binding_offset);
+int get_ldso_metadata_statdata(signed long *stat_offset, signed long *lstat_offset, signed long *errno_offset);
 
 int get_local_prefixes(char ***prefixes);
 int get_exec_excludes(char ***eexcludes);

@@ -164,7 +164,7 @@ static int parse_cmdline(int argc, char *argv[])
    number_s = argv[i++];
    number = atoi(number_s);
    opts_s = argv[i++];
-   opts = atol(opts_s);
+   opts = strtoul(opts_s, NULL, 10);
    cachesize_s = argv[i++];
    cachesize = atoi(cachesize_s);
    cmdline = argv + i;

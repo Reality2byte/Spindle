@@ -30,7 +30,7 @@ unsigned int spindle_la_version(unsigned int version)
    int result;
    int binding_offset = 0;
 
-   result = get_ldso_metadata(&binding_offset);
+   result = get_ldso_metadata_bindingoffset(&binding_offset);
    if (result == -1) {
       err_printf("Unable to lookup binding offset\n");
       return -1;
