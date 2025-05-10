@@ -130,6 +130,9 @@ fi
 ./run_driver --serial ./spindle_exec_test
 CHECK_RETCODE
 
+./run_driver --serial ./symbind_test
+CHECK_RETCODE
+
 if [[ $GLOBAL_RESULT != 0 ]]; then
     echo SOME TESTS FAILED
     exit -1

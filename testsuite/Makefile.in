@@ -274,6 +274,7 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SRUN_PATH = @SRUN_PATH@
+STATICFLAG = @STATICFLAG@
 STRIP = @STRIP@
 TESTRM = @TESTRM@
 VERSION = @VERSION@
@@ -337,7 +338,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ABS_TEST_DIR = $(abspath $(top_builddir)/testsuite)
-BUILT_SOURCES = libtest10.so libtest11.so libtest12.so libtest13.so libtest14.so libtest15.so libtest16.so libtest17.so libtest18.so libtest19.so libtest20.so libtest50.so libtest100.so libtest500.so libtest1000.so libtest2000.so libtest4000.so libtest6000.so libtest8000.so libtest10000.so libtls1.c libtls2.c libtls3.c libtls4.c libtls5.c libtls6.c libtls7.c libtls8.c libtls9.c libtls10.c libtls11.c libtls12.c libtls13.c libtls14.c libtls15.c libtls16.c libtls17.c libtls18.c libtls19.c libtls20.c libsymlink.so libdepC.so libdepB.so libdepA.so libcxxexceptB.so libcxxexceptA.so origin_dir/liboriginlib.so origin_dir/origin_subdir/liborigintarget.so libtestoutput.so libfuncdict.so runTests run_driver run_driver_rm spindle.rc preload_file_list test_driver test_driver_libs retzero_rx retzero_r retzero_x retzero_ badinterp hello_r.py hello_x.py hello_rx.py hello_.py hello_l.py badlink.py spindle_exec_test spindle_deactivated.sh liblocal.so
+BUILT_SOURCES = libtest10.so libtest11.so libtest12.so libtest13.so libtest14.so libtest15.so libtest16.so libtest17.so libtest18.so libtest19.so libtest20.so libtest50.so libtest100.so libtest500.so libtest1000.so libtest2000.so libtest4000.so libtest6000.so libtest8000.so libtest10000.so libtls1.c libtls2.c libtls3.c libtls4.c libtls5.c libtls6.c libtls7.c libtls8.c libtls9.c libtls10.c libtls11.c libtls12.c libtls13.c libtls14.c libtls15.c libtls16.c libtls17.c libtls18.c libtls19.c libtls20.c libsymlink.so libdepC.so libdepB.so libdepA.so libcxxexceptB.so libcxxexceptA.so origin_dir/liboriginlib.so origin_dir/origin_subdir/liborigintarget.so libtestoutput.so libfuncdict.so runTests run_driver run_driver_rm spindle.rc preload_file_list test_driver test_driver_libs retzero_rx retzero_r retzero_x retzero_ badinterp hello_r.py hello_x.py hello_rx.py hello_.py hello_l.py badlink.py spindle_exec_test spindle_deactivated.sh liblocal.so symbind_test
 @BGQ_BLD_FALSE@DYNAMIC_FLAG = 
 @BGQ_BLD_TRUE@DYNAMIC_FLAG = -dynamic
 @BGQ_BLD_FALSE@IS_BLUEGENE = false
@@ -373,7 +374,10 @@ CLEANFILES = libtest10.c libtest11.c libtest12.c libtest13.c \
 	libtls3.so libtls4.so libtls5.so libtls6.so libtls7.so \
 	libtls8.so libtls9.so libtls10.so libtls11.so libtls12.so \
 	libtls13.so libtls14.so libtls15.so libtls16.so libtls17.so \
-	libtls18.so libtls19.so libtls20.so
+	libtls18.so libtls19.so libtls20.so symbind_test \
+	libsymbind_a.so libsymbind_b.so libsymbind_c.so \
+	libsymbind_d.so libsymbind_e.so libsymbind_f.so \
+	libsymbind_g.so
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -967,6 +971,31 @@ origin_dir/origin_subdir/liborigintarget.so: origintarget.c origin_dir/origin_su
 
 origin_dir/liboriginlib.so: originlib.c $(REGLIB_SRC) origin_dir/origin_subdir/liborigintarget.so
 	$(AM_V_CCLD)$(MPICC) -o $@ -fPIC -Wall $< $(REGLIB_SRC) -DSO_NAME=liboriginlib.so -DFUNC_NAME=origin_calc -shared '-Wl,-rpath,$$ORIGIN/origin_subdir' -Lorigin_dir/origin_subdir -lorigintarget
+
+libsymbind_a.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c libsymbind_b.so
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall -DAUTORUN=a $(srcdir)/symbindlib.c -L. -lsymbind_b -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_b.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall -DAUTORUN=b $(srcdir)/symbindlib.c -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_c.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c libsymbind_d.so
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall $(srcdir)/symbindlib.c -L. -lsymbind_d -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_d.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall $(srcdir)/symbindlib.c -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_e.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall $(srcdir)/symbindlib.c -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_f.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -fno-plt -o $@ -shared -fPIC -Wall $(srcdir)/symbindlib.c -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_g.so: $(srcdir)/symbindlib_g.c
+	$(AM_V_CC)$(CC) $(CFLAGS) -c -o symbindlib_g.o -shared -fPIC -Wall $(srcdir)/symbindlib_g.c -I$(srcdir)
+	$(AM_V_CCLD)$(LD) -shared -o $@ symbindlib_g.o -rpath $(top_builddir)/testsuite
+
+symbind_test: $(srcdir)/symbind_test.c $(srcdir)/symbind_fileops.c libsymbind_a.so libsymbind_b.so libsymbind_c.so libsymbind_d.so libsymbind_e.so libsymbind_f.so libsymbind_g.so
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -Wall $(srcdir)/symbind_test.c -L. -lsymbind_a -I$(srcdir) -ldl -Wl,-rpath,$(top_builddir)/testsuite
 
 retzero_rx: retzero.c
 	$(AM_V_CCLD)$(MPICC) -o $@ $<
