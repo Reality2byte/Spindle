@@ -108,7 +108,8 @@ unsigned int la_objopen(struct link_map *map, Lmid_t lmid, uintptr_t *cookie)
    }
 
    add_wgot_library(map);
-
+   do_global_bindings(map);
+   
    return spindle_la_objopen(map, lmid, cookie);
 }
 
@@ -144,7 +145,6 @@ extern unsigned int spindle_la_objclose(uintptr_t *cookie);
 unsigned int la_objclose (uintptr_t *cookie)
 {
   struct link_map *map;
-  debug_printf3("la_objclose() %p\n", cookie);
 
   map = get_linkmap_from_cookie(cookie);
   debug_printf3("la_objclose is for %s\n", map->l_name ? map->l_name : "[EMPTY]");
