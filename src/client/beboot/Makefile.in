@@ -274,6 +274,7 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SRUN_PATH = @SRUN_PATH@
+STATICFLAG = @STATICFLAG@
 STRIP = @STRIP@
 TESTRM = @TESTRM@
 VERSION = @VERSION@
@@ -335,7 +336,7 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-spindle_bootstrap_LDFLAGS = $(AM_LDFLAGS)
+spindle_bootstrap_LDFLAGS = $(AM_LDFLAGS) $(STATICFLAG)
 spindle_bootstrap_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\" -DPROGLIBDIR=\"$(pkglibdir)\" -I$(top_srcdir)/../include -I$(top_srcdir)/../logging -I$(top_srcdir)/client_comlib -I$(top_srcdir)/client -I$(top_srcdir)/shm_cache -I$(top_srcdir)/../utils
 spindle_bootstrap_LDADD = $(top_builddir)/logging/libspindleclogc.la \
 	$(top_builddir)/shm_cache/libshmcache.la $(am__append_1) \
