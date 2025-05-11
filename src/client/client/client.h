@@ -47,6 +47,7 @@ int client_done();
  * Helper functions used throughout the client
  **/
 void set_errno(int newerrno);
+int get_errno();
 void patch_on_load_success(const char *rewritten_name, const char *orig_name, const char *ldso_path_name);
 void sync_cwd();
 void check_for_fork();

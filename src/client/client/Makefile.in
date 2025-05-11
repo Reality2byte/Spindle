@@ -120,7 +120,8 @@ am__objects_1 = libspindle_audit_la-intercept_open.lo \
 	libspindle_audit_la-intercept_spindleapi.lo \
 	libspindle_audit_la-intercept.lo \
 	libspindle_audit_la-spindle_regex.lo \
-	libspindle_audit_la-patch_interception.lo
+	libspindle_audit_la-patch_interception.lo \
+	libspindle_audit_la-realpath.lo
 am_libspindle_audit_la_OBJECTS = $(am__objects_1)
 libspindle_audit_la_OBJECTS = $(am_libspindle_audit_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -178,6 +179,7 @@ am__depfiles_remade = $(top_builddir)/../utils/$(DEPDIR)/getcpu.Plo \
 	./$(DEPDIR)/libspindle_audit_la-intercept_spindleapi.Plo \
 	./$(DEPDIR)/libspindle_audit_la-intercept_stat.Plo \
 	./$(DEPDIR)/libspindle_audit_la-patch_interception.Plo \
+	./$(DEPDIR)/libspindle_audit_la-realpath.Plo \
 	./$(DEPDIR)/libspindle_audit_la-spindle_regex.Plo \
 	./$(DEPDIR)/lookup.Plo ./$(DEPDIR)/lookup_libc.Plo \
 	./$(DEPDIR)/remap_exec.Plo ./$(DEPDIR)/should_intercept.Plo
@@ -371,7 +373,7 @@ noinst_LTLIBRARIES = libspindle_audit.la $(am__append_1) \
 	$(am__append_2) $(am__append_3)
 AM_CFLAGS = -fvisibility=hidden
 AM_CPPFLAGS = -I$(top_srcdir)/../logging -I$(top_srcdir)/client_comlib -I$(top_srcdir)/../include -I$(top_srcdir)/shm_cache -I$(top_srcdir)/subaudit -I$(top_srcdir)/../utils
-INTERCEPT_SRCS = intercept_open.c intercept_exec.c intercept_stat.c intercept_readlink.c intercept_spindleapi.c intercept.c spindle_regex.c patch_interception.c
+INTERCEPT_SRCS = intercept_open.c intercept_exec.c intercept_stat.c intercept_readlink.c intercept_spindleapi.c intercept.c spindle_regex.c patch_interception.c realpath.c
 BASE_SRCS = client.c lookup.c should_intercept.c exec_util.c remap_exec.c lookup_libc.c $(top_srcdir)/../utils/parseloc.c $(top_srcdir)/../utils/getcpu.c 
 libspindlec_socket_la_SOURCES = $(BASE_SRCS)
 libspindlec_socket_la_LIBADD = $(top_builddir)/client_comlib/libclient_socket.la $(top_builddir)/logging/libspindleclogc.la $(top_builddir)/shm_cache/libshmcache.la
@@ -469,6 +471,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libspindle_audit_la-intercept_spindleapi.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libspindle_audit_la-intercept_stat.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libspindle_audit_la-patch_interception.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libspindle_audit_la-realpath.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libspindle_audit_la-spindle_regex.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lookup.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lookup_libc.Plo@am__quote@ # am--include-marker
@@ -560,6 +563,13 @@ libspindle_audit_la-patch_interception.lo: patch_interception.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='patch_interception.c' object='libspindle_audit_la-patch_interception.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libspindle_audit_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libspindle_audit_la-patch_interception.lo `test -f 'patch_interception.c' || echo '$(srcdir)/'`patch_interception.c
+
+libspindle_audit_la-realpath.lo: realpath.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libspindle_audit_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libspindle_audit_la-realpath.lo -MD -MP -MF $(DEPDIR)/libspindle_audit_la-realpath.Tpo -c -o libspindle_audit_la-realpath.lo `test -f 'realpath.c' || echo '$(srcdir)/'`realpath.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libspindle_audit_la-realpath.Tpo $(DEPDIR)/libspindle_audit_la-realpath.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='realpath.c' object='libspindle_audit_la-realpath.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libspindle_audit_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libspindle_audit_la-realpath.lo `test -f 'realpath.c' || echo '$(srcdir)/'`realpath.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -706,6 +716,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libspindle_audit_la-intercept_spindleapi.Plo
 	-rm -f ./$(DEPDIR)/libspindle_audit_la-intercept_stat.Plo
 	-rm -f ./$(DEPDIR)/libspindle_audit_la-patch_interception.Plo
+	-rm -f ./$(DEPDIR)/libspindle_audit_la-realpath.Plo
 	-rm -f ./$(DEPDIR)/libspindle_audit_la-spindle_regex.Plo
 	-rm -f ./$(DEPDIR)/lookup.Plo
 	-rm -f ./$(DEPDIR)/lookup_libc.Plo
@@ -767,6 +778,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libspindle_audit_la-intercept_spindleapi.Plo
 	-rm -f ./$(DEPDIR)/libspindle_audit_la-intercept_stat.Plo
 	-rm -f ./$(DEPDIR)/libspindle_audit_la-patch_interception.Plo
+	-rm -f ./$(DEPDIR)/libspindle_audit_la-realpath.Plo
 	-rm -f ./$(DEPDIR)/libspindle_audit_la-spindle_regex.Plo
 	-rm -f ./$(DEPDIR)/lookup.Plo
 	-rm -f ./$(DEPDIR)/lookup_libc.Plo

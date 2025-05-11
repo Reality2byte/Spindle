@@ -20,6 +20,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include "intercept.h"
 #include "client.h"
 #include "ldcs_api.h"
@@ -71,6 +72,7 @@ ssize_t readlink_wrapper(const char *path, char *buf, size_t bufsiz)
    memset(newbuf, 0, MAX_PATH_LEN+1);
    rl_result = orig_readlink(path, newbuf, MAX_PATH_LEN);
    if (rl_result == -1) {
+      errno = get_errno();
       return -1;
    }
 
@@ -88,6 +90,7 @@ int readlinkat_wrapper(int dirfd, const char *path, char *buf, size_t bufsiz)
    memset(newbuf, 0, MAX_PATH_LEN+1);
    rl_result = (ssize_t) orig_readlinkat(dirfd, path, newbuf, MAX_PATH_LEN);
    if (rl_result == -1) {
+      errno = get_errno();
       return -1;
    }
 

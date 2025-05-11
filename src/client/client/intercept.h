@@ -51,7 +51,8 @@ extern int (*orig_close)(int fd);
 extern char* (*orig_getenv)(const char *name);
 extern int (*orig_setenv)(const char *name, const char *value, int overwrite);
 extern int (*orig_unsetenv)(const char *name);
-extern char* (orig_dlerror)();
+extern char* (*orig_dlerror)();
+extern char* (*orig_realpath)(const char *, char *);
               
 int rtcache_stat(const char *path, struct stat *buf);
 int rtcache_lstat(const char *path, struct stat *buf);
@@ -81,6 +82,8 @@ char *dlerror_wrapper();
 
 ssize_t readlink_wrapper(const char *path, char *buf, size_t bufsiz);
 int readlinkat_wrapper(int dirfd, const char *pathname, char *buf, size_t bufsiz);
+
+char *spindle_realpath(const char *name, char *resolved);
 
 int int_spindle_open(const char *pathname, int flags, ...);
 FILE *int_spindle_fopen(const char *path, const char *opts);

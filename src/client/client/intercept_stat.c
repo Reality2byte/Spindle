@@ -85,8 +85,10 @@ int handle_stat(const char *path, struct stat *buf, int flags)
       debug_printf3("File %s does not exist as per stat call\n", path);
       if (flags & FROM_LDSO)
          return ENOENT;
-      else
+      else {
+         errno = ENOENT;
          set_errno(ENOENT);
+      }
       return -1;
    }
    
@@ -104,6 +106,7 @@ static int get_pathname_from_fd(int fd, char* pathname, size_t len)
   if ((rval = readlink(procpath, pathname, len)) < 0) {
     debug_printf3("readlink %s failed\n", procpath);
     set_errno(EBADF);
+    errno = EBADF;
     return -1;
   }
   pathname[rval] = '\0';
@@ -118,6 +121,7 @@ static int handle_fstat(int fd, struct stat* buf, int flags)
    if (fd_filter(fd) == ERR_CALL) {
       debug_printf("fstat hiding fd %d from application\n", fd);
       set_errno(EBADF);
+      errno = EBADF;
       return -1;
    }
 
@@ -133,7 +137,12 @@ int rtcache_stat(const char *path, struct stat *buf)
    int result = handle_stat(path, buf, 0);
    if (result != ORIG_STAT)
       return result;
-   return orig_stat(path, buf);
+   result = orig_stat(path, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;
 }
 
 int rtcache_lstat(const char *path, struct stat *buf)
@@ -141,7 +150,12 @@ int rtcache_lstat(const char *path, struct stat *buf)
    int result = handle_stat(path, buf, IS_LSTAT);
    if (result != ORIG_STAT)
       return result;
-   return orig_lstat(path, buf);
+   result = orig_lstat(path, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;   
 }
 
 int rtcache_xstat(int vers, const char *path, struct stat *buf)
@@ -150,7 +164,12 @@ int rtcache_xstat(int vers, const char *path, struct stat *buf)
    if (result != ORIG_STAT) {
       return result;
    }
-   return orig_xstat(vers, path, buf);
+   result = orig_xstat(vers, path, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;
 }
 
 int rtcache_xstat64(int vers, const char *path, struct stat *buf)
@@ -158,7 +177,12 @@ int rtcache_xstat64(int vers, const char *path, struct stat *buf)
    int result = handle_stat(path, buf, IS_XSTAT | IS_64);
    if (result != ORIG_STAT)
       return result;
-   return orig_xstat64(vers, path, buf);
+   result = orig_xstat64(vers, path, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;
 }
 
 int rtcache_lxstat(int vers, const char *path, struct stat *buf)
@@ -166,7 +190,12 @@ int rtcache_lxstat(int vers, const char *path, struct stat *buf)
    int result = handle_stat(path, buf, IS_LSTAT | IS_XSTAT);
    if (result != ORIG_STAT)
       return result;
-   return orig_lxstat(vers, path, buf);
+   result = orig_lxstat(vers, path, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;   
 }
 
 int rtcache_lxstat64(int vers, const char *path, struct stat *buf)
@@ -174,7 +203,12 @@ int rtcache_lxstat64(int vers, const char *path, struct stat *buf)
    int result = handle_stat(path, buf, IS_LSTAT | IS_XSTAT | IS_64);
    if (result != ORIG_STAT)
       return result;
-   return orig_lxstat64(vers, path, buf);
+   result = orig_lxstat64(vers, path, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;   
 }
 
 int rtcache_fstat(int fd, struct stat *buf)
@@ -182,7 +216,12 @@ int rtcache_fstat(int fd, struct stat *buf)
    int result = handle_fstat(fd, buf, 0);
    if (result != ORIG_STAT)
       return result;
-   return orig_fstat(fd, buf);
+   result = orig_fstat(fd, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;   
 }
 
 int rtcache_fxstat(int vers, int fd, struct stat *buf)
@@ -190,7 +229,12 @@ int rtcache_fxstat(int vers, int fd, struct stat *buf)
    int result = handle_fstat(fd, buf, IS_XSTAT);
    if (result != ORIG_STAT)
       return result;
-   return orig_fxstat(vers, fd, buf);
+   result = orig_fxstat(vers, fd, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;   
 }
 
 int rtcache_fxstat64(int vers, int fd, struct stat *buf)
@@ -198,7 +242,12 @@ int rtcache_fxstat64(int vers, int fd, struct stat *buf)
    int result = handle_fstat(fd, buf, IS_XSTAT | IS_64);
    if (result != ORIG_STAT)
       return result;
-   return orig_fxstat64(vers, fd, buf);
+   result = orig_fxstat64(vers, fd, buf);
+   if (result == -1) {
+      errno = get_errno();
+      return -1;
+   }
+   return result;   
 }
 
 static int *ldso_errno;
