@@ -137,7 +137,15 @@ int rtcache_stat(const char *path, struct stat *buf)
    int result = handle_stat(path, buf, 0);
    if (result != ORIG_STAT)
       return result;
-   result = orig_stat(path, buf);
+   if (orig_stat) {
+      result = orig_stat(path, buf);
+   }
+   else {
+      result = stat(path, buf);
+      if (result == -1) {
+         set_errno(errno);
+      }
+   }   
    if (result == -1) {
       errno = get_errno();
       return -1;
