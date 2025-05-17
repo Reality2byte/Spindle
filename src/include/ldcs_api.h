@@ -18,6 +18,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #define LDCS_API_H
 
 #include "spindle_debug.h"
+#include "spindle_launch.h"
 #include <stdint.h>
 
 /* messages structure */
@@ -126,7 +127,7 @@ ldcs_message_t * ldcs_recv_msg(int fd, ldcs_read_block_t block);
 int ldcs_recv_msg_static(int fd, ldcs_message_t *msg, ldcs_read_block_t block);
 int ldcs_get_aux_fd();
 
-int ldcs_create_server(char* location, int number);
+int ldcs_create_server(char* location, number_t number);
 int ldcs_open_server_connection(int serverid);
 int ldcs_open_server_connections(int fd, int nc, int *more_avail);
 int ldcs_close_server_connection(int connid);

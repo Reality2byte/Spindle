@@ -79,7 +79,7 @@ char* ldcs_is_a_cachedfile (char* filename) {
   return NULL;
 }
 
-extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
+extern char **parse_colonsep_prefixes(char *colonsep_list, number_t number);
 extern int is_local_prefix(const char *path, char **cached_local_prefixes);
 int ldcs_is_a_localfile(ldcs_process_data_t *procdata, char *filename) {
    static char **cached_localprefixes = NULL;

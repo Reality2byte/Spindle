@@ -48,8 +48,7 @@ int is_in_spindle_cache(const char *pathname)
 }
 
 extern int is_local_prefix(const char *path, char **cached_local_prefixes);
-extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
-extern int number;
+extern char **parse_colonsep_prefixes(char *colonsep_list, number_t number);
 
 static int is_local_file(const char *pathname)
 {

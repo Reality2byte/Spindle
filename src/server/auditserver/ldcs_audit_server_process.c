@@ -113,7 +113,7 @@ void startprofile(spindle_args_t *args)
    if (!home || !*home)
       home = ldcs_process_data.location;
    gethostname(hostname, sizeof(hostname));
-   snprintf(filename, 4096, "%s/spindled.%d.%s.%d.prof", home, args->number, hostname, getpid());
+   snprintf(filename, 4096, "%s/spindled.%lu.%s.%d.prof", home, (unsigned long) args->number, hostname, getpid());
    ProfilerStart(filename);
 }
 
@@ -193,8 +193,8 @@ int ldcs_audit_server_process(spindle_args_t *args)
    if (ldcs_process_data.opts & OPT_PROCCLEAN)
       init_cleanup_proc(ldcs_process_data.location);
 
-   debug_printf3("Initializing connections for clients at %s and %u\n",
-                 ldcs_process_data.location, ldcs_process_data.number);
+   debug_printf3("Initializing connections for clients at %s and %lu\n",
+                 ldcs_process_data.location, (unsigned long) ldcs_process_data.number);
    serverid = ldcs_create_server(ldcs_process_data.location, ldcs_process_data.number);
    if (serverid == -1) {
       err_printf("Unable to setup area for client connections\n");
@@ -245,7 +245,7 @@ int ldcs_audit_server_run()
 
    _ldcs_server_stat_print(&ldcs_process_data.server_stat);
   
-   debug_printf("destroy server (%s,%d)\n", ldcs_process_data.location, ldcs_process_data.number);
+   debug_printf("destroy server (%s,%lu)\n", ldcs_process_data.location, (unsigned long) ldcs_process_data.number);
    ldcs_destroy_server(ldcs_process_data.serverid);
   
    /* destroy md support (multi-daemon) */
@@ -261,7 +261,7 @@ int ldcs_audit_server_run()
    /* Clean shm segment */
    if (ldcs_process_data.opts & OPT_SHMCACHE) {
       char shm_name[128];
-      snprintf(shm_name, sizeof(shm_name), "biter_shm.%u", ldcs_process_data.number);
+      snprintf(shm_name, sizeof(shm_name), "biter_shm.%lu", (unsigned long) ldcs_process_data.number);
       shm_unlink(shm_name);
    }
   

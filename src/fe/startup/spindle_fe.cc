@@ -63,7 +63,8 @@ void pack_param<char*>(char *value, char *buffer, unsigned int &pos)
 
 static int pack_data(spindle_args_t *args, void* &buffer, unsigned &buffer_size)
 {  
-   buffer_size = sizeof(unsigned int) * 8;
+   buffer_size = sizeof(unsigned int) * 7;
+   buffer_size += sizeof(number_t);
    buffer_size += sizeof(opt_t);
    buffer_size += sizeof(unique_id_t);
    buffer_size += args->location ? strlen(args->location) + 1 : 1;
@@ -199,7 +200,7 @@ int getApplicationArgsFE(spindle_args_t *params, int *spindle_argc, char ***spin
 
    LOGGING_INIT(const_cast<char *>("FE"));
       
-   snprintf(number_s, sizeof(number_s), "%u", params->number);
+   snprintf(number_s, sizeof(number_s), "%lu", (unsigned long) params->number);
    snprintf(opt_s, sizeof(opt_s), "%lu", (unsigned long) params->opts);
    snprintf(cachesize_s, sizeof(cachesize_s), "%u", params->shm_cache_size);
    snprintf(security_s, sizeof(security_s), "%u", (unsigned int) OPT_GET_SEC(params->opts));
@@ -384,10 +385,10 @@ int spindleInitFE(const char **hosts, spindle_args_t *params)
    }
    
    /* Start FE server */
-   debug_printf("spindle_args_t { number = %u; port = %u; num_ports = %u; opts = %lu; unique_id = %lu; "
+   debug_printf("spindle_args_t { number = %lu; port = %u; num_ports = %u; opts = %lu; unique_id = %lu; "
                 "use_launcher = %u; startup_type = %u; shm_cache_size = %u; location = %s; "
                 "pythonprefix = %s; preloadfile = %s; bundle_timeout_ms = %u; bundle_cachesize_kb = %u }\n",
-                params->number, params->port, params->num_ports, params->opts, params->unique_id,
+                (unsigned long) params->number, params->port, params->num_ports, params->opts, params->unique_id,
                 params->use_launcher, params->startup_type, params->shm_cache_size, params->location,
                 params->pythonprefix, params->preloadfile, params->bundle_timeout_ms,
                 params->bundle_cachesize_kb);

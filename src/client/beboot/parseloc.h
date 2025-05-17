@@ -21,7 +21,9 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 extern "C" {
 #endif
 
-char *parse_location(char *loc, int number);
+#include "spindle_launch.h"
+   
+char *parse_location(char *loc, number_t number);
 
 #if defined(__cplusplus)
 }

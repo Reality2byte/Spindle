@@ -24,12 +24,12 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "client.h"
 #include "ldcs_api.h"
 #include "client_api.h"
+#include "spindle_launch.h"
 
 ssize_t (*orig_readlink)(const char *path, char *buf, size_t bufsiz);
 int (*orig_readlinkat)(int dirfd, const char *pathname, char *buf, size_t bufsiz);
 
 extern char *location;
-extern int number;
 
 static ssize_t readlink_worker(const char *path, char *buf, size_t bufsiz,
                                char *newbuf, ssize_t rl_result)
@@ -39,7 +39,7 @@ static ssize_t readlink_worker(const char *path, char *buf, size_t bufsiz,
    int location_len;
 
    location_len = strlen(location);   
-   snprintf(spindle_id, sizeof(spindle_id), "spindle.%x", number);
+   snprintf(spindle_id, sizeof(spindle_id), "spindle.%lx", (unsigned long) number);
 
    if (!strstr(newbuf, spindle_id) ||
        strncmp(location, newbuf, location_len) != 0) {

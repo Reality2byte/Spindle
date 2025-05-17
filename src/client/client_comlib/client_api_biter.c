@@ -25,13 +25,14 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "config.h"
 #include "spindle_debug.h"
 #include "client_heap.h"
+#include "spindle_launch.h"
 
 static int session = -1;
 static char *cached_location;
 
 extern unsigned int shm_cachesize;
 
-int client_open_connection_biter(char* location, int number)
+int client_open_connection_biter(char* location, number_t number)
 {
    debug_printf3("Calling biterc_newsession(%s, %lu)\n", location, (unsigned long) shm_cachesize);
    session = biterc_newsession(location, shm_cachesize);

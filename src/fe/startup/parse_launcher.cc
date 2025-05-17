@@ -295,7 +295,7 @@ void ModifyArgv::modifyCmdLine()
    string location(params->location);
    
    char number_str[32];
-   snprintf(number_str, 32, "%u", params->number);
+   snprintf(number_str, 32, "%lu", (unsigned long) params->number);
    string number(number_str);
 
    char daemon_argc_str[32];

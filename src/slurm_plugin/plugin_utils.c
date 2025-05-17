@@ -24,7 +24,7 @@
 #endif
 
 
-extern char *parse_location(char *loc, int number);
+extern char *parse_location(char *loc, number_t number);
 extern char *realize(char *path);
 extern int spindle_mkdir(char *orig_path);
 
@@ -201,7 +201,7 @@ int isBEProc(spindle_args_t *params)
    gethostname(hostname, sizeof(hostname));
    hostname[sizeof(hostname)-1] = '\0';
 
-   snprintf(session_id_str, sizeof(session_id_str), "%u", params->number);
+   snprintf(session_id_str, sizeof(session_id_str), "%lu", (unsigned long) params->number);
 
    unique_file_len = strlen(realized_dir) + 1 +
       strlen(UNIQUE_FILE_NAME) + 1 +

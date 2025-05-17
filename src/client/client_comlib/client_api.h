@@ -18,6 +18,7 @@
 #define CLIENT_API_H_
 
 #include "ldcs_api.h"
+#include "spindle_launch.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -45,7 +46,7 @@ int send_pickone_query(int fd, char *key, int *result);
 int get_python_prefix(int fd, char **prefix);
 
 /* client */
-int client_open_connection(char* location, int number);
+int client_open_connection(char* location, number_t number);
 int client_close_connection(int connid);
 int client_register_connection(char *connection_str);
 char *client_get_connection_string(int fd);

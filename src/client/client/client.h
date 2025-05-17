@@ -120,4 +120,6 @@ extern int read_buffer(char *localname, char *buffer, int size);
 
 int get_cur_cpu();
 
+extern number_t number;
+
 #endif

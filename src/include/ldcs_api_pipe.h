@@ -18,10 +18,11 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #define LDCS_API_PIPE_H
 
 #include "ldcs_api.h"
+#include "spindle_launch.h"
 
-int ldcs_open_connection_pipe(char* location, int number);
+int ldcs_open_connection_pipe(char* location, number_t number);
 int ldcs_close_connection_pipe(int fd);
-int ldcs_create_server_pipe(char* location, int number);
+int ldcs_create_server_pipe(char* location, number_t number);
 int ldcs_open_server_connection_pipe(int fd);
 int ldcs_open_server_connections_pipe(int fd, int nc, int *more_avail);
 int ldcs_close_server_connection_pipe(int fd);

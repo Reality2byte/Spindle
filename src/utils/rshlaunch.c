@@ -82,7 +82,7 @@ void init_rsh_launch_fe(spindle_args_t *args)
    rsh_cmd = get_rsh_command(args);
 
    snprintf(sec_mode_str, sizeof(sec_mode_str), "%d", (int) OPT_GET_SEC(args->opts));
-   snprintf(number_str, sizeof(number_str), "%u",  args->number);
+   snprintf(number_str, sizeof(number_str), "%lu",  (unsigned long) args->number);
    snprintf(port_str, sizeof(port_str), "%u", args->port);
    snprintf(num_ports_str, sizeof(num_ports_str), "%u", args->num_ports);
    snprintf(unique_id_str, sizeof(unique_id_str), "%lu", (unsigned long) args->unique_id);

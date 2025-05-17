@@ -520,7 +520,7 @@ int shmcache_update(const char *libname, const char *mapped_name)
    return result;
 }
 
-int shmcache_init(const char *tmpdir, int unique_number, size_t shm_size, size_t hlimit)
+int shmcache_init(const char *tmpdir, number_t unique_number, size_t shm_size, size_t hlimit)
 {
    int result;
    result = init_shm(tmpdir, shm_size, unique_number, &shminfo);

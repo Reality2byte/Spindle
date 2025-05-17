@@ -188,7 +188,7 @@ static int remap_to_high_fd(int fd)
 #endif
 }
 
-int client_open_connection_pipe(char* location, int number)
+int client_open_connection_pipe(char* location, number_t number)
 {
    int fd, result;
    struct stat st;

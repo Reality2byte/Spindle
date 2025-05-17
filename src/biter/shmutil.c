@@ -27,6 +27,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "shm_wrappers.h"
 #include "shmutil.h"
 #include "sheep.h"
+#include "spindle_launch.h"
 
 static pid_t gettid()
 {
@@ -104,7 +105,7 @@ int release_lock(lock_t *lock)
    return 0;
 }
 
-int init_shm(const char *tmpdir, size_t shm_size, int unique_number, shminfo_t **shm)
+int init_shm(const char *tmpdir, size_t shm_size, number_t unique_number, shminfo_t **shm)
 {
    static shminfo_t shminfo;
    static int initialized = 0;
@@ -128,7 +129,7 @@ int init_shm(const char *tmpdir, size_t shm_size, int unique_number, shminfo_t *
       goto error;
    }
 
-   snprintf(shm_file, path_len, "/biter_shm.%d", unique_number);
+   snprintf(shm_file, path_len, "/biter_shm.%lu", (unsigned long) unique_number);
    shm_file[path_len-1] = '\0';
 
    fd = shm_open_wrapper(shm_file, O_RDWR | O_CREAT | O_EXCL, 0600);

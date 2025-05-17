@@ -25,6 +25,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <netdb.h> 
 
 #include "ldcs_api.h"
+#include "spindle_launch.h"
 #include "ldcs_api_socket.h"
 #include "ldcs_audit_server_process.h"
 
@@ -82,7 +83,7 @@ int ldcs_get_fd_socket (int fd) {
 /* ************************************************************** */
 
 
-int ldcs_create_server_socket(char* location, int number) {
+int ldcs_create_server_socket(char* location, number_t number) {
   int fd, sockfd;
   struct sockaddr_in serv_addr;
 
@@ -97,10 +98,10 @@ int ldcs_create_server_socket(char* location, int number) {
   bzero((char *) &serv_addr, sizeof(serv_addr));
   serv_addr.sin_family      = AF_INET;
   serv_addr.sin_addr.s_addr = INADDR_ANY;
-  serv_addr.sin_port        = htons(number);
+  serv_addr.sin_port        = htons((int) number);
   if (bind(sockfd, (struct sockaddr *) &serv_addr,
 	   sizeof(serv_addr)) < 0)  {
-    debug_printf3("after bind: -> could not bind %d \n",number);
+     debug_printf3("after bind: -> could not bind %lu \n", (unsigned long) number);
     return(-1);
   }
   
