@@ -465,7 +465,7 @@ int ldcs_cache_decodeDirContents(char *buffer, size_t len,
    strncpy(dirbuffer, dirname.c_str(), dirbuffer_sz);
    dirbuffer[dirbuffer_sz - 1] = '\0';
 
-   debug_printf3("Dencoded packet for directory with %d entries: %s\n", num_entries, dirbuffer);
+   debug_printf3("Decoded packet for directory with %d entries: %s\n", num_entries, dirbuffer);
    return 0;
 }
 

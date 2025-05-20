@@ -150,10 +150,10 @@ static int handle_report_fileexist_result(ldcs_process_data_t *procdata, int nc,
 static int handle_fileexist_test(ldcs_process_data_t *procdata, int nc);
 static int handle_client_fileexist_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg);
 static int handle_client_origpath_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg);
-static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, char **localname, struct stat *buf);
+static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, char **localname, extended_stat_t *buf);
 static int handle_metadata_and_broadcast_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, broadcast_t bcast);
 static int handle_cache_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, metadata_t mdtype,
-                                 struct stat *buf, char **localname);
+                                 extended_stat_t *buf, char **localname);
 static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, unsigned char *buf, size_t buf_size, metadata_t mdtype);
 static int handle_broadcast_errorcode(ldcs_process_data_t *procdata, char *pathname, int errcode);
 static int handle_broadcast_alias(ldcs_process_data_t *procdata, char *alias_from, char *alias_to);
@@ -2327,7 +2327,7 @@ static int handle_metadata_and_broadcast_file(ldcs_process_data_t *procdata, cha
 {
    char *localname;
    int result;
-   struct stat buf;
+   extended_stat_t buf;
    ldso_info_t ldsoinfo;
    unsigned char *buffer;
    size_t buffer_size;
@@ -2341,7 +2341,7 @@ static int handle_metadata_and_broadcast_file(ldcs_process_data_t *procdata, cha
          return -1;
       }
       buffer = (unsigned char *) &buf;
-      buffer_size = sizeof(buf);
+      buffer_size = extended_stat_size(&buf);
    }
    else if (mdtype == metadata_loader) {
       result = handle_read_ldso_metadata(procdata, pathname, &ldsoinfo, &localname);
@@ -2397,7 +2397,7 @@ static int handle_read_ldso_metadata(ldcs_process_data_t *procdata, char *pathna
 /**
  * Stats a file on disk and puts the results into a cache
  **/
-static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, char **localname, struct stat *buf)
+static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, char **localname, extended_stat_t *buf)
 {
    double starttime;
    int result, file_exists;
@@ -2416,7 +2416,7 @@ static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metad
    result = filemngt_stat(pathname, buf, (mdtype == metadata_lstat) ? 1 : 0);
    file_exists = (result != -1);
    procdata->server_stat.libread.cnt++;
-   procdata->server_stat.libread.bytes += file_exists ? sizeof(struct stat) : 0;
+   procdata->server_stat.libread.bytes += file_exists ? extended_stat_size(buf) : 0;
    procdata->server_stat.libread.time += (ldcs_get_time() - starttime);
    
    return handle_cache_metadata(procdata, pathname, file_exists, mdtype, buf, localname);
@@ -2425,7 +2425,7 @@ static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metad
 /**
  * Puts the results of a stat into the cache
  **/
-static int handle_cache_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, metadata_t mdtype, struct stat *buf, char **localname)
+static int handle_cache_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, metadata_t mdtype, extended_stat_t *buf, char **localname)
 {
    double starttime;
    int result;
@@ -2457,7 +2457,7 @@ static int handle_cache_metadata(ldcs_process_data_t *procdata, char *pathname, 
    starttime = ldcs_get_time();
    result = filemngt_write_stat(*localname, buf);   
    procdata->server_stat.libstore.cnt++;
-   procdata->server_stat.libstore.bytes += sizeof(struct stat);
+   procdata->server_stat.libstore.bytes += extended_stat_size(buf);
    procdata->server_stat.libstore.time += (ldcs_get_time() - starttime);
    if (result == -1) {
       err_printf("Error writing stat results for %s to %s\n", pathname, *localname);
@@ -2504,7 +2504,7 @@ static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathna
    ldcs_message_t msg;
    int pathname_len = strlen(pathname) + 1;
    int pos = 0;
-   struct stat *sbuf = (struct stat *) buf;
+   extended_stat_t *sbuf = (extended_stat_t *) buf;
    const char *mount;
    int mount_len;
 
@@ -2514,9 +2514,9 @@ static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathna
       remapped to another device after recv */
    mount_len = 0;
    if (file_exists && sbuf && (mdtype == metadata_stat || mdtype == metadata_lstat)) {
-      result = dev_to_mount(sbuf->st_dev, &mount);
+      result = dev_to_mount(sbuf->buf.st_dev, &mount);
       if (result == 0) {
-         debug_printf3("Will send stat of %s with mount point %s, device %x\n", pathname, mount, (int) sbuf->st_dev);
+         debug_printf3("Will send stat of %s with mount point %s, device %x\n", pathname, mount, (int) sbuf->buf.st_dev);
          mount_len = strlen(mount) + 1;
       }
    }
@@ -2584,9 +2584,9 @@ static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *m
 {
    int file_exists;
    char pathname[MAX_PATH_LEN+1], *localpath;
-   struct stat buf;
+   extended_stat_t buf;
    ldso_info_t ldsoinfo;
-   int pos = 0, pathlen, result, payload_size = 0, mount_len = 0;
+   int pos = 0, pathlen, result, payload_size = 0, mount_len = 0, bytes_left;
    char *buffer = (char *) msg->data;
    unsigned char *payload = NULL;
    char mount[MAX_PATH_LEN+1];
@@ -2613,9 +2613,11 @@ static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *m
    if (file_exists) {
       payload = (unsigned char *) (buffer + pos);
       if (mdtype == metadata_stat || mdtype == metadata_lstat) {
-         memcpy(&buf, buffer + pos, sizeof(buf));
-         pos += sizeof(buf);
-         payload_size = sizeof(buf);
+         bytes_left = msg->header.len - pos;
+         assert((bytes_left > sizeof(struct stat)) && (bytes_left < sizeof(extended_stat_t)));
+         memcpy(&buf, buffer + pos, bytes_left);
+         pos += bytes_left;
+         payload_size = bytes_left;
       }
       else {
          memcpy(&ldsoinfo, buffer + pos, sizeof(ldsoinfo));
@@ -2631,7 +2633,7 @@ static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *m
       result = mount_to_dev(mount, &dev);
       if (result == 0) {
          debug_printf3("Setting device to %x from mountpoint %s for stat recv of %s\n", (int) dev, mount, pathname);
-         buf.st_dev = dev;
+         buf.buf.st_dev = dev;
          payload = (unsigned char *) &buf;
       }
    }
@@ -2805,7 +2807,7 @@ static int handle_load_and_broadcast_metadata(ldcs_process_data_t *procdata, cha
 {
    int result;
    char *localpath;
-   struct stat buf;
+   extended_stat_t buf;
    ldso_info_t ldsoinfo;
    unsigned char *buffer = NULL;
    size_t buffer_size = 0;
@@ -2821,7 +2823,7 @@ static int handle_load_and_broadcast_metadata(ldcs_process_data_t *procdata, cha
       if (mdtype == metadata_stat || mdtype == metadata_lstat) {
          result = filemngt_read_stat(localpath, &buf);
          buffer = (unsigned char *) &buf;
-         buffer_size = sizeof(buf);
+         buffer_size = extended_stat_size(&buf);
       }
       else {
          result = filemngt_read_ldsometadata(localpath, &ldsoinfo);

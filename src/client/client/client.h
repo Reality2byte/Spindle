@@ -78,6 +78,7 @@ int get_exec_excludes(char ***eexcludes);
 int get_relocated_file(int fd, const char *name, int dso, char** newname, int *errcode, int *direxists);
 #define STAT_SELF_OPEN 1
 int get_stat_result(int fd, const char *path, int is_lstat, int *exists, struct stat *buf);
+int get_readlink_result(int fd, const char *path, char *readlink_path, ssize_t *readlink_result, int *readlink_errcode);
 int get_existance_test(int fd, const char *path, int *exists);
 int fetch_from_cache(const char *name, char **newname);
 

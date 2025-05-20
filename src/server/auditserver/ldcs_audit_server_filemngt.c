@@ -39,6 +39,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "config.h"
 #include "ccwarns.h"
 #include "cleanup_proc.h"
+#include "fileutil.h"
 
 #if !defined(LIBEXECDIR)
 #error LIBEXECDIR must be defined
@@ -135,7 +136,7 @@ char *filemngt_calc_localname(char *global_name, calc_local_t reqtype)
    switch(reqtype) {
       case clt_unknown: prefix = "spindlens-unknown"; break;
       case clt_stat: prefix = "spindlens-stat"; break;
-      case clt_lstat: prefix = "spindlens-fstat"; break;
+      case clt_lstat: prefix = "spindlens-lstat"; break;
       case clt_ldso: prefix = "spindlens-ldso"; break;
       case clt_file: prefix = "spindlens-file"; break;
       case clt_dso: prefix = "spindlens-dso"; break;
@@ -407,95 +408,144 @@ size_t filemngt_get_file_size(char *pathname, int *errcode)
    return (size_t) st.st_size;
 }
 
-int filemngt_stat(char *pathname, struct stat *buf, int is_lstat)
+int filemngt_stat(char *pathname, extended_stat_t *buf, int is_lstat)
 {
-   int result;
+   int stat_result;
+   int readlink_result;
+   buf->readlink_path_size = 0;
+   buf->readlink_errcode = 0;
+   buf->readlink_path[0] = '\0';
+   
    if (!is_lstat) {
-      result = stat(pathname, buf);
-      debug_printf3("stat(%s) = %d\n", pathname, result);
+      stat_result = stat(pathname, &buf->buf);
+      debug_printf3("stat(%s) = %d\n", pathname, stat_result);
+      return stat_result;
    }
-   else {
-      result = lstat(pathname, buf);
-      debug_printf3("lstat(%s) = %d\n", pathname, result);
+
+   stat_result = lstat(pathname, &buf->buf);
+   debug_printf3("lstat(%s) = %d\n", pathname, stat_result);
+   if (stat_result != 0)
+      return stat_result;
+   if (buf->buf.st_mode & S_IFLNK) {
+      memset(buf->readlink_path, 0, sizeof(buf->readlink_path));
+      readlink_result = readlink(pathname, buf->readlink_path, sizeof(buf->readlink_path));
+      if (readlink_result == -1) {
+         buf->readlink_errcode = errno;
+         buf->readlink_path_size = 0;
+         debug_printf2("Readlink err %d while stating file %s\n",
+                       buf->readlink_errcode, pathname);
+      }
+      else {
+         buf->readlink_path[sizeof(buf->readlink_path)-1] = '\0';
+         buf->readlink_path_size = strlen(buf->readlink_path) + 1;
+         debug_printf2("Readlink %s while stating file %s\n", buf->readlink_path, pathname);
+      }
    }
-   return result;
+
+   return stat_result;
 }
 
-static int filemngt_write_buffer(char *localname, char *buffer, size_t size)
+size_t extended_stat_size(extended_stat_t *st)
 {
-   int result, bytes_written, fd;
+   size_t max = sizeof(extended_stat_t);
+   size_t size = max - (sizeof(st->readlink_path) - st->readlink_path_size);
+   size = size + 1;
+   return size;
+}
 
+int filemngt_write_stat(char *localname, extended_stat_t *buf)
+{
+   int fd, result;
    fd = creat(localname, 0600);
    if (fd == -1) {
       err_printf("Failed to create file %s for writing: %s\n", localname, strerror(errno));
+      close(fd);
       return -1;
    }
 
-   bytes_written = 0;
+   result = write_n_bytes(localname, fd, &(buf->buf), sizeof(buf->buf));
+   if (result == -1) {
+      err_printf("Failed to write stat\n");
+      close(fd);
+      return -1;
+   }
 
-   while (bytes_written != size) {
-      result = write(fd, buffer + bytes_written, size - bytes_written);
-      if (result <= 0) {
-         if (errno == EAGAIN || errno == EINTR)
-            continue;
-         err_printf("Failed to write to file %s: %s\n", localname, strerror(errno));
-         close(fd);
-         return -1;
-      }
-      bytes_written += result;
+   result = write_n_bytes(localname, fd, &(buf->readlink_errcode), sizeof(buf->readlink_errcode));
+   if (result == -1) {
+      err_printf("Failed to write errcode\n");
+      close(fd);
+      return -1;
+   }
+
+   result = write_n_bytes(localname, fd, &(buf->readlink_path_size), sizeof(buf->readlink_path_size));
+   if (result == -1) {
+      err_printf("Failed to write result\n");
+      close(fd);
+      return -1;
+   }
+   
+   result = write_n_bytes(localname, fd, &(buf->readlink_path), buf->readlink_path_size);
+   if (result == -1) {
+      err_printf("Failed to write path\n");
+      close(fd);
+      return -1;
    }
    close(fd);
    return 0;
 }
 
-int filemngt_write_stat(char *localname, struct stat *buf)
-{
-   return filemngt_write_buffer(localname, (char *) buf, sizeof(*buf));
-}
-
 int filemngt_write_ldsometadata(char *localname, ldso_info_t *ldsoinfo)
 {
-   return filemngt_write_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
+   return write_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
 }
 
-
-static int filemngt_read_buffer(char *localname, char *buffer, size_t size)
+int filemngt_read_ldsometadata(char *localname, ldso_info_t *ldsoinfo)
 {
-   int result, bytes_read, fd, error;
+   return read_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
+}
 
+int filemngt_read_stat(char *localname, extended_stat_t *buf)
+{
+   int fd, result;
    fd = open(localname, O_RDONLY);
    if (fd == -1) {
       err_printf("Failed to open %s for reading: %s\n", localname, strerror(errno));
       return -1;
    }
 
-   bytes_read = 0;
+   result = read_n_bytes(localname, fd, &(buf->buf), sizeof(buf->buf));
+   if (result == -1) {
+      err_printf("Failed to read stat\n");
+      close(fd);
+      return -1;
+   }
 
-   while (bytes_read != size) {
-      errno = 0;
-      result = read(fd, buffer + bytes_read, size - bytes_read);
+   result = read_n_bytes(localname, fd, &(buf->readlink_errcode), sizeof(buf->readlink_errcode));
+   if (result == -1) {
+      err_printf("Failed to read errcode\n");
+      close(fd);
+      return -1;
+   }
+
+   result = read_n_bytes(localname, fd, &(buf->readlink_path_size), sizeof(buf->readlink_path_size));
+   if (result == -1) {
+      err_printf("Failed to read result\n");
+      close(fd);
+      return -1;
+   }
+
+   if (buf->readlink_path_size > 0) {
+      result = read_n_bytes(localname, fd, buf->readlink_path, buf->readlink_path_size);
       if (result == -1) {
-         error = errno;
-         if (error == EAGAIN || error == EINTR)
-            continue;
-         err_printf("Failed to read from file %s of size %lu (already read %d): %s\n", localname, size, bytes_read, strerror(error));
          close(fd);
          return -1;
       }
-      bytes_read += result;
+   }
+   else {
+      buf->readlink_path[0] = '\0';
    }
    close(fd);
    return 0;
-}
-
-int filemngt_read_ldsometadata(char *localname, ldso_info_t *ldsoinfo)
-{
-   return filemngt_read_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
-}
-
-int filemngt_read_stat(char *localname, struct stat *buf)
-{
-   return filemngt_read_buffer(localname, (char *) buf, sizeof(*buf));
 }
 
 #if defined(arch_x86_64) || defined(arch_aarch64)

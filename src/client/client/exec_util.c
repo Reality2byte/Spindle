@@ -292,33 +292,6 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
    return -1;
 }
 
-int read_buffer(char *localname, char *buffer, int size)
-{
-   int result, bytes_read, fd;
-
-   fd = open(localname, O_RDONLY);
-   if (fd == -1) {
-      err_printf("Failed to open %s for reading: %s\n", localname, strerror(errno));
-      return -1;
-   }
-
-   bytes_read = 0;
-
-   while (bytes_read != size) {
-      result = read(fd, buffer + bytes_read, size - bytes_read);
-      if (result <= 0) {
-         if (errno == EAGAIN || errno == EINTR)
-            continue;
-         err_printf("Failed to read from file %s: %s\n", localname, strerror(errno));
-         close(fd);
-         return -1;
-      }
-      bytes_read += result;
-   }
-   close(fd);
-   return 0;
-}
-
 extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
 extern int number;
 int get_dirlists(char ***prefixes, char ***eexecs)

@@ -40,7 +40,7 @@ extern int (*orig_execl)(const char *path, const char *arg, ...);
 extern int (*orig_execlp)(const char *path, const char *arg, ...);
 extern int (*orig_execle)(const char *path, const char *arg, ...);
 extern ssize_t (*orig_readlink)(const char *path, char *buf, size_t bufsiz);
-extern int (*orig_readlinkat)(int dirfd, const char *pathname, char *buf, size_t bufsiz);
+extern ssize_t (*orig_readlinkat)(int dirfd, const char *pathname, char *buf, size_t bufsiz);
 extern pid_t (*orig_fork)();
 extern pid_t (*orig_vfork)();
 extern int (*orig_open)(const char *pathname, int flags, ...);
@@ -81,7 +81,7 @@ pid_t vfork_wrapper();
 char *dlerror_wrapper();
 
 ssize_t readlink_wrapper(const char *path, char *buf, size_t bufsiz);
-int readlinkat_wrapper(int dirfd, const char *pathname, char *buf, size_t bufsiz);
+ssize_t readlinkat_wrapper(int dirfd, const char *pathname, char *buf, size_t bufsiz);
 
 char *spindle_realpath(const char *name, char *resolved);
 
