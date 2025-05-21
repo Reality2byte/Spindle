@@ -11,7 +11,7 @@ export SPINDLE=SPINDLE_EXEC
 export PATH=$PATH:.
 
 if [ $1 == --start-session ] ; then
-    export SPINDLEID=`$SPINDLE --start-session`
+    export SPINDLEID=`$SPINDLE --start-session --level=high`
     if [ x$SPINDLEID == x ]; then
         echo ANONYMOUS_SESSION
     else
