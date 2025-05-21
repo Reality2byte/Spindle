@@ -136,7 +136,7 @@ struct ldcs_process_data_struct
   int msgbundle_cache_size_kb;
   int msgbundle_timeout_ms;
   int handling_bundle;
-  int number;
+  number_t number;
   int preload_done;
   int exit_note_done;
   int exit_on_client_close;

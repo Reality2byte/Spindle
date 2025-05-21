@@ -17,6 +17,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "config.h"
 #include "ldcs_api.h"
 #include "ldcs_audit_server_process.h"
+#include "spindle_launch.h"
 
 #if !defined(COMM)
 #if defined(COMM_PIPES)
@@ -36,7 +37,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #define RENAME2(X, Y) RENAME3(X, Y)
 #define RENAME(X) RENAME2(X, COMM)
 
-extern int RENAME(ldcs_create_server)(char* location, int number);
+extern int RENAME(ldcs_create_server)(char* location, number_t number);
 extern int RENAME(ldcs_open_server_connection) (int serverid);
 extern int RENAME(ldcs_open_server_connections) (int fd, int nc, int *more_avail);
 extern int RENAME(ldcs_close_server_connection) (int connid);
@@ -47,7 +48,7 @@ extern int RENAME(ldcs_get_aux_fd)();
 extern int RENAME(ldcs_recv_msg_static)(int connid, ldcs_message_t *msg, ldcs_read_block_t block);
 extern int RENAME(ldcs_socket_id_to_nc)(int id, int fd, ldcs_process_data_t *process_data);
 
-int ldcs_create_server(char* location, int number)
+int ldcs_create_server(char* location, number_t number)
 {
    return RENAME(ldcs_create_server)(location, number);
 }

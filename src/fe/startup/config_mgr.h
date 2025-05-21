@@ -181,7 +181,7 @@ class ConfigMap
    std::string origin;
    std::list<std::string> app_commandline;
    mutable unique_id_t unique_id_saved;
-   mutable unsigned int number_saved;
+   mutable number_t number_saved;
   public:
    ConfigMap();
    ConfigMap(std::string origin_);
@@ -205,7 +205,7 @@ class ConfigMap
    std::string getArgSessionId() const;
 
    bool getUniqueID(unique_id_t &unique_id, std::string &errmsg) const;
-   unsigned int getNumber() const;
+   number_t getNumber() const;
 };
 
 bool gatherAllConfigInfo(int argc, char *argv[], bool inExecutable, ConfigMap &confmap, std::string &errmessage);

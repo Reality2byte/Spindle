@@ -91,6 +91,7 @@ extern "C" {
 #define startup_unknown 5                   /* Unknown launch mechanism */
 #define startup_lsf 6                       /* LSF launcher from IBM*/
 
+typedef uint64_t number_t;
 typedef uint64_t unique_id_t;
 typedef uint64_t opt_t;
 
@@ -98,7 +99,7 @@ typedef uint64_t opt_t;
 typedef struct {
    /* A unique number that will be used to identify this spindle session 
       Unlike unique_id, this is not a private identifier */
-   unsigned int number;
+   number_t number;
 
    /* The beginning port in a range that will be used for server->server communication */
    unsigned int port;

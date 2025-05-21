@@ -213,7 +213,7 @@ static struct spindle_ctx *spindle_ctx_create (flux_jobid_t id,
      *   as well as unique among any simultaneous spindle sessions. Therefore,
      *   derive from the jobid, which should be unique enough within a job.
      */
-    ctx->params.number = (unsigned int) (id & 0xffffffff);
+    ctx->params.number = (number_t) id;
 
     /*  unique_id is 64 bits so we can use the jobid
      *  N.B. Hangs are seen if this isn't also set after the call to
@@ -620,7 +620,7 @@ static int sp_init (flux_plugin_t *p,
     /*  N.B. Override unique_id with id again to be sure it wasn't changed
      *  (Occaisionally see hangs if this is not done)
      */
-    ctx->params.unique_id = id;
+    ctx->params.unique_id = (unique_id_t) id;
 
     /*  Get args to prepend to job cmdline
      */

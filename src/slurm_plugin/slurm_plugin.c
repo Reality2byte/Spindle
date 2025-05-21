@@ -66,7 +66,7 @@ static const char *user_options = NULL;
 static int enable_spindle = 0;
 
 extern char **environ;
-extern char *parse_location(char *loc, int number);
+extern char *parse_location(char *loc, number_t number);
 
 struct spank_option spank_options[] =
 {
@@ -227,7 +227,7 @@ static int fillInArgs(spank_t spank, spindle_args_t *args, int argc, char **argv
    char *err_string;
 
    args->unique_id = unique_id;
-   args->number = (unsigned int) (args->unique_id & ((1UL<<33)-1));
+   args->number = (unsigned long) args->unique_id;
    result = fillInSpindleArgsCmdlineFE(args, SPINDLE_FILLARGS_NOUNIQUEID | SPINDLE_FILLARGS_NONUMBER,
                                        argc, argv, &err_string);
    if (result == -1) {

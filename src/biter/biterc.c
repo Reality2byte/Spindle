@@ -339,7 +339,7 @@ int biterc_newsession(const char *tmpdir, size_t shm_size)
    session = sessions + biter_session;
 
    debug_printf3("Initializing biterc shm to %lu\n", (unsigned long) shm_size);
-   result = init_shm(tmpdir, shm_size, biterc_get_job_id(), &session->shm);
+   result = init_shm(tmpdir, shm_size, (number_t) biterc_get_job_id(), &session->shm);
    if (result == -1)
       goto error;
 

@@ -44,7 +44,7 @@ enum startup_type_t {
 };
 startup_type_t startup_type;
 static int security_type;
-static int number;
+static number_t number;
 static int port;
 static int num_ports;
 static unique_id_t unique_id;
@@ -161,7 +161,7 @@ static int parseCommandLine(int argc, char *argv[])
    security_type = atoi(argv[i]);
 
    if (++i >= argc) return -1;   
-   number = atoi(argv[i]);
+   number = (number_t) strtoul(argv[i], NULL, 0);
 
    if (startup_type == hostbin || startup_type == mpilaunch || startup_type == selflaunch || startup_type == rshlaunch) {
       if (++i >= argc) return -1;

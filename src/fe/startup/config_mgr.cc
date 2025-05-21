@@ -47,7 +47,7 @@ using namespace std;
 #if defined(NUM_COBO_PORTS)
 #define SPINDLE_NUM_PORTS_STR STR(NUM_COBO_PORTS)
 #else
-#define SPINDLE_NUM_PORTS_STR "25"
+#define SPINDLE_NUM_PORTS_STR "250"
 #endif
 
 #if defined(SPINDLE_LOC)
@@ -1055,7 +1055,7 @@ bool getRandom(void *bytes, size_t bytes_size)
    return true;
 }
 
-unsigned int ConfigMap::getNumber() const
+number_t ConfigMap::getNumber() const
 {
    if (number_saved)
       return number_saved;

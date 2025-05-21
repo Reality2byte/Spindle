@@ -32,7 +32,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #error Spindle built with sec-keyfile, but no keyfile specified
 #endif
 
-extern char *parse_location(char *loc, int number);
+extern char *parse_location(char *loc, number_t number);
 void get_keyfile_path(char *pathname, int pathname_len, uint64_t unique_id)
 {
 #if defined(KEYFILE)

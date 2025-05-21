@@ -16,6 +16,7 @@
 
 #include "ldcs_api.h"
 #include "config.h"
+#include "spindle_launch.h"
 
 #if !defined(COMM)
 #if defined(COMM_PIPES)
@@ -35,7 +36,7 @@
 #define RENAME2(X, Y) RENAME3(X, Y)
 #define RENAME(X) RENAME2(X, COMM)
 
-extern int RENAME(client_open_connection) (char* location, int number);
+extern int RENAME(client_open_connection) (char* location, number_t number);
 extern int RENAME(client_close_connection) (int connid);
 extern int RENAME(client_register_connection) (char *connection_str);
 extern char *RENAME(client_get_connection_string) (int fd);
@@ -43,7 +44,7 @@ extern int RENAME(client_send_msg) (int connid, ldcs_message_t * msg);
 extern int RENAME(client_recv_msg_static) (int fd, ldcs_message_t *msg, ldcs_read_block_t block);
 extern int RENAME(client_recv_msg_dynamic) (int fd, ldcs_message_t *msg, ldcs_read_block_t block);
 
-int client_open_connection(char* location, int number)
+int client_open_connection(char* location, number_t number)
 {
    return RENAME(client_open_connection) (location, number);
 }

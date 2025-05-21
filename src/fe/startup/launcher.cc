@@ -120,7 +120,7 @@ bool Launcher::setupDaemons()
    daemon_argv[i++] = strdup(security_s);
 
    char number_s[32];
-   snprintf(number_s, 32, "%d", params->number);
+   snprintf(number_s, 32, "%lu", (unsigned long) params->number);
    daemon_argv[i++] = strdup(number_s);
 
    vector<const char *> secondary_args;

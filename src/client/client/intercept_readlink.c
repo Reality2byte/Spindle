@@ -25,13 +25,13 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "client.h"
 #include "ldcs_api.h"
 #include "client_api.h"
+#include "spindle_launch.h"
 #include "should_intercept.h"
 
 ssize_t (*orig_readlink)(const char *path, char *buf, size_t bufsiz);
 ssize_t (*orig_readlinkat)(int dirfd, const char *pathname, char *buf, size_t bufsiz);
 
 extern char *location;
-extern int number;
 
 static int fix_local_readlink(char *buf, size_t bufsiz)
 {
@@ -40,7 +40,7 @@ static int fix_local_readlink(char *buf, size_t bufsiz)
    char tmp[MAX_PATH_LEN+1];
 
    location_len = strlen(location);   
-   snprintf(spindle_id, sizeof(spindle_id), "spindle.%x", number);
+   snprintf(spindle_id, sizeof(spindle_id), "spindle.%lx", number);
    if (strstr(buf, spindle_id) && strncmp(location, buf, location_len) == 0) {
       debug_printf2("readlink received spindle cache path %s. Translating\n", buf);
       result = send_orig_path_request(ldcsid, buf+location_len+1, tmp);

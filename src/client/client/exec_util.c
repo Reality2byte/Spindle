@@ -292,8 +292,8 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
    return -1;
 }
 
-extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
-extern int number;
+extern char **parse_colonsep_prefixes(char *colonsep_list, number_t number);
+extern number_t number;
 int get_dirlists(char ***prefixes, char ***eexecs)
 {
    static char **local_prefixes = NULL;

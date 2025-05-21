@@ -353,7 +353,7 @@ libbiterc_la_CFLAGS = -DCLIENT
 libbiterc_la_LIBADD = libsheep.la
 libsheep_la_SOURCES = $(top_srcdir)/../biter/sheep.c $(top_srcdir)/../biter/shmutil.c $(top_srcdir)/../biter/shm_wrappers.c
 AM_CPPFLAGS = -I$(top_srcdir)/../biter -I$(top_srcdir)/../logging \
-	$(am__append_1)
+	-I$(top_srcdir)/../include $(am__append_1)
 AM_CFLAGS = -fvisibility=hidden
 all: all-am
 

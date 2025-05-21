@@ -792,7 +792,7 @@ static int reliable_read(int fd, void *buf, size_t size)
             return HSHAKE_DROP_CONNECTION;
          }
          error_printf("Expected error return %d when reading from socket: %s\n", result,
-                      strerror(errno));
+                      strerror(error));
          return HSHAKE_INTERNAL_ERROR;
       }
       else

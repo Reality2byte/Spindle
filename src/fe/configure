@@ -16386,7 +16386,7 @@ SPINDLE_SOURCE_ROOT=`realpath ${srcdir}/../..`
 #Network port and local storage location
 DEFAULT_PORT=21940
 DEFAULT_LOC='$TMPDIR'
-DEFAULT_NUM_COBO_PORTS=25
+DEFAULT_NUM_COBO_PORTS=250
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable maintainer-specific portions of Makefiles" >&5

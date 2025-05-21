@@ -32,11 +32,12 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 
 #include "ldcs_api.h"
 #include "ccwarns.h"
+#include "spindle_launch.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
-   char *parse_location(char *loc, int number);
+   char *parse_location(char *loc, number_t number);
 #if defined(__cplusplus)
 }
 #endif
@@ -47,7 +48,7 @@ extern char *custom_getenv();
 #define IS_ENVVAR_CHAR(X) ((X >= 'a' && X <= 'z') || (X >= 'A' && X <= 'Z') || (X == '_'))
 
 /* Expand the user specified location with environment variable values */
-static char *parse_location_impl(char *loc, int number, int print_on_error)
+static char *parse_location_impl(char *loc, number_t number, int print_on_error)
 {
    char newloc[MAX_PATH_LEN+1];
    char envvar[MAX_PATH_LEN+1];
@@ -97,7 +98,7 @@ static char *parse_location_impl(char *loc, int number, int print_on_error)
          strncpy(envvar, env_start, envvar_len);
          envvar[envvar_len] = '\0';
          if (strcmp(envvar, "NUMBER") == 0) {
-            snprintf(env_value_str, sizeof(env_value_str), "%x", (unsigned int) number);
+            snprintf(env_value_str, sizeof(env_value_str), "%lx", (unsigned long) number);
             env_value = env_value_str;
          }
          else {
@@ -147,12 +148,12 @@ static char *parse_location_impl(char *loc, int number, int print_on_error)
    return strdup(newloc);
 }
 
-char *parse_location(char *loc, int number)
+char *parse_location(char *loc, number_t number)
 {
    return parse_location_impl(loc, number, 1);
 }
 
-char *parse_location_noerr(char *loc, int number)
+char *parse_location_noerr(char *loc, number_t number)
 {
    return parse_location_impl(loc, number, 0);
 }
@@ -212,7 +213,7 @@ char *realize(char *path)
  * Number is the spindle session number and is used to expand $NUMBER. Other environment 
  * variables in the paths are expanded normally.
  **/
-char **parse_colonsep_prefixes(char *colonsep_list, int number)
+char **parse_colonsep_prefixes(char *colonsep_list, number_t number)
 {
    char **prefixes;
    char *s = strdup(colonsep_list);

@@ -36,6 +36,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "ldcs_api_pipe.h"
 #include "ldcs_api_pipe_notify.h"
 #include "ldcs_audit_server_process.h"
+#include "spindle_launch.h"
 
 /* ************************************************************** */
 /* FD list                                                        */
@@ -99,7 +100,7 @@ int ldcs_get_fd_pipe (int fd) {
 
 extern int spindle_mkdir(char *orig_path);
 
-int ldcs_create_server_pipe(char* location, int number) {
+int ldcs_create_server_pipe(char* location, number_t number) {
   int fd;
 
   fd=get_new_fd_pipe();

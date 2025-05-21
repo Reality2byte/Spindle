@@ -58,7 +58,7 @@ static char debugging_name[32];
 static char old_cwd[MAX_PATH_LEN+1];
 static int rankinfo[4]={-1,-1,-1,-1};
 
-extern char *parse_location(char *loc, int number);
+extern char *parse_location(char *loc, number_t number);
 extern int is_in_spindle_cache(const char *pathname);
 
 /* compare the pointer top the cookie not the cookie itself, it may be changed during runtime by audit library  */
@@ -74,7 +74,7 @@ ElfW(Addr) libc_loadoffset, interp_loadoffset;
  */
 char *location;
 char *orig_location;
-int number;
+number_t number;
 static int have_stat_patches;
 
 static char *concatStrings(const char *str1, const char *str2) 
@@ -199,7 +199,7 @@ static int init_server_connection()
 
    location = getenv("LDCS_LOCATION");
    orig_location = getenv("LDCS_ORIG_LOCATION");
-   number = atoi(getenv("LDCS_NUMBER"));
+   number = (number_t) strtoul(getenv("LDCS_NUMBER"), NULL, 0);
    connection = getenv("LDCS_CONNECTION");
    rankinfo_s = getenv("LDCS_RANKINFO");
    opts_s = getenv("LDCS_OPTIONS");
@@ -238,8 +238,8 @@ static int init_server_connection()
    if (connection) {
       /* boostrapper established the connection for us.  Reuse it. */
       debug_printf("Recreating existing connection to server\n");
-      debug_printf3("location = %s, number = %d, connection = %s, rankinfo = %s\n",
-                    location, number, connection, rankinfo_s);
+      debug_printf3("location = %s, number = %lu, connection = %s, rankinfo = %s\n",
+                    location, (unsigned long) number, connection, rankinfo_s);
       ldcsid  = client_register_connection(connection);
       if (ldcsid == -1)
          return -1;
@@ -249,7 +249,7 @@ static int init_server_connection()
    }
    else {
       /* Establish a new connection */
-      debug_printf("open connection to ldcs %s %d\n", location, number);
+      debug_printf("open connection to ldcs %s %lu\n", location, (unsigned long) number);
       ldcsid = client_open_connection(location, number);
       if (ldcsid == -1)
          return -1;

@@ -24,10 +24,11 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "config.h"
 #include "spindle_debug.h"
 #include "ldcs_audit_server_process.h"
+#include "spindle_launch.h"
 
 static int num_cns;
 static char *tmpdir;
-static int number;
+static number_t number;
 static int *num_live_procs;
 static uint16_t **session_proc_to_nc;
 static int server_id = INT32_MAX;
@@ -38,7 +39,7 @@ static int clients_avail_w_fd;
 #define CLIENT_ID_SESSION(CLIENTID) ((int) (CLIENTID >> 16))
 #define CLIENT_ID_PROC(CLIENTID) ((int) (CLIENTID & ((1 << 16)-1)))
 
-int ldcs_create_server_biter(char* location, int num)
+int ldcs_create_server_biter(char* location, number_t num)
 {
    int clients_avail[2];
    int result;

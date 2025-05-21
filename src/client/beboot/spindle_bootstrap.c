@@ -48,9 +48,9 @@ char spindle_interceptlib[] = PROGLIBDIR "/libspindleint.so";
 
 int ldcsid = -1;
 unsigned int shm_cachesize;
-int number;
 
 static int rankinfo[4]={-1,-1,-1,-1};
+number_t number;
 static int use_cache;
 static unsigned int cachesize;
 static char *location, *number_s, *orig_location, *symbolic_location;
@@ -85,7 +85,7 @@ static char *default_subaudit_libstr = libstr_biter_subaudit;
 #endif
 
 extern int spindle_mkdir(char *path);
-extern char *parse_location(char *loc, int number);
+extern char *parse_location(char *loc, number_t number);
 extern char *realize(char *path);
 
 static int establish_connection()
@@ -162,7 +162,7 @@ static int parse_cmdline(int argc, char *argv[])
 
    symbolic_location = argv[i++];
    number_s = argv[i++];
-   number = atoi(number_s);
+   number = (number_t) strtoul(number_s, NULL, 0);
    opts_s = argv[i++];
    opts = strtoul(opts_s, NULL, 10);
    cachesize_s = argv[i++];
