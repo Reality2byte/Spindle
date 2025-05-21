@@ -56,8 +56,8 @@ typedef enum {
    LDCS_MSG_FILE_DATA_PART,
    LDCS_MSG_PYTHONPREFIX_REQ,
    LDCS_MSG_PYTHONPREFIX_RESP,
-   LDCS_MSG_LOCALPREFIX_REQ,
-   LDCS_MSG_LOCALPREFIX_RESP,
+   LDCS_MSG_DIRLISTS_REQ,
+   LDCS_MSG_DIRLISTS_RESP,
    LDCS_MSG_LOADER_DATA_REQ,
    LDCS_MSG_LOADER_DATA_RESP,
    LDCS_MSG_LOADER_DATA_NET_REQ,
@@ -82,7 +82,9 @@ typedef enum {
    LDCS_MSG_PROCMAPS_REQ,
    LDCS_MSG_PROCMAPS_RESP,
    LDCS_MSG_PICKONE_REQ,
-   LDCS_MSG_PICKONE_RESP,   
+   LDCS_MSG_PICKONE_RESP,
+   LDCS_MSG_ALIVE_REQ,
+   LDCS_MSG_ALIVE_RESP,
    LDCS_MSG_UNKNOWN
 } ldcs_message_ids_t;
 
@@ -156,6 +158,9 @@ void mark_exit();
 
 typedef struct {
    int64_t binding_offset;
+   int64_t stat_offset;
+   int64_t lstat_offset;
+   int64_t errno_offset;
 } ldso_info_t;
 
 #define MAX_PATH_LEN 4096

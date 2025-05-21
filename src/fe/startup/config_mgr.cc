@@ -130,7 +130,28 @@ using namespace std;
 #define RSHCMD_STR ""
 #endif
 
-const list<SpindleOption> Options = {
+#if defined(PYTHON_INST_PREFIX)
+#define PYTHON_PREFIX_DEFAULT PYTHON_INST_PREFIX
+#else
+#define PYTHON_PREFIX_DEFAULT ""
+#endif
+
+#if BINARY_PATCH_LDSO == 1
+#define DEFAULT_PATCH_LDSO "true"
+#else
+#define DEFAULT_PATCH_LDSO "false"
+#endif
+
+#define DEFAULT_EXEC_EXCLUDE_LIST "gcc:g++:cc:CC:clang:clang++:hipcc:amdclang:amdclang++:craycc:crayCC:ld:ld.lld:mpicc:mpic++:mpicxx:make:gmake:cmake"
+const list<SpindleOption> *Options;
+
+void initOptionsList()
+{
+   if (Options)
+      return;
+   
+   Options = new list<SpindleOption>(
+   {
    { confCmdlineNewgroup, "", shortNone, groupReloc, cvBool, {}, "",
      "These options specify what types of files should be loaded through the Spindle network" },
    { confRelocAout, "reloc-aout", shortRelocAout, groupReloc, cvBool, {}, "true",
@@ -194,14 +215,16 @@ const list<SpindleOption> Options = {
      "Enables hostbin startup mode. (Derecated for launcher=hostbin)" },
    { confHostbin, "hostbin", shortHostbin, groupLauncher, cvString, {}, HOSTBIN_PATH_STR,
      "Path to a script that returns the hostlist for a job on a cluster." },   
-   { confJoblauncher, "launcher", shortLauncher, groupLauncher, cvEnum, { "slurm", "flux", "slurm-plugin", "serial", "hostbin", "unknown" }, DEFAULT_LAUNCHER_STR,
+   { confJoblauncher, "launcher", shortLauncher, groupLauncher, cvEnum, { "slurm", "flux", "flux-plugin", "slurm-plugin", "serial", "hostbin", "unknown" }, DEFAULT_LAUNCHER_STR,
      "Sets the launcher to the specified value." },
 
    { confCmdlineNewgroup, "", shortNone, groupSession, cvBool, {}, "",
      "Options for managing sessions, which can run multiple jobs out of one spindle cache." },
    { confStartSession, "start-session", shortStartSession, groupSession, cvBool, {}, "",
+     "Start a persistent Spindle session." },
+   { confStartMultiSession, "start-multi-session", shortStartMultiSession, groupSession, cvBool, {}, "",
      "Start a persistent Spindle session and print the session-id to stdout." },
-   { confEndSession, "end-session", shortEndSession, groupSession, cvString, {}, "",
+   { confEndSession, "end-session", shortEndSession, groupSession, cvStringOptional, {}, "",
      "End a persistent Spindle session with the given session-id." },
    { confRunSession, "run-in-session", shortRunSession, groupSession, cvString, {}, "",
      "Run a new job in the given session." },
@@ -222,14 +245,18 @@ const list<SpindleOption> Options = {
      "Runs spindle in audit or subaudit mode. Subaudit is needed for certain glibc versions on PPC systems." },
    { confShmcacheSize, "shmcache-size", shortSharedCacheSize, groupMisc, cvInteger, {}, SHMCACHE_SIZE_STR,
      "Size of client shared memory cache in kb, which can be used to improve performance if multiple processes are running on each node." },
-   { confPythonPrefix, "python-prefix", shortPythonPrefix, groupMisc, cvList, {}, "",
+   { confPythonPrefix, "python-prefix", shortPythonPrefix, groupMisc, cvList, {}, PYTHON_PREFIX_DEFAULT,
      "Colon-seperated list of directories that contain the python install locations." },
    { confCachePrefix, "cache-prefix", shortCachePrefix, groupMisc, cvList, {}, "",
      "Alias for python-prefix" },
-   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR ":$TMPDIR/:/proc/:/dev/:/var/:/tmp/",
+   { confExecExcludes, "exec-excludes", shortExecExcludes, groupMisc, cvList, {}, DEFAULT_EXEC_EXCLUDE_LIST,
+     "Colon-seperated list of executable names that should not be run under spindle." },
+   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR,
      "Colon-seperated list of directories that spindle will not cache files out of" },
    { confDebug, "debug", shortDebug, groupMisc, cvBool, {}, "false",
      "If yes, hide spindle from debuggers so they think libraries come from the original locations.  May cause extra overhead." },
+   { confPatchLdso, "patch-ldso", shortPatchLdso, groupMisc, cvBool, {}, DEFAULT_PATCH_LDSO,
+     "Enables or disables dynamic binary patching of ld.so to better intercept stat calls." },
    { confPreload, "preload", shortPreload, groupMisc, cvString, {}, "",
      "Provides a text file containing a white-space separated list of files that should be relocated to each node before execution begins" },
    { confStrip, "strip", shortStrip, groupMisc, cvBool, {}, "true", 
@@ -254,7 +281,8 @@ const list<SpindleOption> Options = {
      "Enable starting daemons with an rsh tree, if the startup mode supports it." },
    { confRshCommand, "rsh-command", shortRSHCmd, groupMisc, cvString, {}, RSHCMD_STR,
      "The command to run rsh/ssh, when doing RSH startup mode." }
-};
+  } );
+}
 
 pair<bool, bool> strToBool(string s)
 {
@@ -333,6 +361,27 @@ void ConfigMap::setApplicationCmdline(int argc, char **argv)
    }
 }
 
+#define LIST_RESET_TOKEN "NONE"
+#define LIST_RESET_TOKEN_SIZE 4
+string ConfigMap::mergeLists(string value, string existing)
+{
+   std::size_t pos = value.find(LIST_RESET_TOKEN);
+   if (pos == string::npos) {
+      return existing.empty() ? value : value + ":" + existing; 
+   }
+   std::size_t next_term_start = pos + LIST_RESET_TOKEN_SIZE;
+   bool none_starts_term = (pos == 0) || (value[pos-1] == ':');
+   bool none_ends_term = (next_term_start == value.length()) || (value[next_term_start] == ':');
+   if (!none_starts_term || !none_ends_term) {
+      return existing.empty() ? value : value + ":" + existing; 
+   }
+
+   if (next_term_start == value.length())
+      return std::string();
+   else
+      return value.substr(next_term_start + 1);
+}
+
 bool ConfigMap::mergeOnto(const ConfigMap &other)
 {
    for (map<SpindleConfigID, string>::const_iterator i = other.name_values.begin(); i != other.name_values.end(); i++) {
@@ -350,9 +399,9 @@ bool ConfigMap::mergeOnto(const ConfigMap &other)
       string existing_value = existing_valuei != name_values.end() ? existing_valuei->second : "";
       
       string newvalue;
-      if (conftype == cvList && !existing_value.empty()) {
-         newvalue = value + ":" + existing_value;
-         debug_printf3("Config parsing merging lists for %s '%s' and '%s' from configmap %s to %s\n",
+      if (conftype == cvList) {
+         newvalue = mergeLists(value, existing_value);
+         debug_printf3("Config parsing merging lists for %s '%s' and '%s' from configmap %s to '%s'\n",
                        opt.cmdline_long, existing_value.c_str(), value.c_str(), other.origin.c_str(), newvalue.c_str());
       }
       else if (!existing_value.empty() && existing_value != value) {
@@ -456,6 +505,9 @@ void ConfigMap::debugPrint() const {
          case cvList:
             debug_printf("CONFIG: %s = %s\n", opt.cmdline_long, values.c_str());
             continue;
+         case cvStringOptional:
+            debug_printf("CONFIG: %s = %s\n", opt.cmdline_long, values.empty() ? "[PRESENT]" : values.c_str());
+            continue;
          case cvEnum:
             pair<bool, string> result = strToEnum(name, values);
             typeerror = !result.first;
@@ -526,7 +578,8 @@ bool ConfigMap::isSet(SpindleConfigID name) const {
 }
 
 bool getDefaultsConfigMap(ConfigMap &confmap, string &errstring) {
-   for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++) {
+   initOptionsList();
+   for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++) {
       const SpindleOption &opt = *i;
       if (opt.config_id == confCmdlineOnly || opt.config_id == confCmdlineNewgroup)
          continue;
@@ -542,6 +595,7 @@ bool getDefaultsConfigMap(ConfigMap &confmap, string &errstring) {
 }
 
 bool gatherAllConfigInfo(int argc, char *argv[], bool inExecutable, ConfigMap &config, string &errmessage) {
+   initOptionsList();
    ConfigMap defaults("[DEFAULTS]");
    bool result;
 
@@ -652,6 +706,8 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
          case cvList:
             //strresult already set to value
             break;
+         case cvStringOptional:
+            break;
          case cvEnum: {
             pair<bool, string> result = getValueEnum(name);
             if (!result.first) {
@@ -680,7 +736,13 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
          }
          case confCachePrefix:
          case confPythonPrefix:
-            args.pythonprefix = getstr(strresult, alloc_strs);
+            if (args.pythonprefix)
+               args.pythonprefix = getstr(string(args.pythonprefix) + string(":") + strresult, true);
+            else
+               args.pythonprefix = getstr(strresult, alloc_strs);
+            break;
+         case confExecExcludes:
+            args.exec_excludes = getstr(strresult, alloc_strs);
             break;
          case confLocalPrefix:
             args.local_prefixes = getstr(strresult, alloc_strs);
@@ -785,10 +847,15 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
                args.use_launcher = srun_launcher;
                debug_printf("launcher = %u\n", args.startup_type);
             }
-            else if (strresult == "flux") {
+            else if (strresult == "flux-plugin") {
                debug_printf("Setting flux_plugin_launcher as job launcher\n");
                args.startup_type = startup_external;
                args.use_launcher = flux_plugin_launcher;
+            }
+            else if (strresult == "flux") {
+               debug_printf("Setting flux_session_launcher as job launcher\n");
+               args.startup_type = startup_mpi;
+               args.use_launcher = flux_session_launcher;
             }
             else if (strresult == "slurm-plugin") {
                debug_printf("Setting slurm_plugin_launcher as job launcher\n");
@@ -837,6 +904,7 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
             break;
          case confShmcacheSize:
             args.shm_cache_size = (unsigned int) numresult;
+            setopt(args.opts, OPT_SHMCACHE, (numresult != 0));
             break;
          case confDebug:
             setopt(args.opts, OPT_DEBUG, boolresult);
@@ -890,12 +958,15 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
             args.rsh_command = getstr(strresult, alloc_strs);
             break;
          case confStartSession:
+         case confStartMultiSession:
             setopt(args.opts, OPT_SESSION, boolresult);
             break;
          case confEndSession:
          case confRunSession:
-            setopt(args.opts, OPT_SESSION, !strresult.empty());
-            
+            setopt(args.opts, OPT_SESSION, !strresult.empty());            
+            break;
+         case confPatchLdso:
+            setopt(args.opts, OPT_PATCHLDSO, boolresult);
             break;
       }
    }
@@ -916,6 +987,8 @@ bool ConfigMap::toSpindleArgs(spindle_args_t &args, bool alloc_strs) const
 session_status_t ConfigMap::getSessionStatus() const
 {
    if (isSet(confStartSession))
+      return sstatus_start;
+   else if (isSet(confStartMultiSession))
       return sstatus_start;
    else if (isSet(confEndSession))
       return sstatus_end;
@@ -1025,7 +1098,7 @@ const map<SpindleConfigID, const SpindleOption&> &getOptionsByID()
 {
    static map<SpindleConfigID, const SpindleOption&> optsbyid;
    if (optsbyid.empty()) {
-      for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++) {
+      for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++) {
          const SpindleOption &opt = *i;
          if (opt.config_id == confCmdlineOnly || opt.config_id == confCmdlineNewgroup)
             continue;
@@ -1039,7 +1112,7 @@ const map<CmdlineShortOptions, const SpindleOption&> &getOptionsByKey()
 {
    static map<CmdlineShortOptions, const SpindleOption&> optsbyshort;
    if (optsbyshort.empty()) {
-      for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++) {
+      for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++) {
          const SpindleOption &opt = *i;
          if (opt.cmdline_key == shortNone)
             continue;
@@ -1053,7 +1126,7 @@ const map<string, const SpindleOption&> &getOptionsByLongName()
 {
    static map<string, const SpindleOption&> optsbylong;
    if (optsbylong.empty()) {
-      for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++) {
+      for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++) {
          const SpindleOption &opt = *i;
          if (!opt.cmdline_long || opt.cmdline_long[0] == '\0')
             continue;

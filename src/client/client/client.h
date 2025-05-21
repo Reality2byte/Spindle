@@ -25,6 +25,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <link.h>
 
 #include "spindle_launch.h"
+#include "spindle_regex.h"
 
 #define NOT_FOUND_PREFIX "/__not_exists"
 
@@ -46,6 +47,7 @@ int client_done();
  * Helper functions used throughout the client
  **/
 void set_errno(int newerrno);
+int get_errno();
 void patch_on_load_success(const char *rewritten_name, const char *orig_name, const char *ldso_path_name);
 void sync_cwd();
 void check_for_fork();
@@ -62,17 +64,21 @@ void remove_libc_rogot();
 #define IS_64    (1 << 0)
 #define IS_LSTAT (1 << 1)
 #define IS_XSTAT (1 << 2)
+#define FROM_LDSO (1 << 3)
 #define ORIG_STAT -2
 int handle_stat(const char *path, struct stat *buf, int flags);
 int open_worker(const char *path, int oflag, mode_t mode, int is_64);
 FILE *fopen_worker(const char *path, const char *mode, int is_64);
 void remap_executable();
-int get_ldso_metadata(signed int *binding_offset);
+int get_ldso_metadata_bindingoffset(signed int *binding_offset);
+int get_ldso_metadata_statdata(signed long *stat_offset, signed long *lstat_offset, signed long *errno_offset);
 
-int get_local_prefixes(char **prefixes);
-int get_relocated_file(int fd, const char *name, int dso, char** newname, int *errcode);
+int get_local_prefixes(char ***prefixes);
+int get_exec_excludes(char ***eexcludes);
+int get_relocated_file(int fd, const char *name, int dso, char** newname, int *errcode, int *direxists);
 #define STAT_SELF_OPEN 1
 int get_stat_result(int fd, const char *path, int is_lstat, int *exists, struct stat *buf);
+int get_readlink_result(int fd, const char *path, char *readlink_path, ssize_t *readlink_result, int *readlink_errcode);
 int get_existance_test(int fd, const char *path, int *exists);
 int fetch_from_cache(const char *name, char **newname);
 
@@ -82,6 +88,7 @@ int fetch_from_cache(const char *name, char **newname);
 typedef struct {
    char *path;
    int pathsize;
+   spindle_regex_t regexpr;
 } python_path_t;
 extern python_path_t *pythonprefixes;
 void parse_python_prefixes(int fd);

@@ -651,6 +651,7 @@ MUNGE_LIBS
 MUNGE_CFLAGS
 GCRYPT_LIBS
 GCRYPT_CFLAGS
+STATICFLAG
 fluxplugin_ldflags
 shell_plugindir
 FLUX_HOSTLIST_LIBS
@@ -685,6 +686,8 @@ SOCKETS_TRUE
 PIPES_FALSE
 PIPES_TRUE
 SRUN_PATH
+BLD_FLUXPLUGIN_FALSE
+BLD_FLUXPLUGIN_TRUE
 TESTRM
 AR_FLAGS
 MAINT
@@ -5611,7 +5614,7 @@ else
 fi
 
 
-ac_config_files="$ac_config_files logging/Makefile cobo/Makefile comlib/Makefile openmpi_intercept/Makefile launchmon/Makefile startup/Makefile hostbin/Makefile Makefile"
+ac_config_files="$ac_config_files logging/Makefile cobo/Makefile comlib/Makefile openmpi_intercept/Makefile launchmon/Makefile flux/Makefile startup/Makefile hostbin/Makefile Makefile"
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
 $as_echo_n "checking whether ln -s works... " >&6; }
@@ -16537,6 +16540,14 @@ if test "x$ENABLE_FLUX_PLUGIN" == "xtrue"; then
 $as_echo "#define ENABLE_FLUX_PLUGIN 1" >>confdefs.h
 
 fi
+ if test "x$ENABLE_FLUX_PLUGIN" = "xtrue"; then
+  BLD_FLUXPLUGIN_TRUE=
+  BLD_FLUXPLUGIN_FALSE='#'
+else
+  BLD_FLUXPLUGIN_TRUE='#'
+  BLD_FLUXPLUGIN_FALSE=
+fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for glibc dtv allocation bug" >&5
 $as_echo_n "checking for glibc dtv allocation bug... " >&6; }
@@ -17346,6 +17357,33 @@ fi
   fi
 fi
 
+#Check if we can safely do dynamic patching on ld.so on this system
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether it is safe to binary patch ld.so on this system" >&5
+$as_echo_n "checking whether it is safe to binary patch ld.so on this system... " >&6; }
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test -d ${srcdir}/scripts; then rootsrcdir=${srcdir}; else rootsrcdir=${srcdir}/../..; fi
+auxdir=${rootsrcdir}/scripts
+${auxdir}/rewrite.sh ${rootsrcdir}/src . $CC
+if test "x$?" == "x0"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+   PATCH_LDSO=1
+else
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+   PATCH_LDSO=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define BINARY_PATCH_LDSO $PATCH_LDSO
+_ACEOF
+
+
 if test "x$GLIBC_BE_DIR" = "x"; then
   # Get glibc location on front-end
   CAT=`which cat`
@@ -17358,6 +17396,39 @@ $as_echo "$as_me: glibc backend location set to $GLIBC_BE_DIR" >&6;}
 #Security options
 
 $as_echo "#define KEY_SIZE_BYTES 32" >>confdefs.h
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether static linking works..." >&5
+$as_echo_n "checking whether static linking works...... " >&6; }
+OLD_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS -static"
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+STATICFLAG=""
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main(int argc, char *argv) { return 0; }
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  STATICFLAG="-all-static"; { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+LDFLAGS=$OLD_LDFLAGS
 
 
 # Check whether --enable-sec-munge was given.
@@ -18145,6 +18216,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
   as_fn_error $? "conditional \"MAINTAINER_MODE\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BLD_FLUXPLUGIN_TRUE}" && test -z "${BLD_FLUXPLUGIN_FALSE}"; then
+  as_fn_error $? "conditional \"BLD_FLUXPLUGIN\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${PIPES_TRUE}" && test -z "${PIPES_FALSE}"; then
@@ -19177,6 +19252,7 @@ do
     "comlib/Makefile") CONFIG_FILES="$CONFIG_FILES comlib/Makefile" ;;
     "openmpi_intercept/Makefile") CONFIG_FILES="$CONFIG_FILES openmpi_intercept/Makefile" ;;
     "launchmon/Makefile") CONFIG_FILES="$CONFIG_FILES launchmon/Makefile" ;;
+    "flux/Makefile") CONFIG_FILES="$CONFIG_FILES flux/Makefile" ;;
     "startup/Makefile") CONFIG_FILES="$CONFIG_FILES startup/Makefile" ;;
     "hostbin/Makefile") CONFIG_FILES="$CONFIG_FILES hostbin/Makefile" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;

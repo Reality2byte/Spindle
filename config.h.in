@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Whether it is safe to patch ld.so */
+#undef BINARY_PATCH_LDSO
+
 /* Whether we are using a broken srun */
 #undef BROKEN_SRUN
 

@@ -64,7 +64,7 @@ static int do_check_file(const char *path, char **newpath) {
    }
    sync_cwd();
 
-   get_relocated_file(ldcsid, myname, 0, &newname, &errcode);
+   get_relocated_file(ldcsid, myname, 0, &newname, &errcode, NULL);
 
    if (newname != NULL) {
       *newpath=newname;

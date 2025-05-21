@@ -38,6 +38,8 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "spindle_launch.h"
 #include "shmcache.h"
 #include "ccwarns.h"
+#include "exec_util.h"
+#include "intercept.h"
 
 errno_location_t app_errno_location;
 
@@ -73,6 +75,7 @@ ElfW(Addr) libc_loadoffset, interp_loadoffset;
 char *location;
 char *orig_location;
 number_t number;
+static int have_stat_patches;
 
 static char *concatStrings(const char *str1, const char *str2) 
 {
@@ -201,7 +204,7 @@ static int init_server_connection()
    rankinfo_s = getenv("LDCS_RANKINFO");
    opts_s = getenv("LDCS_OPTIONS");
    cachesize_s = getenv("LDCS_CACHESIZE");
-   opts = atol(opts_s);
+   opts = strtoul(opts_s, NULL, 10);
    shm_cachesize = atoi(cachesize_s) * 1024;
 
    if (strchr(location, '$')) {
@@ -332,8 +335,22 @@ void set_errno(int newerrno)
    *app_errno_location() = newerrno;
 }
 
+int get_errno()
+{
+   if (!app_errno_location) {
+      debug_printf2("app_errno_location not set.  Manually looking up value\n");
+      lookup_libc_symbols();
+      if (!app_errno_location) {
+         debug_printf("Warning: Unable to set errno because app_errno_location not set\n");
+         return -1;
+      }
+   }
+   return *app_errno_location();
+}
+
 int client_init()
 {
+  int result;
   int initial_run = 0;
   LOGGING_INIT("Client");
   check_for_fork();
@@ -359,6 +376,14 @@ int client_init()
      remap_executable(ldcsid);
   }
 
+  if (opts & OPT_PATCHLDSO) {
+     result = init_intercept_ldso_stat();
+     have_stat_patches = (result == 0);
+  }
+  else {
+     have_stat_patches = 0;
+  }
+  
   return 0;
 }
 
@@ -376,10 +401,50 @@ int client_done()
 
 extern int dlopen_filter(const char *name);
 
+static char patch[4096];
+static char *last_patch_location = NULL;
+static int last_patch_len;
+static const char *stat_not_found_prefix = NOT_FOUND_PREFIX "/";
+
+static void pathpatch_old_name(char *filename)
+{
+   int len;
+   if (have_stat_patches)
+      return;
+   
+   for (len = 0; filename[len] != '\0' && stat_not_found_prefix[len] != '\0'; len++);
+   if (len == 0) {
+      patch[0] = '\0';
+      last_patch_location = NULL;
+      return;
+   }
+
+   memcpy(patch, filename, len);
+   memcpy(filename, stat_not_found_prefix, len);
+   last_patch_location = filename;
+   last_patch_len = len;
+}
+
+void restore_pathpatch()
+{
+   if (have_stat_patches)
+      return;   
+   if (!last_patch_location || !last_patch_len)
+      return;
+   if (strncmp(last_patch_location, stat_not_found_prefix, last_patch_len) != 0) {
+      last_patch_location = NULL;
+      last_patch_len = 0;
+      return;
+   }      
+   memcpy(last_patch_location, patch, last_patch_len);
+   last_patch_location = NULL;
+   last_patch_len = 0;
+}
+
 char *client_library_load(const char *name)
 {
    char *newname;
-   int errcode;
+   int errcode, direxists;
    char fixed_name[MAX_PATH_LEN+1];
 
    check_for_fork();
@@ -423,10 +488,12 @@ char *client_library_load(const char *name)
       return (char *) name;
    }
    
-   get_relocated_file(ldcsid, orig_file_name, 1, &newname, &errcode);
+   get_relocated_file(ldcsid, orig_file_name, 1, &newname, &errcode, &direxists);
  
    if(!newname) {
       newname = concatStrings(NOT_FOUND_PREFIX, orig_file_name);
+      if (!direxists)
+         pathpatch_old_name(orig_file_name);
    }
    else {
       patch_on_load_success(newname, orig_file_name, name);
@@ -453,9 +520,14 @@ static void read_python_prefixes(int fd, char **path)
    }
 }
 
-int get_local_prefixes(char **prefixes)
+int get_local_prefixes(char ***prefixes)
 {
-   return send_local_prefix_request(ldcsid, prefixes);
+   return get_dirlists(prefixes, NULL);
+}
+
+int get_exec_excludes(char ***eexcludes)
+{
+   return get_dirlists(NULL, eexcludes);
 }
 
 python_path_t *pythonprefixes = NULL;
@@ -486,10 +558,12 @@ void parse_python_prefixes(int fd)
          *next = '\0';
       pythonprefixes[j].path = cur;
       pythonprefixes[j].pathsize = strlen(cur);
+      pythonprefixes[j].regexpr = parse_spindle_regex_str(cur);
       i += pythonprefixes[j].pathsize+1;
    }
    pythonprefixes[num_pythonprefixes].path = NULL;
    pythonprefixes[num_pythonprefixes].pathsize = 0;
+   pythonprefixes[num_pythonprefixes].regexpr = NULL;
 
    for (i = 0; pythonprefixes[i].path != NULL; i++)
       debug_printf3("Python path # %d = %s\n", i, pythonprefixes[i].path);
@@ -500,15 +574,21 @@ static int read_ldso_metadata(char *localname, ldso_info_t *ldsoinfo)
    return read_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
 }
 
-int get_ldso_metadata(signed int *binding_offset)
+static ldso_info_t *load_ldso_metadata()
 {
-   ldso_info_t info;
-   int found_file = 0;
+   static ldso_info_t info;
+   static int ldso_read = 0;
+   
+   int found_file = 0, result;
    char cachename[MAX_PATH_LEN+1];
    char filename[MAX_PATH_LEN+1];
    char *ldso_info_name = NULL;
    int use_cache = (opts & OPT_SHMCACHE) && (shm_cachesize > 0);
 
+   if (ldso_read)
+      return &info;
+   ldso_read = 1;
+   
    find_interp_name();
    debug_printf2("Requesting interpreter metadata for %s\n", interp_name);
 
@@ -526,8 +606,31 @@ int get_ldso_metadata(signed int *binding_offset)
       ldso_info_name = filename;
    }
 
-   read_ldso_metadata(ldso_info_name, &info);
+   result = read_ldso_metadata(ldso_info_name, &info);
+   if (result == -1)
+      return NULL;
+   
+   return &info;
+}
 
-   *binding_offset = info.binding_offset;
+int get_ldso_metadata_bindingoffset(signed int *binding_offset)
+{
+   ldso_info_t *ldsoinfo = load_ldso_metadata();
+   if (!ldsoinfo)
+      return -1;
+   *binding_offset = ldsoinfo->binding_offset;
+   return 0;
+}
+
+int get_ldso_metadata_statdata(signed long *stat_offset, signed long *lstat_offset, signed long *errno_offset)
+{
+   ldso_info_t *ldsoinfo = load_ldso_metadata();
+   if (!ldsoinfo)
+      return -1;
+   if (!ldsoinfo->stat_offset || !ldsoinfo->lstat_offset || !ldsoinfo->errno_offset)
+      return -1;
+   *stat_offset = ldsoinfo->stat_offset;
+   *lstat_offset = ldsoinfo->lstat_offset;
+   *errno_offset = ldsoinfo->errno_offset;
    return 0;
 }

@@ -129,6 +129,7 @@ struct ldcs_process_data_struct
   char *hostname;
   char *pythonprefix;
   char *localprefix;
+  char *exec_excludes;
   char *numa_substrs;
   char *numa_excludes;   
   msgbundle_entry_t *msgbundle_entries;
@@ -141,6 +142,7 @@ struct ldcs_process_data_struct
   int exit_on_client_close;
   int num_exited_children_peers;
   int num_exited_parents;
+  int num_alives;
   opt_t opts;
   requestor_list_t dso_requests;
   requestor_list_t file_requests;   

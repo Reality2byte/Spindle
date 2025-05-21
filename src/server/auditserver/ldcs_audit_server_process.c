@@ -144,6 +144,7 @@ int ldcs_audit_server_process(spindle_args_t *args)
    ldcs_process_data.number = args->number;
    ldcs_process_data.pythonprefix = args->pythonprefix;
    ldcs_process_data.localprefix = args->local_prefixes;
+   ldcs_process_data.exec_excludes = args->exec_excludes;
    ldcs_process_data.numa_substrs = args->numa_files;
    ldcs_process_data.numa_excludes = args->numa_excludes;
    ldcs_process_data.md_port = args->port;
@@ -165,6 +166,7 @@ int ldcs_audit_server_process(spindle_args_t *args)
    ldcs_process_data.exit_on_client_close = 0;
    ldcs_process_data.num_exited_children_peers = 0;
    ldcs_process_data.num_exited_parents = 0;
+   ldcs_process_data.num_alives = 0;
    
    if (ldcs_process_data.opts & OPT_PULL) {
       debug_printf("Using PULL model\n");

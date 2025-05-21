@@ -35,9 +35,13 @@ Elf64_Addr doPermanentBinding_idx(struct link_map *map,
 Elf64_Addr doPermanentBinding_noidx(uintptr_t *refcook, uintptr_t *defcook,
                                     Elf64_Addr target, const char *symname,
                                     void *stack_begin, void *stack_end);
-
+int do_global_bindings(struct link_map *map);
 void patchDTV_init();
 void patchDTV_check();
+void addToDataBindingQueue(struct link_map *map,
+                           Elf64_Addr target,
+                           Elf64_Addr *got_entry);
+void updateDataBindingQueue(int flush);
 
 #define AUDIT_EXPORT __attribute__((__visibility__("default")))
 

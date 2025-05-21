@@ -55,6 +55,12 @@ static int sock = -1;
 #define RET_RUN_CMD 2
 #define RET_END_SESSION 3
 
+void signal_init_done();
+static void setup_init_done_pipe();
+static void setup_init_done_pipe_parent();
+static void setup_init_done_pipe_child();
+static void waitfor_init_done();
+
 extern bool getRandom(void *bytes, size_t bytes_size);
 
 static string getTmpdir()
@@ -98,7 +104,7 @@ static void create_session_id()
          else if (val == 62)
             session_id_str[i] = '.';
          else if (val == 63)
-            session_id_str[i] = '!';
+            session_id_str[i] = ',';
          else
             assert(0);
       }
@@ -428,7 +434,7 @@ int get_session_runcmds(app_id_t &appid, int &app_argc, char** &app_argv, bool &
    return 0;
 }
 
-int init_session(spindle_args_t *args, const ConfigMap &config)
+int init_session(spindle_args_t *args, const ConfigMap &config, Launcher *launcher)
 {
    int result;
    session_status_t sstatus = config.getSessionStatus();
@@ -439,22 +445,27 @@ int init_session(spindle_args_t *args, const ConfigMap &config)
 
    if (sstatus == sstatus_start) {
       debug_printf("Starting new spindle session\n");
+      bool multi_start = (config.isSet(confStartMultiSession));
 
       create_session_id();
       debug_printf("New session code is %s\n", session_id.c_str());
       debug_printf("New session socket is %s\n", session_socket.c_str());
-
+      args->session_key = strdup(session_id.c_str());
       //Print new session id
-      (void)! write(1, session_id.c_str(), session_id.length());
-      (void)! write(1, "\n", 1);
+      if (multi_start || args->use_launcher == srun_launcher) {
+         (void)! write(1, session_id.c_str(), session_id.length());
+         (void)! write(1, "\n", 1);
+      }
 
+      setup_init_done_pipe();
+      
       close(0);
       open("/dev/null", O_RDONLY);
       close(1);
       open("/dev/null", O_WRONLY);
       //close(2);
       //open("/dev/null", O_WRONLY);
-         
+
       pid_t pid = grandchild_fork();
       if (pid == -1) {
          //Error mode
@@ -463,10 +474,13 @@ int init_session(spindle_args_t *args, const ConfigMap &config)
       }
       else if (pid > 0) {
          debug_printf("Session daemon startup was successful.  Exiting\n");
+         setup_init_done_pipe_parent();
+         waitfor_init_done();
          exit(0);
       }
       else {
          //In child-process/daemon.  Run spindle.
+         setup_init_done_pipe_child();         
          debug_printf("Creating unix socket for new session\n");
          result = create_unixsocket();
          if (result == -1) {
@@ -478,7 +492,16 @@ int init_session(spindle_args_t *args, const ConfigMap &config)
       return 0;
    }
 
-   set_session_id(config.getArgSessionId());
+   string id = config.getArgSessionId();
+   if (id.empty()) {
+      bool result = launcher->getDefaultSessionID(id);
+      if (!result) {
+         fprintf(stderr, "No session was specified on the command line and no default session was running\n");
+         exit(-1);
+      }
+   }
+   
+   set_session_id(id);
    debug_printf("Connecting to existing spindle session-id %s\n", session_id.c_str());
    result = connect_to_session();
    if (result == -1) {
@@ -586,4 +609,73 @@ int return_session_cmd(app_id_t appid, int app_argc, char **app_argv)
    socket_ids.erase(i);
    close(client);
    return result;
+}
+
+#define PIPE_RD 0
+#define PIPE_WR 1
+static int init_done_pipe[2] = { -1, -1 };
+void setup_init_done_pipe()
+{
+   int result, error;
+   result = pipe(init_done_pipe);
+   if (result == -1) {
+      error = errno;
+      err_printf("Could not setup init_done_pipe: %s\n", strerror(error));
+      init_done_pipe[PIPE_RD] = init_done_pipe[PIPE_WR] = -1;
+      return;
+   }
+}
+
+void setup_init_done_pipe_parent() {
+   if (init_done_pipe[PIPE_WR] == -1)
+       return;
+   close(init_done_pipe[PIPE_WR]);
+}
+
+void setup_init_done_pipe_child() {
+   if (init_done_pipe[PIPE_RD] == -1)
+       return;
+   close(init_done_pipe[PIPE_RD]);
+}
+
+void signal_init_done() {
+   int result, error;
+   char x = 'x';
+   
+   if (init_done_pipe[PIPE_WR] == -1)
+      return;
+   
+   debug_printf2("Signaling that launcher exec can exit after session start\n");
+   do {
+      result = write(init_done_pipe[PIPE_WR], &x, 1);
+   } while (result == -1 && errno == EINTR);
+   if (result == -1) {
+      error = errno;
+      err_printf("Could not write to init_done pipe: %s\n", strerror(error));
+   }
+   close(init_done_pipe[PIPE_WR]);
+   init_done_pipe[PIPE_WR] = -1;
+}
+      
+void waitfor_init_done()
+{
+   int result, error;
+   char x = '0';
+   
+   if (init_done_pipe[PIPE_RD] == -1)
+      return;
+   
+   debug_printf2("Waiting for session start to finish before exiting launcher exec\n");
+   do {
+      result = read(init_done_pipe[PIPE_RD], &x, 1);
+   } while (result == -1 && errno == EINTR);
+   if (result == -1) {
+      error = errno;
+      err_printf("Could not read from init_done pipe: %s\n", strerror(error));
+   }
+   if (x != 'x') {
+      err_printf("Unexpected character from %c pipe_rd\n", x);
+   }
+   close(init_done_pipe[PIPE_RD]);
+   init_done_pipe[PIPE_RD] = -1;
 }

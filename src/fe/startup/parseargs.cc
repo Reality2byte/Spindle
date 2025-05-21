@@ -114,13 +114,14 @@ static bool done = false;
 
 struct argp_option *build_options()
 {
-   struct argp_option* argoptions = (struct argp_option*) malloc(sizeof(struct argp_option) * (Options.size() + 1));
+   initOptionsList();
+   struct argp_option* argoptions = (struct argp_option*) malloc(sizeof(struct argp_option) * (Options->size() + 1));
    if (!argoptions) {
-      err_printf("Failed to allocation options of size %lu\n", sizeof(struct argp_option) * (Options.size() + 1));
+      err_printf("Failed to allocation options of size %lu\n", sizeof(struct argp_option) * (Options->size() + 1));
       return NULL;
    }
    int j = 0;
-   for (list<SpindleOption>::const_iterator i = Options.begin(); i != Options.end(); i++, j++) {
+   for (list<SpindleOption>::const_iterator i = Options->begin(); i != Options->end(); i++, j++) {
       const SpindleOption &cur = *i;
       argp_option &argp = argoptions[j];
 
@@ -147,6 +148,10 @@ struct argp_option *build_options()
          case cvInteger:
          case cvString:
             argp.arg = strdup("val");
+            break;
+         case cvStringOptional:
+            argp.arg = strdup("val");
+            argp.flags |= OPTION_ARG_OPTIONAL;            
             break;
          case cvList:
             argp.arg = strdup("val:val:...");

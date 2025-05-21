@@ -47,6 +47,7 @@ static signed int gots_size;
 #if defined(arch_x86_64)
 #define DEFAULT_RELENTSZ 24
 #define EXTRA_GOT_ENTRIES 3
+#define DATA_GOT_TYPE R_X86_64_GLOB_DAT
 #elif defined(arch_ppc64) || defined(arch_ppc64le)
 #define DEFAULT_RELENTSZ 24
 #define EXTRA_GOT_ENTRIES 2
@@ -57,11 +58,15 @@ static signed int gots_size;
 #error Need to fill in got info
 #endif
 
+#define MAX(A, B) (A) > (B) ? (A) : (B)
+#define MIN(A, B) (A) < (B) ? (A) : (B)
 int add_wgot_library(struct link_map *map)
 {
    ElfW(Dyn) *dynamic_section;
-   void *got_table = NULL;
-   unsigned long rel_size = 0, relent_size = 0, relcount, gotsize, start, end;
+   ElfW(Rela) *datarels = NULL;
+   unsigned long pltgot_table = 0;
+   unsigned long rel_size = 0, relent_size = 0, relcount = 0, plt_gotsize = 0, start, end;
+   unsigned long datarels_size = 0, largest_datarel_target = 0, smallest_datarel_target = 0;
    signed int i;
    struct got_range_t *tmprange;
    
@@ -90,35 +95,54 @@ int add_wgot_library(struct link_map *map)
    }
    for (; dynamic_section->d_tag != DT_NULL; dynamic_section++) {
       if (dynamic_section->d_tag == DT_PLTGOT) {
-         got_table = (void*) dynamic_section->d_un.d_ptr;
+         pltgot_table = (unsigned long) dynamic_section->d_un.d_val;
       }
-      if (dynamic_section->d_tag == DT_PLTRELSZ) {
+      else if (dynamic_section->d_tag == DT_PLTRELSZ) {
          rel_size = (unsigned long) dynamic_section->d_un.d_val;
       }
-      if (dynamic_section->d_tag == DT_RELAENT) {
+      else if (dynamic_section->d_tag == DT_RELAENT) {
          relent_size = (unsigned long) dynamic_section->d_un.d_val;
       }
-      if (got_table && rel_size && relent_size) {
-         break;
+      else if (dynamic_section->d_tag == DT_RELA) {
+         datarels = (ElfW(Rela) *) dynamic_section->d_un.d_ptr;
       }
-   }
-
-   if (!got_table) {
-      //Could have a library that doesn't call outside of itself and doesn't have PLT GOTs.
-      // unlikely, but possible.
-      debug_printf("Warning: Library %s does not appear to have DT_JMPREL (%p) or DT_PLTRELSZ (%lu)\n",
-                   map->l_name ? map->l_name : "[NO NAME]", got_table, rel_size);
-      return -1;
+      else if (dynamic_section->d_tag == DT_RELASZ) {
+         datarels_size = (unsigned long) dynamic_section->d_un.d_val;
+      }
    }
 
    if (!relent_size) {
       relent_size = DEFAULT_RELENTSZ;
    }
    relcount = rel_size / relent_size;
-   gotsize = (relcount + EXTRA_GOT_ENTRIES + 1) * sizeof(void*);
+   plt_gotsize = (relcount + EXTRA_GOT_ENTRIES + 1) * sizeof(void*);
 
-   start = (unsigned long) got_table;
-   end = start + gotsize;
+   if (datarels) {
+      for (i = 0; i < datarels_size / relent_size; i++) {
+         unsigned long target = datarels[i].r_offset + map->l_addr;
+         if (ELF64_R_TYPE(datarels[i].r_info) != DATA_GOT_TYPE)
+            continue;
+         largest_datarel_target = MAX(target, largest_datarel_target);
+         if (!smallest_datarel_target) smallest_datarel_target = target;
+         else smallest_datarel_target = MIN(target, smallest_datarel_target);
+      }
+      if (largest_datarel_target)
+         largest_datarel_target += sizeof(void*);
+   }
+   if (!smallest_datarel_target)
+      start = pltgot_table;
+   else if (!pltgot_table)
+      start = smallest_datarel_target;
+   else
+      start = MIN(smallest_datarel_target, pltgot_table);
+   end = MAX(largest_datarel_target, pltgot_table + plt_gotsize);
+   if (start == end || !start || !end) {
+      //Could have a library that doesn't call outside of itself and doesn't have PLT GOTs.
+      // unlikely, but possible.
+      debug_printf("Warning: Library %s does not appear to have got table\n",
+                   map->l_name ? map->l_name : "[NO NAME]");
+      return -1;
+   }
 
    //Sorted-insert the info for the new library into the gots array.
    for (i = gots_last_entry-1; i >= 0; i--) {
@@ -220,7 +244,6 @@ int make_got_writable(void *got_entry, struct link_map *map)
          hi = cur;
       prev_cur = cur;
    }
-   
    err_printf("Could not find current library %s with got %lx in got list\n", map->l_name ? map->l_name : "[NO NAME]", got_entry_address);
    return -1;
 }

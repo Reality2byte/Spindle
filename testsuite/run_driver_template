@@ -11,12 +11,21 @@ export SPINDLE=SPINDLE_EXEC
 export PATH=$PATH:.
 
 if [ $1 == --start-session ] ; then
-$SPINDLE --start-session
-exit 0
+    export SPINDLEID=`$SPINDLE --start-session`
+    if [ x$SPINDLEID == x ]; then
+        echo ANONYMOUS_SESSION
+    else
+        echo $SPINDLEID
+    fi
+    exit 0
 fi
 if [ $1 == --end-session ] ; then
-$SPINDLE $*
-exit 0
+    if [ x$2 == xANONYMOUS_SESSION ] ; then
+        $SPINDLE --end-session
+    else
+        $SPINDLE $1=$2
+    fi
+    exit 0
 fi
 
 echo Running: ./run_driver $* $SPINDLE_LAUNCH_MODE

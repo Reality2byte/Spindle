@@ -59,6 +59,7 @@ extern "C" {
 #define OPT_STOPRELOC  (1 << 28)            /* Stops spindle from relocating file contents, but still allow it to intercept file-not-found attempts */
 #define OPT_NUMA       (1 << 29)            /* Enables file replication across NUMA domains */
 #define OPT_OFF        (1 << 30)            /* Turns spindle off, disabling everything */
+#define OPT_PATCHLDSO  (1 << 31)            /* Enables patching of ld.so to intercept stat calls */
    
 #define OPT_SET_SEC(OPT, X) OPT |= (X << 19)
 #define OPT_GET_SEC(OPT) ((OPT >> 19) & 7)
@@ -79,6 +80,7 @@ extern "C" {
 #define jsrun_launcher (1 << 7)             /* Launched via IBM's jsrun launcher */
 #define lrun_launcher (1 << 8)              /* Launched via LLNL's wrappers around jsrun */
 #define flux_plugin_launcher (1 << 9)       /* Launched via flux's plugin */
+#define flux_session_launcher (1 << 10)     /* Launched via flux's session mode */
 
 /* Possible values for startup_type, describe how Spindle servers are started */
 #define startup_serial 0                    /* Job is non-parallel app, and server is forked/exec */
@@ -148,7 +150,13 @@ typedef struct {
    /* Colon-seperated list of directory prefixes that spindle will not build caches out of. 
       Local storage directores can be placed here.
    */
-   char *local_prefixes;   
+   char *local_prefixes;
+
+   /* If running in a session, the key for that session */
+   char *session_key;
+
+   /* Executable names to exclude from spindle and not run on */
+   char *exec_excludes;
 } spindle_args_t;
 
 /* Functions used to startup Spindle on the front-end. Init returns after finishing start-up,
