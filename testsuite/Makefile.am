@@ -1,7 +1,7 @@
 noinst_PROGRAMS = libgenerator
 
 ABS_TEST_DIR = $(abspath $(top_builddir)/testsuite)
-BUILT_SOURCES = libtest10.so libtest11.so libtest12.so libtest13.so libtest14.so libtest15.so libtest16.so libtest17.so libtest18.so libtest19.so libtest20.so libtest50.so libtest100.so libtest500.so libtest1000.so libtest2000.so libtest4000.so libtest6000.so libtest8000.so libtest10000.so libtls1.c libtls2.c libtls3.c libtls4.c libtls5.c libtls6.c libtls7.c libtls8.c libtls9.c libtls10.c libtls11.c libtls12.c libtls13.c libtls14.c libtls15.c libtls16.c libtls17.c libtls18.c libtls19.c libtls20.c libsymlink.so libdepC.so libdepB.so libdepA.so libcxxexceptB.so libcxxexceptA.so origin_dir/liboriginlib.so origin_dir/origin_subdir/liborigintarget.so libtestoutput.so libfuncdict.so runTests run_driver run_driver_rm spindle.rc preload_file_list test_driver test_driver_libs retzero_rx retzero_r retzero_x retzero_ badinterp hello_r.py hello_x.py hello_rx.py hello_.py hello_l.py badlink.py spindle_exec_test spindle_deactivated.sh liblocal.so
+BUILT_SOURCES = libtest10.so libtest11.so libtest12.so libtest13.so libtest14.so libtest15.so libtest16.so libtest17.so libtest18.so libtest19.so libtest20.so libtest50.so libtest100.so libtest500.so libtest1000.so libtest2000.so libtest4000.so libtest6000.so libtest8000.so libtest10000.so libtls1.c libtls2.c libtls3.c libtls4.c libtls5.c libtls6.c libtls7.c libtls8.c libtls9.c libtls10.c libtls11.c libtls12.c libtls13.c libtls14.c libtls15.c libtls16.c libtls17.c libtls18.c libtls19.c libtls20.c libsymlink.so libdepC.so libdepB.so libdepA.so libcxxexceptB.so libcxxexceptA.so origin_dir/liboriginlib.so origin_dir/origin_subdir/liborigintarget.so libtestoutput.so libfuncdict.so runTests run_driver run_driver_rm spindle.rc preload_file_list test_driver test_driver_libs retzero_rx retzero_r retzero_x retzero_ badinterp hello_r.py hello_x.py hello_rx.py hello_.py hello_l.py badlink.py spindle_exec_test spindle_deactivated.sh liblocal.so symbind_test
 
 if BGQ_BLD
 DYNAMIC_FLAG=-dynamic
@@ -315,6 +315,31 @@ origin_dir/origin_subdir/liborigintarget.so: origintarget.c origin_dir/origin_su
 origin_dir/liboriginlib.so: originlib.c $(REGLIB_SRC) origin_dir/origin_subdir/liborigintarget.so
 	$(AM_V_CCLD)$(MPICC) -o $@ -fPIC -Wall $< $(REGLIB_SRC) -DSO_NAME=liboriginlib.so -DFUNC_NAME=origin_calc -shared '-Wl,-rpath,$$ORIGIN/origin_subdir' -Lorigin_dir/origin_subdir -lorigintarget
 
+libsymbind_a.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c libsymbind_b.so
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall -DAUTORUN=a $(srcdir)/symbindlib.c -L. -lsymbind_b -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_b.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall -DAUTORUN=b $(srcdir)/symbindlib.c -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_c.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c libsymbind_d.so
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall $(srcdir)/symbindlib.c -L. -lsymbind_d -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_d.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall $(srcdir)/symbindlib.c -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_e.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -shared -fPIC -Wall $(srcdir)/symbindlib.c -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_f.so: $(srcdir)/symbindlib.c $(srcdir)/symbind_fileops.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -fno-plt -o $@ -shared -fPIC -Wall $(srcdir)/symbindlib.c -I$(srcdir) -Wl,-rpath,$(top_builddir)/testsuite
+
+libsymbind_g.so: $(srcdir)/symbindlib_g.c
+	$(AM_V_CC)$(CC) $(CFLAGS) -c -o symbindlib_g.o -shared -fPIC -Wall $(srcdir)/symbindlib_g.c -I$(srcdir)
+	$(AM_V_CCLD)$(LD) -shared -o $@ symbindlib_g.o -rpath $(top_builddir)/testsuite
+
+symbind_test: $(srcdir)/symbind_test.c $(srcdir)/symbind_fileops.c libsymbind_a.so libsymbind_b.so libsymbind_c.so libsymbind_d.so libsymbind_e.so libsymbind_f.so libsymbind_g.so
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ -Wall $(srcdir)/symbind_test.c -L. -lsymbind_a -I$(srcdir) -ldl -Wl,-rpath,$(top_builddir)/testsuite
+
 retzero_rx: retzero.c
 	$(AM_V_CCLD)$(MPICC) -o $@ $<
 	$(AM_V_GEN)chmod 700 $@
@@ -383,4 +408,4 @@ preload_file_list: $(srcdir)/preload_file_list_template $(top_builddir)/Makefile
 	@rm -f ./preload_file_list
 	$(AM_V_GEN)$(SED) -e s,TEST_RUN_DIR,$(ABS_TEST_DIR),g < $(srcdir)/preload_file_list_template > $(top_builddir)/testsuite/preload_file_list
 
-CLEANFILES = libtest10.c libtest11.c libtest12.c libtest13.c libtest14.c libtest15.c libtest16.c libtest17.c libtest18.c libtest19.c libtest20.c libtest10.so libtest50.c libtest50.so libtest100.c libtest100.so libtest500.c libtest500.so libtest1000.c libtest1000.so libtest2000.c libtest2000.so libtest4000.c libtest4000.so libtest6000.c libtest6000.so libtest8000.c libtest8000.so libtest10000.c libtest10000.so libsymlink.so libdepA.so libdepB.so libdepC.so libcxxexceptA.so libcxxexceptB.so libtestoutput.so libfuncdict.so runTests run_driver run_driver_rm spindle.rc test_driver test_driver_libs preload_file_list retzero_rx retzero_r retzero_x retzero_ badinterp hello_r.py hello_x.py hello_rx.py hello_.py hello_l.py badlink.py libtls1.c libtls2.c libtls3.c libtls4.c libtls5.c libtls6.c libtls7.c libtls8.c libtls9.c libtls10.c libtls11.c libtls12.c libtls13.c libtls14.c libtls15.c libtls16.c libtls17.c libtls18.c libtls19.c libtls20.c libtls1.so libtls2.so libtls3.so libtls4.so libtls5.so libtls6.so libtls7.so libtls8.so libtls9.so libtls10.so libtls11.so libtls12.so libtls13.so libtls14.so libtls15.so libtls16.so libtls17.so libtls18.so libtls19.so libtls20.so 
+CLEANFILES = libtest10.c libtest11.c libtest12.c libtest13.c libtest14.c libtest15.c libtest16.c libtest17.c libtest18.c libtest19.c libtest20.c libtest10.so libtest50.c libtest50.so libtest100.c libtest100.so libtest500.c libtest500.so libtest1000.c libtest1000.so libtest2000.c libtest2000.so libtest4000.c libtest4000.so libtest6000.c libtest6000.so libtest8000.c libtest8000.so libtest10000.c libtest10000.so libsymlink.so libdepA.so libdepB.so libdepC.so libcxxexceptA.so libcxxexceptB.so libtestoutput.so libfuncdict.so runTests run_driver run_driver_rm spindle.rc test_driver test_driver_libs preload_file_list retzero_rx retzero_r retzero_x retzero_ badinterp hello_r.py hello_x.py hello_rx.py hello_.py hello_l.py badlink.py libtls1.c libtls2.c libtls3.c libtls4.c libtls5.c libtls6.c libtls7.c libtls8.c libtls9.c libtls10.c libtls11.c libtls12.c libtls13.c libtls14.c libtls15.c libtls16.c libtls17.c libtls18.c libtls19.c libtls20.c libtls1.so libtls2.so libtls3.so libtls4.so libtls5.so libtls6.so libtls7.so libtls8.so libtls9.so libtls10.so libtls11.so libtls12.so libtls13.so libtls14.so libtls15.so libtls16.so libtls17.so libtls18.so libtls19.so libtls20.so symbind_test libsymbind_a.so libsymbind_b.so libsymbind_c.so libsymbind_d.so libsymbind_e.so libsymbind_f.so libsymbind_g.so

@@ -205,10 +205,14 @@ int send_orig_path_request(int fd, const char *path, char *newpath)
    return 0;
 }
 
-int send_local_prefix_request(int fd, char **result)
+int send_dirlists_request(int fd, char **local_result, char **exece_result, char **to_free)
 {
    ldcs_message_t message;
-   message.header.type = LDCS_MSG_LOCALPREFIX_REQ;
+   int local_len, ee_len;
+   char *buffer;
+   int buffer_pos = 0;
+   
+   message.header.type = LDCS_MSG_DIRLISTS_REQ;
    message.header.len = 0;
 
    debug_printf3("Sending message of type: localprefix_req\n");
@@ -216,7 +220,22 @@ int send_local_prefix_request(int fd, char **result)
    client_send_msg(fd, &message);
    client_recv_msg_dynamic(fd, &message, LDCS_READ_BLOCK);
    COMM_UNLOCK;
-   *result = (char *) message.data;
+
+   buffer = (char *) message.data;
+   memcpy(&local_len, buffer+buffer_pos, sizeof(local_len));
+   buffer_pos += sizeof(local_len);
+   if (local_result)
+      *local_result = buffer+buffer_pos;
+   buffer_pos += local_len;
+   memcpy(&ee_len, buffer+buffer_pos, sizeof(ee_len));
+   buffer_pos += sizeof(ee_len);
+   if (exece_result)
+      *exece_result = buffer+buffer_pos;
+   buffer_pos += ee_len;
+   assert(buffer_pos == message.header.len);
+
+   *to_free = buffer;
+
    return 0;
 }
 

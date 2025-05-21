@@ -40,7 +40,7 @@ extern int (*orig_execl)(const char *path, const char *arg, ...);
 extern int (*orig_execlp)(const char *path, const char *arg, ...);
 extern int (*orig_execle)(const char *path, const char *arg, ...);
 extern ssize_t (*orig_readlink)(const char *path, char *buf, size_t bufsiz);
-extern int (*orig_readlinkat)(int dirfd, const char *pathname, char *buf, size_t bufsiz);
+extern ssize_t (*orig_readlinkat)(int dirfd, const char *pathname, char *buf, size_t bufsiz);
 extern pid_t (*orig_fork)();
 extern pid_t (*orig_vfork)();
 extern int (*orig_open)(const char *pathname, int flags, ...);
@@ -51,7 +51,8 @@ extern int (*orig_close)(int fd);
 extern char* (*orig_getenv)(const char *name);
 extern int (*orig_setenv)(const char *name, const char *value, int overwrite);
 extern int (*orig_unsetenv)(const char *name);
-extern char* (orig_dlerror)();
+extern char* (*orig_dlerror)();
+extern char* (*orig_realpath)(const char *, char *);
               
 int rtcache_stat(const char *path, struct stat *buf);
 int rtcache_lstat(const char *path, struct stat *buf);
@@ -80,7 +81,9 @@ pid_t vfork_wrapper();
 char *dlerror_wrapper();
 
 ssize_t readlink_wrapper(const char *path, char *buf, size_t bufsiz);
-int readlinkat_wrapper(int dirfd, const char *pathname, char *buf, size_t bufsiz);
+ssize_t readlinkat_wrapper(int dirfd, const char *pathname, char *buf, size_t bufsiz);
+
+char *spindle_realpath(const char *name, char *resolved);
 
 int int_spindle_open(const char *pathname, int flags, ...);
 FILE *int_spindle_fopen(const char *path, const char *opts);
@@ -103,5 +106,6 @@ struct spindle_binding_t {
 void init_bindings_hash();
 struct spindle_binding_t *lookup_in_binding_hash(const char *name);
 struct spindle_binding_t *get_bindings();
+int init_intercept_ldso_stat();
 
 #endif

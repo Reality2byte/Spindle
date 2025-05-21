@@ -21,6 +21,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <vector>
 #include <utility>
 #include <map>
+#include <string>
 
 #include "spindle_launch.h"
 #include "config_mgr.h"
@@ -51,6 +52,8 @@ public:
    virtual bool getReturnCodes(bool &daemon_done, int &daemon_ret,
                                std::vector<std::pair<app_id_t, int> > &app_rets) = 0;
    virtual bool spawnJob(app_id_t id, int app_argc, char **app_argv) = 0;
+   virtual bool handleShutdown() { return true; }
+   virtual bool getDefaultSessionID(std::string &) { return false; }
    int getJobFinishFD();
    bool runSpindleFE();
 }; 
@@ -64,7 +67,8 @@ class ForkLauncher : public Launcher
    static ForkLauncher *flauncher;
   public:
    ForkLauncher(spindle_args_t *params_, ConfigMap &config_);
-   virtual ~ForkLauncher();   virtual bool getReturnCodes(bool &daemon_done, int &daemon_ret,
+   virtual ~ForkLauncher();
+   virtual bool getReturnCodes(bool &daemon_done, int &daemon_ret,
                                std::vector<std::pair<app_id_t, int> > &app_rets);
 };
 

@@ -917,6 +917,87 @@ static int run_stats()
    return result;
 }
 
+static int run_readlink_test(char *path, int buflen, char *expected, int expected_err)
+{
+   char buf[4096];
+   ssize_t result;
+   int error, i;
+
+   if (chdir_mode)
+      return 0;
+   
+   memset(buf, 'X', sizeof(buf));
+   errno = 0;
+   result = readlink(path, buf, buflen ? buflen : sizeof(buf));
+   error = errno;
+   if (expected) {
+      for (i = 0; i < sizeof(buf); i++) {
+         if (buf[i] == 'X') {
+            buf[i] = '\0';
+            break;
+         }
+      }
+      if (strncmp(buf, expected, buflen ? buflen : sizeof(buf)) != 0) {
+         err_printf("readlink(%s) returned unexpected string '%s'. Expected %s\n",
+                    path, buf[0] == 'X' ? "[XSTRING]" : buf, expected);
+         had_error = 1;
+      }
+      if (result != strlen(expected)) {
+         err_printf("readlink(%s) -> '%s' returned result %ld. Expected %lu\n",
+                    path, buf[0] == 'X' ? "[XSTRING]" : buf, result, strlen(expected));
+         had_error = 1;
+      }
+      if (buflen && buf[buflen+1] != 'X') {
+         err_printf("readlink(%s) -> '%s' overwrote character at %d with %d (%c)\n",
+                    path, buf[0] == 'X' ? "[XSTRING]" : buf, buflen,
+                    (int) buf[buflen], buf[buflen]);
+         had_error = 1;
+      }
+      if (error) {
+         err_printf("readlink(%s) set errno to %d when it should return success\n",
+                    path, error);
+         had_error = 1;
+      }
+   }
+   else if (expected_err) {
+      if (result != -1) {
+         err_printf("readlink(%s) returned %ld instead of -1\n", path, result);
+         had_error = 1;
+      }
+      if (buf[0] != 'X') {
+         err_printf("readlink(%s) should have returned error, but overwrote output string with %s\n",
+                    path, buf);
+         had_error = 1;
+      }
+      if (error != expected_err) {
+         err_printf("readlink(%s) expected error %d. Got error %d\n",
+                    path, expected_err, error);
+         had_error = 1;
+      }
+   }
+   else {
+      assert(0);
+   }
+   return had_error;
+}
+
+static int run_readlinks()
+{
+   int result = 0;
+
+   result |= run_readlink_test("badlink.py", 0, "noexist.py", 0);
+   result |= run_readlink_test("hello_l.py", 0, "hello_x.py", 0);
+   result |= run_readlink_test("libsymlink.so", 0, "libtest10.so", 0);
+   result |= run_readlink_test("hello_l.py", 5, "hello", 0);
+   result |= run_readlink_test("nolink.py", 0, NULL, ENOENT);
+   result |= run_readlink_test("hello_.py", 0, NULL, EINVAL);
+   result |= run_readlink_test("hello_r.py", 0, NULL, EINVAL);
+   result |= run_readlink_test("origin_dir", 0, NULL, EINVAL);
+   result |= run_readlink_test("nodir/file.py", 0, NULL, ENOENT);
+
+   return result;
+}
+
 
 void push_cwd()
 {
@@ -1248,6 +1329,10 @@ int run_test()
       return -1;
 
    run_stats();
+   if (had_error)
+      return -1;
+
+   run_readlinks();
    if (had_error)
       return -1;
                   

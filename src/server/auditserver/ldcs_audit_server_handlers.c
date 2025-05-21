@@ -150,10 +150,10 @@ static int handle_report_fileexist_result(ldcs_process_data_t *procdata, int nc,
 static int handle_fileexist_test(ldcs_process_data_t *procdata, int nc);
 static int handle_client_fileexist_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg);
 static int handle_client_origpath_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg);
-static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, char **localname, struct stat *buf);
+static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, char **localname, extended_stat_t *buf);
 static int handle_metadata_and_broadcast_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, broadcast_t bcast);
 static int handle_cache_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, metadata_t mdtype,
-                                 struct stat *buf, char **localname);
+                                 extended_stat_t *buf, char **localname);
 static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, unsigned char *buf, size_t buf_size, metadata_t mdtype);
 static int handle_broadcast_errorcode(ldcs_process_data_t *procdata, char *pathname, int errcode);
 static int handle_broadcast_alias(ldcs_process_data_t *procdata, char *alias_from, char *alias_to);
@@ -175,8 +175,9 @@ static int handle_cache_ldso(ldcs_process_data_t *procdata, char *pathname, int 
                              ldso_info_t *ldsoinfo, char **localname);
 static int handle_msgbundle(ldcs_process_data_t *procdata, node_peer_t peer, ldcs_message_t *msg);
 static int handle_setup_alias(ldcs_process_data_t *procdata, char *pathname, char *alias_to);
-static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc);
+static int handle_client_dirlists_req(ldcs_process_data_t *procdata, int nc);
 static int handle_close_client_query(ldcs_process_data_t *procdata, int nc);
+static int handle_alive_msg(ldcs_process_data_t *procdata, ldcs_message_t *msg);
 
 /**
  * Query from client to server.  Returns info about client's rank in server data structures. 
@@ -233,11 +234,13 @@ static int handle_pythonprefix_query(ldcs_process_data_t *procdata, int nc)
    return 0;
 }
 
-static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc)
+static int handle_client_dirlists_req(ldcs_process_data_t *procdata, int nc)
 {
    ldcs_message_t msg;
    int connid;
    ldcs_client_t *client;
+   char *buffer;
+   int len, local_len, ee_len;
 
    assert(nc != -1);
    client = procdata->client_table + nc;
@@ -245,13 +248,28 @@ static int handle_client_localprefix_req(ldcs_process_data_t *procdata, int nc)
    if (client->state != LDCS_CLIENT_STATUS_ACTIVE || connid < 0)
       return 0;
 
-   msg.header.type = LDCS_MSG_LOCALPREFIX_RESP;
-   msg.header.len = strlen(procdata->localprefix) + 1;
-   msg.data = procdata->localprefix;
+   local_len = strlen(procdata->localprefix) + 1;
+   ee_len = strlen(procdata->exec_excludes) + 1;
+   msg.header.type = LDCS_MSG_DIRLISTS_RESP;
+   msg.header.len = sizeof(local_len) + local_len + sizeof(ee_len) + ee_len;
+
+   buffer = (char *) malloc(msg.header.len);
+   len = 0;
+   memcpy(buffer + len, &local_len, sizeof(local_len));
+   len += sizeof(local_len);
+   memcpy(buffer + len, procdata->localprefix, local_len);
+   len += local_len;
+   memcpy(buffer + len, &ee_len, sizeof(ee_len));
+   len += sizeof(ee_len);
+   memcpy(buffer + len, procdata->exec_excludes, ee_len);
+   len += ee_len;
+   assert(len == msg.header.len);
+   msg.data = buffer;
    
    ldcs_send_msg(connid, &msg);
    procdata->server_stat.clientmsg.cnt++;
    procdata->server_stat.clientmsg.time += ldcs_get_time() - client->query_arrival_time;
+   free(buffer);
    return 0;
 }
 
@@ -1845,8 +1863,8 @@ int handle_client_message(ldcs_process_data_t *procdata, int nc, ldcs_message_t 
          return handle_pythonprefix_query(procdata, nc);
       case LDCS_MSG_MYRANKINFO_QUERY:
          return handle_client_myrankinfo_msg(procdata, nc, msg);
-      case LDCS_MSG_LOCALPREFIX_REQ:
-         return handle_client_localprefix_req(procdata, nc);
+      case LDCS_MSG_DIRLISTS_REQ:
+         return handle_client_dirlists_req(procdata, nc);
       case LDCS_MSG_FILE_QUERY:
       case LDCS_MSG_FILE_QUERY_EXACT_PATH:
       case LDCS_MSG_DSO_QUERY:
@@ -1959,6 +1977,9 @@ int handle_server_message(ldcs_process_data_t *procdata, node_peer_t peer, ldcs_
          return handle_msgbundle(procdata, peer, msg);
       case LDCS_MSG_ALIAS:
          return handle_alias_recv(procdata, msg, request_broadcast);
+      case LDCS_MSG_ALIVE_REQ:
+      case LDCS_MSG_ALIVE_RESP:
+         return handle_alive_msg(procdata, msg);
       default:
          err_printf("Received unexpected message from node: %d\n", (int) msg->header.type);
          assert(0);
@@ -2306,7 +2327,7 @@ static int handle_metadata_and_broadcast_file(ldcs_process_data_t *procdata, cha
 {
    char *localname;
    int result;
-   struct stat buf;
+   extended_stat_t buf;
    ldso_info_t ldsoinfo;
    unsigned char *buffer;
    size_t buffer_size;
@@ -2320,7 +2341,7 @@ static int handle_metadata_and_broadcast_file(ldcs_process_data_t *procdata, cha
          return -1;
       }
       buffer = (unsigned char *) &buf;
-      buffer_size = sizeof(buf);
+      buffer_size = extended_stat_size(&buf);
    }
    else if (mdtype == metadata_loader) {
       result = handle_read_ldso_metadata(procdata, pathname, &ldsoinfo, &localname);
@@ -2376,7 +2397,7 @@ static int handle_read_ldso_metadata(ldcs_process_data_t *procdata, char *pathna
 /**
  * Stats a file on disk and puts the results into a cache
  **/
-static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, char **localname, struct stat *buf)
+static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metadata_t mdtype, char **localname, extended_stat_t *buf)
 {
    double starttime;
    int result, file_exists;
@@ -2395,7 +2416,7 @@ static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metad
    result = filemngt_stat(pathname, buf, (mdtype == metadata_lstat) ? 1 : 0);
    file_exists = (result != -1);
    procdata->server_stat.libread.cnt++;
-   procdata->server_stat.libread.bytes += file_exists ? sizeof(struct stat) : 0;
+   procdata->server_stat.libread.bytes += file_exists ? extended_stat_size(buf) : 0;
    procdata->server_stat.libread.time += (ldcs_get_time() - starttime);
    
    return handle_cache_metadata(procdata, pathname, file_exists, mdtype, buf, localname);
@@ -2404,7 +2425,7 @@ static int handle_stat_file(ldcs_process_data_t *procdata, char *pathname, metad
 /**
  * Puts the results of a stat into the cache
  **/
-static int handle_cache_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, metadata_t mdtype, struct stat *buf, char **localname)
+static int handle_cache_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, metadata_t mdtype, extended_stat_t *buf, char **localname)
 {
    double starttime;
    int result;
@@ -2436,7 +2457,7 @@ static int handle_cache_metadata(ldcs_process_data_t *procdata, char *pathname, 
    starttime = ldcs_get_time();
    result = filemngt_write_stat(*localname, buf);   
    procdata->server_stat.libstore.cnt++;
-   procdata->server_stat.libstore.bytes += sizeof(struct stat);
+   procdata->server_stat.libstore.bytes += extended_stat_size(buf);
    procdata->server_stat.libstore.time += (ldcs_get_time() - starttime);
    if (result == -1) {
       err_printf("Error writing stat results for %s to %s\n", pathname, *localname);
@@ -2483,7 +2504,7 @@ static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathna
    ldcs_message_t msg;
    int pathname_len = strlen(pathname) + 1;
    int pos = 0;
-   struct stat *sbuf = (struct stat *) buf;
+   extended_stat_t *sbuf = (extended_stat_t *) buf;
    const char *mount;
    int mount_len;
 
@@ -2493,9 +2514,9 @@ static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathna
       remapped to another device after recv */
    mount_len = 0;
    if (file_exists && sbuf && (mdtype == metadata_stat || mdtype == metadata_lstat)) {
-      result = dev_to_mount(sbuf->st_dev, &mount);
+      result = dev_to_mount(sbuf->buf.st_dev, &mount);
       if (result == 0) {
-         debug_printf3("Will send stat of %s with mount point %s, device %x\n", pathname, mount, (int) sbuf->st_dev);
+         debug_printf3("Will send stat of %s with mount point %s, device %x\n", pathname, mount, (int) sbuf->buf.st_dev);
          mount_len = strlen(mount) + 1;
       }
    }
@@ -2563,9 +2584,9 @@ static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *m
 {
    int file_exists;
    char pathname[MAX_PATH_LEN+1], *localpath;
-   struct stat buf;
+   extended_stat_t buf;
    ldso_info_t ldsoinfo;
-   int pos = 0, pathlen, result, payload_size = 0, mount_len = 0;
+   int pos = 0, pathlen, result, payload_size = 0, mount_len = 0, bytes_left;
    char *buffer = (char *) msg->data;
    unsigned char *payload = NULL;
    char mount[MAX_PATH_LEN+1];
@@ -2592,9 +2613,11 @@ static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *m
    if (file_exists) {
       payload = (unsigned char *) (buffer + pos);
       if (mdtype == metadata_stat || mdtype == metadata_lstat) {
-         memcpy(&buf, buffer + pos, sizeof(buf));
-         pos += sizeof(buf);
-         payload_size = sizeof(buf);
+         bytes_left = msg->header.len - pos;
+         assert((bytes_left > sizeof(struct stat)) && (bytes_left < sizeof(extended_stat_t)));
+         memcpy(&buf, buffer + pos, bytes_left);
+         pos += bytes_left;
+         payload_size = bytes_left;
       }
       else {
          memcpy(&ldsoinfo, buffer + pos, sizeof(ldsoinfo));
@@ -2610,7 +2633,7 @@ static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *m
       result = mount_to_dev(mount, &dev);
       if (result == 0) {
          debug_printf3("Setting device to %x from mountpoint %s for stat recv of %s\n", (int) dev, mount, pathname);
-         buf.st_dev = dev;
+         buf.buf.st_dev = dev;
          payload = (unsigned char *) &buf;
       }
    }
@@ -2784,7 +2807,7 @@ static int handle_load_and_broadcast_metadata(ldcs_process_data_t *procdata, cha
 {
    int result;
    char *localpath;
-   struct stat buf;
+   extended_stat_t buf;
    ldso_info_t ldsoinfo;
    unsigned char *buffer = NULL;
    size_t buffer_size = 0;
@@ -2800,7 +2823,7 @@ static int handle_load_and_broadcast_metadata(ldcs_process_data_t *procdata, cha
       if (mdtype == metadata_stat || mdtype == metadata_lstat) {
          result = filemngt_read_stat(localpath, &buf);
          buffer = (unsigned char *) &buf;
-         buffer_size = sizeof(buf);
+         buffer_size = extended_stat_size(&buf);
       }
       else {
          result = filemngt_read_ldsometadata(localpath, &ldsoinfo);
@@ -2911,6 +2934,62 @@ static int handle_client_pickone_msg(ldcs_process_data_t *procdata, int nc, ldcs
       debug_printf2("Responding to pickone of key %s with 'not you' because this node is not reponsible\n", key);
       return handle_client_pickone_resp(procdata, nc, 0);
    }
+}
+
+/**
+ * Handle alive message, which is a broadcast/response ping through all servers
+ */
+static int handle_alive_msg(ldcs_process_data_t *procdata, ldcs_message_t *msg)
+{
+   int result;
+   int num_children;
+   ldcs_message_t resp_msg;
+   
+   num_children = ldcs_audit_server_md_get_num_children(procdata);
+
+   if (msg->header.type == LDCS_MSG_ALIVE_REQ) {
+      assert(procdata->num_alives == 0);
+      if (num_children) {
+         debug_printf2("Broadcasting alive message to %d children\n", num_children);
+         result = spindle_broadcast(procdata, msg);
+         if (result == -1) {
+            debug_printf("Failure broadcasting alive message\n");
+            return -1;
+         }
+         msgbundle_force_flush(procdata);  
+      }
+   }
+   else if (msg->header.type == LDCS_MSG_ALIVE_RESP) {
+      procdata->num_alives++;
+      debug_printf2("Recd alive message for %d/%d children\n", procdata->num_alives, num_children);
+   }
+
+   if (num_children == procdata->num_alives) {
+      debug_printf2("Responding to parent with alive message. Child count matches alives (%d == %d)\n", procdata->num_alives, num_children);
+      procdata->num_alives = 0;
+      resp_msg.header.type = LDCS_MSG_ALIVE_RESP;
+      resp_msg.header.len = 0;
+      resp_msg.data = NULL;
+
+      if (ldcs_audit_server_md_is_responsible(procdata, "")) {
+         result = ldcs_audit_server_md_to_frontend(procdata, &resp_msg);
+         if (result == -1) {
+            debug_printf("Failure sending alive resp to FE\n");
+            return -1;
+         }
+      }
+      else {
+         result = spindle_forward_query(procdata, &resp_msg);
+         if (result == -1) {
+            debug_printf("Failure forwarding alive query to parent\n");
+            return -1;
+         }
+         msgbundle_force_flush(procdata);         
+      }      
+   }
+
+   
+   return 0;
 }
 
 /**

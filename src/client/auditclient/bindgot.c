@@ -23,7 +23,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "auditclient.h"
 #include "spindle_debug.h"
 #include "writablegot.h"
-
+#include "client_heap.h"
 struct ppc64_funcptr_t {
    Elf64_Addr fptr;
    Elf64_Addr toc;
@@ -182,14 +182,74 @@ Elf64_Addr doPermanentBinding_noidx(uintptr_t *refcook, uintptr_t *defcook,
    return target;
 }
 
+typedef struct {
+   struct link_map *map;
+   Elf64_Addr target;
+   Elf64_Addr *got_entry;
+} patch_data_t;
+
+#define DATA_QUEUE_INITIAL_SIZE 1024
+static patch_data_t *data_queue;
+static unsigned long data_queue_size;
+static unsigned long data_queue_cur;
+static unsigned long data_queue_active;
+
+void addToDataBindingQueue(struct link_map *map,
+                           Elf64_Addr target,
+                           Elf64_Addr *got_entry)
+{
+   if (!data_queue) {
+      data_queue = (patch_data_t *) spindle_malloc(sizeof(patch_data_t) * DATA_QUEUE_INITIAL_SIZE);
+      data_queue_size = DATA_QUEUE_INITIAL_SIZE;
+      data_queue_cur = 0;
+      data_queue_active = 0;
+   }
+   if (data_queue_cur == data_queue_size) {
+      data_queue_size *= 2;
+      data_queue = (patch_data_t *) spindle_realloc(data_queue, data_queue_size * sizeof(patch_data_t));
+   }
+   data_queue[data_queue_cur].map = map;
+   data_queue[data_queue_cur].target = target;
+   data_queue[data_queue_cur].got_entry = got_entry;
+   data_queue_cur++;
+   data_queue_active++;
+}
+
+void updateDataBindingQueue(int flush)
+{
+   unsigned long i;
+   if (!data_queue || !data_queue_active) {
+      return;
+   }
+
+   for (i = 0; i < data_queue_cur && data_queue_active; i++) {
+      if (!data_queue[i].map)
+         continue;
+      if (!*data_queue[i].got_entry)
+         continue;
+      make_got_writable(data_queue[i].got_entry, data_queue[i].map);
+      *data_queue[i].got_entry = data_queue[i].target;
+      data_queue[i].map = NULL;
+      data_queue_active--;
+   }
+
+   if (!data_queue_active || flush) {
+      spindle_free(data_queue);
+      data_queue = NULL;
+      data_queue_cur = 0;
+      data_queue_size = 0;
+      data_queue_active = 0;
+   }
+}
+
 Elf64_Addr doPermanentBinding_idx(struct link_map *map,
                                   unsigned long plt_reloc_idx,
                                   Elf64_Addr target,
                                   const char *symname)
 {
    Elf64_Dyn *dynamic_section = map->l_ld;
-   Elf64_Rela *rel = NULL;
    Elf64_Addr *got_entry;
+   Elf64_Rela *rel = NULL;
    Elf64_Addr base = map->l_addr;
    for (; dynamic_section->d_tag != DT_NULL; dynamic_section++) {
       if (dynamic_section->d_tag == DT_JMPREL) {
@@ -202,7 +262,6 @@ Elf64_Addr doPermanentBinding_idx(struct link_map *map,
    got_entry = (Elf64_Addr *) (rel->r_offset + base);
                 
    make_got_writable(got_entry, map);
-   debug_printf3("binding %s at %p to target %lx in %s\n", symname, got_entry, target, map->l_name);
    *got_entry = target;
    return target;
 }

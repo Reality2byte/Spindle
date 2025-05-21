@@ -67,6 +67,8 @@ static int unpack_data(spindle_args_t *args, void *buffer, int buffer_size)
    unpack_param(args->numa_excludes, buf, pos);
    unpack_param(args->rsh_command, buf, pos);
    unpack_param(args->local_prefixes, buf, pos);
+   unpack_param(args->session_key, buf, pos);
+   unpack_param(args->exec_excludes, buf, pos);
    assert(pos == buffer_size);
 
    return 0;    

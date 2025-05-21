@@ -257,20 +257,20 @@ char **parse_colonsep_prefixes(char *colonsep_list, int number)
 }
 
 /**
- * is_local_prefix takes an array of local prefixes, cached_local_prefixes, and
+ * is_local_prefix takes an array of local prefixes, local_prefixes, and
  * returns true if path is prefixed by one of the local prefixes.
  **/   
-int is_local_prefix(const char *path, char **cached_local_prefixes) {
+int is_local_prefix(const char *path, char **local_prefixes) {
    if (!path || path[0] != '/')
       return 0;
-   if (!cached_local_prefixes)
+   if (!local_prefixes)
       return 0;
    
-   for (int i = 0; cached_local_prefixes[i] != NULL; i++) {
-      size_t len = strlen(cached_local_prefixes[i]);
+   for (int i = 0; local_prefixes[i] != NULL; i++) {
+      size_t len = strlen(local_prefixes[i]);
       if (len == 0)
          continue;
-      if (strncmp(path, cached_local_prefixes[i], len) == 0) {
+      if (strncmp(path, local_prefixes[i], len) == 0) {
          return 1;
       }
    }

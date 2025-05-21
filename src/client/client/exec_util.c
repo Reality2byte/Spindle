@@ -179,7 +179,7 @@ int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char 
    }
    
    debug_printf2("Exec operation requesting interpreter %s for script %s\n", interpreter, orig_path);
-   get_relocated_file(ldcsid, interpreter, 1, &new_interpreter, &errcode);
+   get_relocated_file(ldcsid, interpreter, 1, &new_interpreter, &errcode, NULL);
    debug_printf2("Changed interpreter %s to %s for script %s\n", 
                  interpreter, new_interpreter ? new_interpreter : "NULL", orig_path);
    if (!new_interpreter) {
@@ -226,14 +226,14 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
    }
    
    if (orig_exec[0] == '/' || orig_exec[0] == '.') {
-      get_relocated_file(ldcsid, (char *) orig_exec, 1, reloc_exec, errcode);
+      get_relocated_file(ldcsid, (char *) orig_exec, 1, reloc_exec, errcode, NULL);
       debug_printf3("exec_pathsearch translated %s to %s\n", orig_exec, *reloc_exec);
       return 0;
    }
 
    path = getenv("PATH");
    if (!path) {
-      get_relocated_file(ldcsid, (char *) orig_exec, 1, reloc_exec, errcode);
+      get_relocated_file(ldcsid, (char *) orig_exec, 1, reloc_exec, errcode, NULL);
       debug_printf3("No path.  exec_pathsearch translated %s to %s\n", orig_exec, *reloc_exec);
       return 0;
    }
@@ -267,7 +267,7 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
          continue;
       }
       debug_printf2("File %s exists and has execute set, requesting full file\n", newexec);
-      get_relocated_file(ldcsid, newexec, 1, reloc_exec, errcode);
+      get_relocated_file(ldcsid, newexec, 1, reloc_exec, errcode, NULL);
       debug_printf2("Exec search request returned %s -> %s\n", newexec, *reloc_exec ? *reloc_exec : "NULL");
       if (*reloc_exec) {
          found = 1;
@@ -292,48 +292,58 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
    return -1;
 }
 
-int read_buffer(char *localname, char *buffer, int size)
+extern char **parse_colonsep_prefixes(char *colonsep_list, int number);
+extern int number;
+int get_dirlists(char ***prefixes, char ***eexecs)
 {
-   int result, bytes_read, fd;
+   static char **local_prefixes = NULL;
+   static char **exec_excludes = NULL;
+   static int did_query = 0;
+   char *local_str = NULL, *exec_str = NULL, *to_free = NULL;
+   int result;
 
-   fd = open(localname, O_RDONLY);
-   if (fd == -1) {
-      err_printf("Failed to open %s for reading: %s\n", localname, strerror(errno));
+   if (did_query) {
+      if (prefixes)
+         *prefixes = local_prefixes;
+      if (eexecs) 
+         *eexecs = exec_excludes;
+      return 0;
+   }
+
+   did_query = 1;
+   result = send_dirlists_request(ldcsid, &local_str, &exec_str, &to_free);
+   if (result == -1) {
+      debug_printf("Returning error from get_dirlists because of send error\n");
       return -1;
    }
 
-   bytes_read = 0;
+   local_prefixes = parse_colonsep_prefixes(local_str, number);
+   exec_excludes = parse_colonsep_prefixes(exec_str, number);
 
-   while (bytes_read != size) {
-      result = read(fd, buffer + bytes_read, size - bytes_read);
-      if (result <= 0) {
-         if (errno == EAGAIN || errno == EINTR)
-            continue;
-         err_printf("Failed to read from file %s: %s\n", localname, strerror(errno));
-         close(fd);
-         return -1;
-      }
-      bytes_read += result;
-   }
-   close(fd);
-   return 0;
+   if (to_free)
+      spindle_free(to_free);
+   
+   if (prefixes)
+      *prefixes = local_prefixes;
+   if (eexecs)
+      *eexecs = exec_excludes;
+   return result;
 }
 
-static char* compilers[] = { "gcc", "g++", "cc", "CC", "clang", "clang++",
-                             "hipcc", "amdclang", "amdclang++",
-                             "craycc", "crayCC",
-                             "ld", "ld.lld",
-                             "mpicc", "mpic++", "mpicxx",
-                             "make", "gmake", "cmake", NULL };
-
-                             
-int isCompiler(const char *fname)
+int isExecExcluded(const char *fname)
 {
    const char *aout = NULL;
    const char *lastslash;
-   int i;
+   char **exec_excludes = NULL;
+   int i, result;
 
    if (!fname)
+      return 0;
+
+   result = get_dirlists(NULL, &exec_excludes);
+   if (result == -1)
+      return -1;
+   if (!exec_excludes)
       return 0;
    
    lastslash = strrchr(fname, '/');
@@ -342,8 +352,8 @@ int isCompiler(const char *fname)
    else
       aout = fname;
 
-   for (i = 0; compilers[i] != NULL; i++) {
-      if (strcmp(compilers[i], aout) == 0) {
+   for (i = 0; exec_excludes[i] != NULL; i++) {
+      if (strcmp(exec_excludes[i], aout) == 0) {
          return 1;
       }
    }

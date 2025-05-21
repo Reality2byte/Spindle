@@ -38,7 +38,7 @@ int send_existance_test(int fd, char *path, int *exists);
 int send_stat_request(int fd, char *path, int islstat, char *result);
 int send_ldso_info_request(int fd, const char *ldso_path, char *result_path);
 int send_orig_path_request(int fd, const char *path, char *newpath);
-int send_local_prefix_request(int fd, char **result);
+int send_dirlists_request(int fd, char **local_result, char **exece_result, char **to_free);
 int send_procmaps_query(int fd, int pid, char *result);
 int send_pickone_query(int fd, char *key, int *result);
 

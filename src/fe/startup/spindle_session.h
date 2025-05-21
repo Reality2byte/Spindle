@@ -21,10 +21,11 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "launcher.h"
 #include "config_mgr.h"
 
-int init_session(spindle_args_t *args, const ConfigMap &config);
+int init_session(spindle_args_t *args, const ConfigMap &config, Launcher *launcher);
 int get_session_runcmds(app_id_t &appid, int &app_argc, char** &app_argv, bool &session_complete);
 int get_session_fd();
 int return_session_cmd(app_id_t appid, int app_argc, char **app_argv);
+void signal_init_done();
 void mark_session_job_done(app_id_t appid, int rc);
 
 #endif

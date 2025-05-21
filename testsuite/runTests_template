@@ -101,7 +101,7 @@ CHECK_RETCODE
 ./run_driver --ldpreload --preload
 CHECK_RETCODE
 
-if test "x$TEST_RM" != "xflux" && test "x$TEST_RM" != "xserial"; then
+if test "x$TEST_RM" != "xserial"; then
 export SESSION_ID=`./run_driver --start-session`
 ./run_driver --dependency --session
 CHECK_RETCODE
@@ -128,6 +128,9 @@ echo Skipping: ./run_driver --ldpreload --session
 fi
 
 ./run_driver --serial ./spindle_exec_test
+CHECK_RETCODE
+
+./run_driver --serial ./symbind_test
 CHECK_RETCODE
 
 if [[ $GLOBAL_RESULT != 0 ]]; then

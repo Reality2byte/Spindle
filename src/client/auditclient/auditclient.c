@@ -25,6 +25,8 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <stdlib.h>
 #include <unistd.h>
 
+extern void restore_pathpatch();
+
 unsigned int spindle_la_version(unsigned int version)
 {
    patchDTV_init();
@@ -38,16 +40,34 @@ void spindle_la_activity (uintptr_t *cookie, unsigned int flag)
                  (flag == LA_ACT_ADD) ?        "LA_ACT_ADD" :
                  (flag == LA_ACT_DELETE) ?     "LA_ACT_DELETE" :
                  "???");
+   restore_pathpatch();   
    if (flag == LA_ACT_CONSISTENT) {
       patchDTV_check();
       lookup_libc_symbols();
+      updateDataBindingQueue(0);
    }
    return;
 }
 
 unsigned int spindle_la_objopen(struct link_map *map, Lmid_t lmid, uintptr_t *cookie)
 {
+   char buffer[4096];
+   char *exe_name, *exe_name2;
+
+   restore_pathpatch();
    patch_on_linkactivity(map);
+   memset(buffer, 0, sizeof(buffer));
+   readlink("/proc/self/exe", buffer, sizeof(buffer));
+   exe_name = strrchr(buffer, '/');
+   if (exe_name)
+      exe_name++;
+   else
+      exe_name = buffer;
+   if (strstr(exe_name, "spindlens")) {
+      exe_name2 = strrchr(exe_name, '-');
+      if (exe_name2)
+         exe_name = exe_name2 + 1;
+   }   
    return LA_FLG_BINDTO | LA_FLG_BINDFROM;
 }
 

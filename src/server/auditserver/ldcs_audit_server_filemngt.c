@@ -7,7 +7,7 @@ This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License (as published by the Free Software
 Foundation) version 2.1 dated February 1999.  This program is distributed in the
 hope that it will be useful, but WITHOUT ANY WARRANTY; without even the IMPLIED
-WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms 
+WARRANTY OF MECHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms 
 and conditions of the GNU Lesser General Public License for more details.  You should 
 have received a copy of the GNU Lesser General Public License along with this 
 program; if not, write to the Free Software Foundation, Inc., 59 Temple
@@ -39,6 +39,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "config.h"
 #include "ccwarns.h"
 #include "cleanup_proc.h"
+#include "fileutil.h"
 
 #if !defined(LIBEXECDIR)
 #error LIBEXECDIR must be defined
@@ -135,7 +136,7 @@ char *filemngt_calc_localname(char *global_name, calc_local_t reqtype)
    switch(reqtype) {
       case clt_unknown: prefix = "spindlens-unknown"; break;
       case clt_stat: prefix = "spindlens-stat"; break;
-      case clt_lstat: prefix = "spindlens-fstat"; break;
+      case clt_lstat: prefix = "spindlens-lstat"; break;
       case clt_ldso: prefix = "spindlens-ldso"; break;
       case clt_file: prefix = "spindlens-file"; break;
       case clt_dso: prefix = "spindlens-dso"; break;
@@ -407,95 +408,144 @@ size_t filemngt_get_file_size(char *pathname, int *errcode)
    return (size_t) st.st_size;
 }
 
-int filemngt_stat(char *pathname, struct stat *buf, int is_lstat)
+int filemngt_stat(char *pathname, extended_stat_t *buf, int is_lstat)
 {
-   int result;
+   int stat_result;
+   int readlink_result;
+   buf->readlink_path_size = 0;
+   buf->readlink_errcode = 0;
+   buf->readlink_path[0] = '\0';
+   
    if (!is_lstat) {
-      result = stat(pathname, buf);
-      debug_printf3("stat(%s) = %d\n", pathname, result);
+      stat_result = stat(pathname, &buf->buf);
+      debug_printf3("stat(%s) = %d\n", pathname, stat_result);
+      return stat_result;
    }
-   else {
-      result = lstat(pathname, buf);
-      debug_printf3("lstat(%s) = %d\n", pathname, result);
+
+   stat_result = lstat(pathname, &buf->buf);
+   debug_printf3("lstat(%s) = %d\n", pathname, stat_result);
+   if (stat_result != 0)
+      return stat_result;
+   if (buf->buf.st_mode & S_IFLNK) {
+      memset(buf->readlink_path, 0, sizeof(buf->readlink_path));
+      readlink_result = readlink(pathname, buf->readlink_path, sizeof(buf->readlink_path));
+      if (readlink_result == -1) {
+         buf->readlink_errcode = errno;
+         buf->readlink_path_size = 0;
+         debug_printf2("Readlink err %d while stating file %s\n",
+                       buf->readlink_errcode, pathname);
+      }
+      else {
+         buf->readlink_path[sizeof(buf->readlink_path)-1] = '\0';
+         buf->readlink_path_size = strlen(buf->readlink_path) + 1;
+         debug_printf2("Readlink %s while stating file %s\n", buf->readlink_path, pathname);
+      }
    }
-   return result;
+
+   return stat_result;
 }
 
-static int filemngt_write_buffer(char *localname, char *buffer, size_t size)
+size_t extended_stat_size(extended_stat_t *st)
 {
-   int result, bytes_written, fd;
+   size_t max = sizeof(extended_stat_t);
+   size_t size = max - (sizeof(st->readlink_path) - st->readlink_path_size);
+   size = size + 1;
+   return size;
+}
 
+int filemngt_write_stat(char *localname, extended_stat_t *buf)
+{
+   int fd, result;
    fd = creat(localname, 0600);
    if (fd == -1) {
       err_printf("Failed to create file %s for writing: %s\n", localname, strerror(errno));
+      close(fd);
       return -1;
    }
 
-   bytes_written = 0;
+   result = write_n_bytes(localname, fd, &(buf->buf), sizeof(buf->buf));
+   if (result == -1) {
+      err_printf("Failed to write stat\n");
+      close(fd);
+      return -1;
+   }
 
-   while (bytes_written != size) {
-      result = write(fd, buffer + bytes_written, size - bytes_written);
-      if (result <= 0) {
-         if (errno == EAGAIN || errno == EINTR)
-            continue;
-         err_printf("Failed to write to file %s: %s\n", localname, strerror(errno));
-         close(fd);
-         return -1;
-      }
-      bytes_written += result;
+   result = write_n_bytes(localname, fd, &(buf->readlink_errcode), sizeof(buf->readlink_errcode));
+   if (result == -1) {
+      err_printf("Failed to write errcode\n");
+      close(fd);
+      return -1;
+   }
+
+   result = write_n_bytes(localname, fd, &(buf->readlink_path_size), sizeof(buf->readlink_path_size));
+   if (result == -1) {
+      err_printf("Failed to write result\n");
+      close(fd);
+      return -1;
+   }
+   
+   result = write_n_bytes(localname, fd, &(buf->readlink_path), buf->readlink_path_size);
+   if (result == -1) {
+      err_printf("Failed to write path\n");
+      close(fd);
+      return -1;
    }
    close(fd);
    return 0;
 }
 
-int filemngt_write_stat(char *localname, struct stat *buf)
-{
-   return filemngt_write_buffer(localname, (char *) buf, sizeof(*buf));
-}
-
 int filemngt_write_ldsometadata(char *localname, ldso_info_t *ldsoinfo)
 {
-   return filemngt_write_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
+   return write_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
 }
 
-
-static int filemngt_read_buffer(char *localname, char *buffer, size_t size)
+int filemngt_read_ldsometadata(char *localname, ldso_info_t *ldsoinfo)
 {
-   int result, bytes_read, fd, error;
+   return read_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
+}
 
+int filemngt_read_stat(char *localname, extended_stat_t *buf)
+{
+   int fd, result;
    fd = open(localname, O_RDONLY);
    if (fd == -1) {
       err_printf("Failed to open %s for reading: %s\n", localname, strerror(errno));
       return -1;
    }
 
-   bytes_read = 0;
+   result = read_n_bytes(localname, fd, &(buf->buf), sizeof(buf->buf));
+   if (result == -1) {
+      err_printf("Failed to read stat\n");
+      close(fd);
+      return -1;
+   }
 
-   while (bytes_read != size) {
-      errno = 0;
-      result = read(fd, buffer + bytes_read, size - bytes_read);
+   result = read_n_bytes(localname, fd, &(buf->readlink_errcode), sizeof(buf->readlink_errcode));
+   if (result == -1) {
+      err_printf("Failed to read errcode\n");
+      close(fd);
+      return -1;
+   }
+
+   result = read_n_bytes(localname, fd, &(buf->readlink_path_size), sizeof(buf->readlink_path_size));
+   if (result == -1) {
+      err_printf("Failed to read result\n");
+      close(fd);
+      return -1;
+   }
+
+   if (buf->readlink_path_size > 0) {
+      result = read_n_bytes(localname, fd, buf->readlink_path, buf->readlink_path_size);
       if (result == -1) {
-         error = errno;
-         if (error == EAGAIN || error == EINTR)
-            continue;
-         err_printf("Failed to read from file %s of size %lu (already read %d): %s\n", localname, size, bytes_read, strerror(error));
          close(fd);
          return -1;
       }
-      bytes_read += result;
+   }
+   else {
+      buf->readlink_path[0] = '\0';
    }
    close(fd);
    return 0;
-}
-
-int filemngt_read_ldsometadata(char *localname, ldso_info_t *ldsoinfo)
-{
-   return filemngt_read_buffer(localname, (char *) ldsoinfo, sizeof(*ldsoinfo));
-}
-
-int filemngt_read_stat(char *localname, struct stat *buf)
-{
-   return filemngt_read_buffer(localname, (char *) buf, sizeof(*buf));
 }
 
 #if defined(arch_x86_64) || defined(arch_aarch64)
@@ -507,6 +557,10 @@ int filemngt_read_stat(char *localname, struct stat *buf)
 #else
 #error Unknown architecture
 #endif
+
+const char *stat_names[] = { "__xstat", "_xstat", "__xstat64", NULL };
+const char *lstat_names[] = { "__lxstat", "_lxstat", "__lxstat64", NULL };
+const char *errno_names[] = { "rtld_errno", NULL };
 
 #define filemngt_ldso_elfx(filemngt_ldso_elfX, ElfX_Ehdr, ElfX_Shdr, ElfX_Sym, ElfX_Off, ElfX_Phdr) \
 static int filemngt_ldso_elfX(unsigned char *base, ldso_info_t *ldsoinfo) \
@@ -520,6 +574,9 @@ static int filemngt_ldso_elfX(unsigned char *base, ldso_info_t *ldsoinfo) \
    int match_resolve, match_profile;                                    \
    char *names, *name;                                                  \
    unsigned long resolve_offset = 0, profile_offset = 0;                \
+   unsigned long stat_offset = 0;                                       \
+   unsigned long lstat_offset = 0;                                      \
+   unsigned long errno_offset = 0;                                      \
                                                                         \
    ehdr = (ElfX_Ehdr *) base;                                           \
    shdr = (ElfX_Shdr *) (base + ehdr->e_shoff);                         \
@@ -542,6 +599,27 @@ static int filemngt_ldso_elfX(unsigned char *base, ldso_info_t *ldsoinfo) \
          cur = syms + j;                                                \
          name = names + cur->st_name;                                   \
                                                                         \
+         if (!stat_offset) {                                            \
+            for (k = 0; stat_names[k]; k++) {                           \
+               if (strcmp(name, stat_names[k]) == 0) {                  \
+                  stat_offset = cur->st_value;                          \
+               }                                                        \
+            }                                                           \
+         }                                                              \
+         if (!lstat_offset) {                                           \
+            for (k = 0; lstat_names[k]; k++) {                          \
+               if (strcmp(name, lstat_names[k]) == 0) {                 \
+                  lstat_offset = cur->st_value;                         \
+               }                                                        \
+            }                                                           \
+         }                                                              \
+         if (!errno_offset) {                                          \
+            for (k = 0; errno_names[k]; k++) {                          \
+               if (strcmp(name, errno_names[k]) == 0) {                 \
+                  errno_offset = cur->st_value;                         \
+               }                                                        \
+            }                                                           \
+         }                                                              \
          match_resolve = (strcmp(name, "_dl_runtime_resolve") == 0);    \
          match_profile = (strcmp(name, PROFILE_FUNC_NAME) == 0);        \
                                                                         \
@@ -578,15 +656,24 @@ static int filemngt_ldso_elfX(unsigned char *base, ldso_info_t *ldsoinfo) \
                                                                         \
    if (!resolve_offset) {                                               \
       debug_printf("WARNING: Could not find symbol _dl_runtime_resolve in dynamic linker\n"); \
-      return -1;                                                        \
    }                                                                    \
                                                                         \
    if (!profile_offset) {                                               \
       debug_printf("WARNING: Could not find symbol _dl_runtime_profile in dynamic linker\n"); \
-      return -1;                                                        \
+   }                                                                    \
+                                                                        \
+   if (stat_offset) {                                                   \
+      debug_printf("WARNING: Could not find symbol stat in dynamic linker\n"); \
+   }                                                                    \
+                                                                        \
+   if (!lstat_offset) {                                                 \
+      debug_printf("WARNING: Could not find symbol fstat in dynamic linker\n"); \
    }                                                                    \
                                                                         \
    ldsoinfo->binding_offset = (signed long) (resolve_offset - profile_offset); \
+   ldsoinfo->stat_offset = stat_offset;                                 \
+   ldsoinfo->lstat_offset = lstat_offset;                               \
+   ldsoinfo->errno_offset = errno_offset;                               \
    return 0;                                                            \
 }
 
@@ -640,7 +727,6 @@ static int ldso_metadata_sym(char *pathname, ldso_info_t *ldsoinfo)
       goto done;
    }
    
-   
    ret = 0;
   done:
 
@@ -684,6 +770,9 @@ static int ldso_metadata_run(char *pathname, ldso_info_t *ldsoinfo)
    }
 
    ldsoinfo->binding_offset = (signed long) (resolve_offset - profile_offset);
+   ldsoinfo->stat_offset = 0;
+   ldsoinfo->lstat_offset = 0;
+   ldsoinfo->errno_offset = 0;
    return 0;
 }
 #endif

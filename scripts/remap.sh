@@ -17,10 +17,11 @@ cat <<EOF | $CCLINE -I $SRCDIR -shared -DWORKINGDIR=\"$WORKINGDIR\" -DUNIQ=\"$UN
 #define MAX_PATH_LEN 4096
 #include <string.h>
 
-void get_relocated_file(int ldcs_id, char *orig_exec, int dso, char **reloc_exec, int *errcode)
+void get_relocated_file(int ldcs_id, char *orig_exec, int dso, char **reloc_exec, int *errcode, int *direxists)
 {
    *reloc_exec = strdup(WORKINGDIR "/remap2" UNIQ);
    *errcode = 0;
+   if (direxists) *direxists = 1;
 }
 
 #include "src/client/client/remap_exec.c"
@@ -37,8 +38,6 @@ int dowork()
    return 0;
 }
 EOF
-
-echo $CCLINE -o $WORKINGDIR/remap$UNIQ -L$WORKINGDIR -lremap$UNIQ -Wl,-rpath,$WORKINGDIR -x c -
 
 cat <<EOF | $CCLINE -o $WORKINGDIR/remap$UNIQ -L$WORKINGDIR -x c - -lremap$UNIQ -Wl,-rpath,$WORKINGDIR
 extern int dowork();

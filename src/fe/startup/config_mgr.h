@@ -60,11 +60,14 @@ enum SpindleConfigID {
    confMsgcacheBuffer,
    confMsgcacheTimeout,
    confCleanupProc,
+   confExecExcludes,
    confEnableRsh,
    confRshCommand,
    confStartSession,
+   confStartMultiSession,
    confEndSession,
-   confRunSession
+   confRunSession,
+   confPatchLdso
 };
 
 enum CmdlineShortOptions {
@@ -100,26 +103,29 @@ enum CmdlineShortOptions {
    shortHostbin = 274,
    shortPersist = 275,
    shortStartSession = 276,
-   shortRunSession = 277,
-   shortEndSession = 278,
-   shortLauncherStartup = 279,
-   shortMsgcacheBuffer = 280,
-   shortMsgcacheTimeout = 281,
-   shortCleanupProc = 282,
-   shortRSHMode = 283,
-   shortNUMAIncludes = 284,
-   shortNUMAExcludes = 285,
-   shortCachePrefix = 286,
-   shortNumPorts = 287,
-   shortSerial = 288,
-   shortRSHCmd = 289,
-   shortPushPull = 290,
-   shortSecuritySet = 291,
-   shortLauncher = 292,
-   shortNetwork = 293,
-   shortHostbinEnable = 294,
-   shortSpindleLevel = 295,
-   shortLocalPrefix = 296   
+   shortStartMultiSession = 277,
+   shortRunSession = 278,
+   shortEndSession = 279,
+   shortLauncherStartup = 280,
+   shortMsgcacheBuffer = 281,
+   shortMsgcacheTimeout = 282,
+   shortCleanupProc = 283,
+   shortRSHMode = 284,
+   shortNUMAIncludes = 285,
+   shortNUMAExcludes = 286,
+   shortCachePrefix = 287,
+   shortNumPorts = 288,
+   shortSerial = 289,
+   shortRSHCmd = 290,
+   shortPushPull = 291,
+   shortSecuritySet = 292,
+   shortLauncher = 293,
+   shortNetwork = 294,
+   shortHostbinEnable = 295,
+   shortSpindleLevel = 296,
+   shortLocalPrefix = 297,
+   shortExecExcludes = 298,
+   shortPatchLdso
 };
 
 enum CmdlineGroups {
@@ -137,6 +143,7 @@ enum ConfigValueType {
    cvBool,
    cvInteger,
    cvString,
+   cvStringOptional,
    cvList,
    cvEnum
 };
@@ -156,7 +163,9 @@ const std::map<SpindleConfigID, const SpindleOption&> &getOptionsByID();
 const std::map<CmdlineShortOptions, const SpindleOption&> &getOptionsByKey();
 const std::map<std::string, const SpindleOption&> &getOptionsByLongName();
 
-extern const std::list<SpindleOption> Options;
+extern const std::list<SpindleOption> *Options;
+
+void initOptionsList();
 
 typedef enum {
    sstatus_unused,
@@ -176,6 +185,7 @@ class ConfigMap
   public:
    ConfigMap();
    ConfigMap(std::string origin_);
+   std::string mergeLists(std::string value, std::string existing);
    bool mergeOnto(const ConfigMap &other);
    bool set(SpindleConfigID name, std::string value, std::string &errstring);
    void debugPrint() const;

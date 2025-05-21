@@ -40,6 +40,9 @@ static const char *logging_file = USAGE_LOGGING_FILE;
 static const char *logging_file = NULL;
 #endif
 static const char spindle_bootstrap[] = LIBEXECDIR "/spindle_bootstrap";
+static bool sendAndWaitForAlive();
+
+#define STARTUP_TIMEOUT 60
 
 using namespace std;
 
@@ -73,7 +76,9 @@ static int pack_data(spindle_args_t *args, void* &buffer, unsigned &buffer_size)
    buffer_size += args->numa_excludes ? strlen(args->numa_excludes) + 1 : 1;
    buffer_size += args->rsh_command ? strlen(args->rsh_command) + 1 : 1;
    buffer_size += args->local_prefixes ? strlen(args->local_prefixes) + 1 : 1;
-
+   buffer_size += args->session_key ? strlen(args->session_key) + 1 : 1;
+   buffer_size += args->exec_excludes ? strlen(args->exec_excludes) + 1 : 1;
+   
    unsigned int pos = 0;
    char *buf = (char *) malloc(buffer_size);
    pack_param(args->number, buf, pos);
@@ -93,6 +98,8 @@ static int pack_data(spindle_args_t *args, void* &buffer, unsigned &buffer_size)
    pack_param(args->numa_excludes, buf, pos);
    pack_param(args->rsh_command, buf, pos);
    pack_param(args->local_prefixes, buf, pos);
+   pack_param(args->session_key, buf, pos);
+   pack_param(args->exec_excludes, buf, pos);
    assert(pos == buffer_size);
 
    buffer = (void *) buf;
@@ -193,7 +200,7 @@ static void setupSecurity(spindle_args_t *params)
 
 int getApplicationArgsFE(spindle_args_t *params, int *spindle_argc, char ***spindle_argv)
 {
-   char number_s[32], opt_s[32], cachesize_s[32], security_s[32];
+   char number_s[32], opt_s[64], cachesize_s[32], security_s[32];
    char port_s[32], numports_s[32], uniqueid_s[32], daemonargc_s[32];
    int n = 0;
 
@@ -338,6 +345,7 @@ static void printSpindleFlags(opt_t opts) {
    printFlag(opts, OPT_STOPRELOC, "OPT_STOPRELOC", ss);
    printFlag(opts, OPT_NUMA, "OPT_NUMA", ss);
    printFlag(opts, OPT_OFF, "OPT_OFF", ss);
+   printFlag(opts, OPT_PATCHLDSO, "OPT_PATCHLDSO", ss);
    ss << ", ";
    if (OPT_GET_SEC(opts) == OPT_SEC_MUNGE) ss << "OPT_SEC_MUNGE";
    if (OPT_GET_SEC(opts) == OPT_SEC_KEYLMON) ss << "OPT_SEC_KEYLMON";
@@ -416,6 +424,9 @@ int spindleInitFE(const char **hosts, spindle_args_t *params)
       cleanPreloadMsg(preload_msg);
    }
 
+   /* Wait for servers to indicate startup */
+   sendAndWaitForAlive();
+
    return 0;   
 }
 
@@ -469,4 +480,26 @@ pid_t getRSHPidFE()
 void markRSHPidReapedFE()
 {
    clear_fe_rsh_pid();
+}
+
+static bool sendAndWaitForAlive()
+{
+   int result;
+   ldcs_message_t alive_req_msg;
+   alive_req_msg.header.type = LDCS_MSG_ALIVE_REQ;
+   alive_req_msg.header.len = 0;
+   alive_req_msg.data = NULL;
+   
+   result = ldcs_audit_server_fe_broadcast(&alive_req_msg, NULL);
+   if (result == -1) {
+      debug_printf("Failure sending alive message\n");
+      return false;
+   }
+
+   result = ldcs_audit_server_fe_md_waitfor_alive(STARTUP_TIMEOUT);
+   if (result == -1) {
+      debug_printf("Failure waiting for alive message\n");
+      return false;
+   }
+   return true;
 }

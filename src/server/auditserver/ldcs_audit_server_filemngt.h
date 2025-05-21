@@ -41,6 +41,15 @@ typedef enum {
    clt_numadso
 } calc_local_t;
 
+typedef struct 
+{
+   struct stat buf;
+   int readlink_errcode;
+   ssize_t readlink_path_size;
+   char readlink_path[MAX_PATH_LEN+1];
+} extended_stat_t;
+size_t extended_stat_size(extended_stat_t *st);
+
 char *filemngt_calc_localname(char *global_name, calc_local_t reqtype);
 
 int ldcs_audit_server_filemngt_clean();
@@ -52,9 +61,9 @@ size_t filemngt_get_file_size(char *pathname, int *errcode);
 
 char* ldcs_is_a_cachedfile(char* filename);
 int ldcs_is_a_localfile(ldcs_process_data_t *procdata, char* filename);
-int filemngt_stat(char *pathname, struct stat *buf, int is_lstat);
-int filemngt_write_stat(char *localname, struct stat *buf);
-int filemngt_read_stat(char *localname, struct stat *buf);
+int filemngt_stat(char *pathname, extended_stat_t *buf, int is_lstat);
+int filemngt_write_stat(char *localname, extended_stat_t *buf);
+int filemngt_read_stat(char *localname, extended_stat_t *buf);
 int filemngt_write_ldsometadata(char *localname, ldso_info_t *ldsoinfo);
 int filemngt_read_ldsometadata(char *localname, ldso_info_t *ldsoinfo);
 int filemngt_is_elf_file(const char *buffer, size_t buffer_size);

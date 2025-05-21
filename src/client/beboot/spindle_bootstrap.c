@@ -48,9 +48,9 @@ char spindle_interceptlib[] = PROGLIBDIR "/libspindleint.so";
 
 int ldcsid = -1;
 unsigned int shm_cachesize;
+int number;
 
 static int rankinfo[4]={-1,-1,-1,-1};
-static int number;
 static int use_cache;
 static unsigned int cachesize;
 static char *location, *number_s, *orig_location, *symbolic_location;
@@ -164,7 +164,7 @@ static int parse_cmdline(int argc, char *argv[])
    number_s = argv[i++];
    number = atoi(number_s);
    opts_s = argv[i++];
-   opts = atol(opts_s);
+   opts = strtoul(opts_s, NULL, 10);
    cachesize_s = argv[i++];
    cachesize = atoi(cachesize_s);
    cmdline = argv + i;
@@ -269,7 +269,7 @@ static void get_clientlib()
    char *default_libstr = (opts & OPT_SUBAUDIT) ? default_subaudit_libstr : default_audit_libstr;
    int errorcode;
    
-   get_relocated_file(ldcsid, default_libstr, 1, &client_lib, &errorcode);
+   get_relocated_file(ldcsid, default_libstr, 1, &client_lib, &errorcode, NULL);
    if (client_lib == NULL) {
       client_lib = default_libstr;
       err_printf("Failed to relocate client library %s\n", default_libstr);
@@ -342,12 +342,6 @@ int main(int argc, char *argv[])
       }
    }
 
-   if (isCompiler(cmdline[0])) {
-      debug_printf("Turning off spindle because we're running a compiler: %s\n", cmdline[0]);
-      execvp(cmdline[0], cmdline);
-      return handle_exec_failure(cmdline, errno);
-   }
-
    orig_location = parse_location(symbolic_location, number);
    if (!orig_location) {
       return -1;
@@ -363,6 +357,13 @@ int main(int argc, char *argv[])
       err_printf("spindle_bootstrap failed to connect to daemons\n");
       return -1;
    }
+
+   if (isExecExcluded(cmdline[0])) {
+      debug_printf("Turning off spindle because we're running an excluded binary: %s\n", cmdline[0]);
+      execvp(cmdline[0], cmdline);
+      return handle_exec_failure(cmdline, errno);
+   }
+
 
    if ((opts & OPT_SHMCACHE) && cachesize) {
       unsigned int shm_cache_limit;

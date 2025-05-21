@@ -1,4 +1,20 @@
 /*
+This file is part of Spindle.  For copyright information see the COPYRIGHT 
+file in the top level directory, or at 
+https://github.com/hpc/Spindle/blob/master/COPYRIGHT
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License (as published by the Free Software
+Foundation) version 2.1 dated February 1999.  This program is distributed in the
+hope that it will be useful, but WITHOUT ANY WARRANTY; without even the IMPLIED
+WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms 
+and conditions of the GNU Lesser General Public License for more details.  You should 
+have received a copy of the GNU Lesser General Public License along with this 
+program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place, Suite 330, Boston, MA 02111-1307 USA
+*/
+
+/*
  * Spindle job shell plugin for Flux.
  */
 #define _GNU_SOURCE
@@ -8,6 +24,7 @@
 #include <jansson.h>
 #include <strings.h>
 #include <unistd.h>
+#include <assert.h>
 
 #define FLUX_SHELL_PLUGIN_NAME "spindle"
 
@@ -15,30 +32,31 @@
 #include <flux/shell.h>
 #include <flux/hostlist.h>
 
-#include <spindle_launch.h>
+#include "spindle_launch.h"
+#include "fluxmgr.h"
 
 #define debug_printf(PRIORITY, FORMAT, ...)                         \
    do {                                                             \
-      spindle_debug_printf(PRIORITY, FORMAT "\n", ## __VA_ARGS__);  \
+      spindle_debug_printf(PRIORITY, FORMAT, ## __VA_ARGS__);  \
       shell_debug(FORMAT, ## __VA_ARGS__);                          \
    } while (0)
 
 #define err_printf(PRIORITY, FORMAT, ...)                            \
    do {                                                              \
-      spindle_debug_printf(PRIORITY, FORMAT "\n", ## __VA_ARGS__);   \
+      spindle_debug_printf(PRIORITY, FORMAT, ## __VA_ARGS__);   \
       shell_die(1, FORMAT, ## __VA_ARGS__);                          \
    } while (0)
 
 #define errno_printf(PRIORITY, FORMAT, ...)                          \
    do {                                                              \
-      spindle_debug_printf(PRIORITY, FORMAT "\n", ## __VA_ARGS__);   \
+      spindle_debug_printf(PRIORITY, FORMAT, ## __VA_ARGS__);   \
       shell_die_errno(1, FORMAT, ## __VA_ARGS__);                    \
    } while (0)
 
 #define logerrno_printf(PRIORITY, FORMAT, ...)                        \
    do {                                                               \
       int log_errno_result;                                           \
-      spindle_debug_printf(PRIORITY, FORMAT "\n", ## __VA_ARGS__);    \
+      spindle_debug_printf(PRIORITY, FORMAT, ## __VA_ARGS__);    \
       log_errno_result = shell_log_errno(FORMAT, ## __VA_ARGS__);     \
       return log_errno_result;                                        \
    } while (0)
@@ -67,6 +85,51 @@ static void free_argv (char **argv)
             free (*s);
         free (argv);
     }
+}
+
+static int spindle_in_session_mode(flux_t *flux_handle, int *argc, char ***argv)
+{
+   char *bootstrap_str = NULL;
+   int result;
+   int spaces, i;
+   char *s;
+   
+   result = fluxmgr_get_bootstrap(flux_handle, (argc && argv) ? &bootstrap_str : NULL);
+   if (result == -1) {
+      err_printf(1, "Could not get bootstrap args from flux\n");
+      return -1;
+   }
+   if (result == -2) {
+      debug_printf(1, "Spindle is not running in session mode\n");
+      return 0;
+   }
+
+   debug_printf(1, "Spindle is in session mode\n");
+   if (!bootstrap_str)
+      return 1;
+
+   spaces = 0;
+   for (i = 0; bootstrap_str[i] != '\0'; i++)
+      if (bootstrap_str[i] == ' ') spaces++;
+   spaces++;
+   *argv = (char **) malloc(sizeof(char *) * (spaces+1));
+
+   i = 0;
+   for (s = strtok(bootstrap_str, " "); s != NULL; s = strtok(NULL, " "))
+      (*argv)[i++] = strdup(s);
+   (*argv)[i] = NULL;
+   assert(i <= spaces);
+   *argc = i;
+   
+   return 1;
+}
+
+static void free_bootstrap_args(int argc, char **argv)
+{
+   int i;
+   for (i = 0; argv[i] != NULL; i++)
+      free(argv[i]);
+   free(argv);
 }
 
 /* Convert the hostlist in an Rv1 object to an array of hostnames
@@ -197,7 +260,7 @@ static int run_spindle_backend (struct spindle_ctx *ctx)
    sigset_t sset;
 
    if (!spindle_is_enabled(ctx)) {
-      debug_printf(1, "Spindle disabled. Not starting BE");
+      debug_printf(1, "Spindle disabled. Not starting BE\n");
       return 0;
    }
    
@@ -228,7 +291,7 @@ static int run_spindle_backend (struct spindle_ctx *ctx)
       }
       exit (0);
    }
-   debug_printf(2, "started spindle backend pid = %u", ctx->backend_pid);
+   debug_printf(2, "started spindle backend pid = %u\n", ctx->backend_pid);
    return 0;
 }
 
@@ -237,14 +300,14 @@ static int run_spindle_backend (struct spindle_ctx *ctx)
 static void run_spindle_frontend (struct spindle_ctx *ctx)
 {
    if (!spindle_is_enabled(ctx)) {
-      debug_printf(2, "Spindle disabled. Not starting BE");
+      debug_printf(2, "Spindle disabled. Not starting BE\n");
       return;
    }
 
    /* Blocks untile backends connect */
    if (spindleInitFE ((const char **) ctx->hosts, &ctx->params) < 0)
-      err_printf(1, "spindleInitFE");
-   debug_printf(2, "started spindle frontend");
+      err_printf(1, "spindleInitFE error\n");
+   debug_printf(2, "started spindle frontend\n");
 }
 
 /*  Callback for watching the exec eventlog
@@ -257,17 +320,17 @@ static void wait_for_shell_init (flux_future_t *f, void *arg)
     json_t *o;
     const char *event;
     const char *name;
-    int rc = -1;
+    int rc = -1;    
 
     if (ctx->params.opts & OPT_OFF) {
        return;
     }
 
     if (flux_job_event_watch_get (f, &event) < 0)
-        errno_printf(1, "spindle failed waiting for shell.init event");
+        errno_printf(1, "spindle failed waiting for shell.init event\n");
     if (!(o = json_loads (event, 0, NULL))
             || json_unpack (o, "{s:s}", "name", &name) < 0)
-        errno_printf(1, "failed to get event name");
+        errno_printf(1, "failed to get event name\n");
     if (strcmp (name, "shell.init") == 0) {
         rc = json_unpack (o,
                 "{s:{s:i s:i}}",
@@ -298,7 +361,7 @@ static int parse_yesno(opt_t *opt, opt_t flag, const char *yesno)
    else if (strcasecmp(yesno, "yes") == 0 || strcasecmp(yesno, "true") == 0 || strcasecmp(yesno, "1") == 0)
       *opt |= 1;
    else
-      logerrno_printf(1, "Error in spindle option: Expected 'yes' or 'no', got %s", yesno);
+      logerrno_printf(1, "Error in spindle option: Expected 'yes' or 'no', got %s\n", yesno);
    return 0;
 }
 
@@ -354,7 +417,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
                         "numa-files", &numafiles,
                         "preload", &preload,
                         "level", &level) < 0)
-       logerrno_printf (1, "Error in spindle option: %s", error.text);
+       logerrno_printf (1, "Error in spindle option: %s\n", error.text);
 
     if (noclean)
         ctx->params.opts |= OPT_NOCLEAN;
@@ -392,7 +455,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
     if (pyprefix) {
         char *tmp;
         if (asprintf (&tmp, "%s:%s", ctx->params.pythonprefix, pyprefix) < 0)
-           logerrno_printf (1, "unable to append to pythonprefix");
+           logerrno_printf (1, "unable to append to pythonprefix\n");
         free (ctx->params.pythonprefix);
         ctx->params.pythonprefix = tmp;
     }
@@ -455,7 +518,7 @@ static int sp_init (flux_plugin_t *p,
     flux_shell_t *shell = flux_plugin_get_shell (p);
     flux_t *h = flux_shell_get_flux (shell);
     flux_jobid_t id;
-    int shell_rank;
+    int shell_rank, rc;
     flux_future_t *f;
     json_t *R;
     const char *debug;
@@ -465,7 +528,7 @@ static int sp_init (flux_plugin_t *p,
 
     if (!(shell = flux_plugin_get_shell (p))
         || !(h = flux_shell_get_flux (shell)))
-       logerrno_printf (1, "failed to get shell or flux handle");
+       logerrno_printf (1, "failed to get shell or flux handle\n");
 
     if (flux_shell_getopt (shell, "spindle", NULL) != 1)
         return 0;
@@ -476,12 +539,12 @@ static int sp_init (flux_plugin_t *p,
     if ((debug = flux_shell_getenv (shell, "SPINDLE_DEBUG")))
         setenv ("SPINDLE_DEBUG", debug, 1);
 
-    debug_printf(1, "initializing spindle for use with flux");
-
     /*  The spindle testsuite requires SPINDLE_TEST
      */
     if ((test = flux_shell_getenv (shell, "SPINDLE_TEST")))
        setenv ("SPINDLE_TEST", test, 1);
+
+    debug_printf(1, "initializing spindle flux plugin\n");
 
     /*  Spindle requires that TMPDIR is set. Propagate TMPDIR from job
      *  environment, or use /tmp if TMPDIR not set.
@@ -502,7 +565,7 @@ static int sp_init (flux_plugin_t *p,
                                 "jobid", &id,
                                 "R", &R,
                                 "rank", &shell_rank) < 0)
-       logerrno_printf (1, "Failed to unpack shell info");
+       logerrno_printf (1, "Failed to unpack shell info\n");
 
     /*  Create an object for spindle related context.
      *
@@ -515,9 +578,20 @@ static int sp_init (flux_plugin_t *p,
                                 ctx,
                                 (flux_free_f) spindle_ctx_destroy) < 0) {
         spindle_ctx_destroy (ctx);
-        logerrno_printf (1, "failed to create spindle ctx");
+        logerrno_printf (1, "failed to create spindle ctx\n");
     }
 
+    rc = spindle_in_session_mode(h, NULL, NULL);
+    if (rc == -1) {
+       logerrno_printf(1, "failed to read session info from flux\n");
+       spindle_ctx_destroy(ctx);
+       return -1;
+    }
+    else if (rc) {
+       //Session mode does not need to start FE or server
+       return 0;
+    }
+    
     /*  Fill in the spindle_args_t with defaults from Spindle.
      *  We use fillInSpindleArgsCmdlineFE() here so that spindle does
      *   not overwrite our already-initialized `number`, which must be
@@ -528,7 +602,7 @@ static int sp_init (flux_plugin_t *p,
                                     0,
                                     NULL,
                                     NULL) < 0)
-       logerrno_printf (1, "fillInSpindleArgsCmdlineFE failed");
+       logerrno_printf (1, "fillInSpindleArgsCmdlineFE failed\n");
 
 
     /*  Read other spindle options from spindle option in jobspec:
@@ -588,22 +662,51 @@ static int sp_task (flux_plugin_t *p,
                     flux_plugin_arg_t *arg,
                     void *data)
 {
-    debug_printf(1, "In flux plugin sp_task");   
+    int session_mode;
+    int bootstrap_argc;
+    char **bootstrap_argv;
+    flux_shell_t *shell;
+    flux_t *h;
+    int i;
+    
+    debug_printf(1, "In flux plugin sp_task\n");
     struct spindle_ctx *ctx = flux_plugin_aux_get (p, "spindle");
-    if (ctx && ctx->argc > 0 && spindle_is_enabled(ctx)) {
-        int i;
-        flux_shell_t *shell = flux_plugin_get_shell (p);
-        flux_shell_task_t *task = flux_shell_current_task (shell);
-        flux_cmd_t *cmd = flux_shell_task_cmd (task);
-
-        /* Prepend spindle_argv to task cmd */
-        for (i = ctx->argc - 1; i >= 0; i--)
-            flux_cmd_argv_insert (cmd, 0, ctx->argv[i]);
-
-        char *s = flux_cmd_stringify (cmd);
-        shell_trace ("running %s", s);
-        free (s);
+    if (!ctx || !spindle_is_enabled(ctx)) {
+       return 0;
     }
+
+
+    if (!(shell = flux_plugin_get_shell (p)) || !(h = flux_shell_get_flux (shell))) {
+       logerrno_printf (1, "failed to get shell or flux handle\n");
+       return -1;
+    }
+    flux_shell_task_t *task = flux_shell_current_task (shell);
+    flux_cmd_t *cmd = flux_shell_task_cmd (task);
+
+    session_mode = spindle_in_session_mode(h, &bootstrap_argc, &bootstrap_argv);
+    if (session_mode == -1) {
+       logerrno_printf(1, "Failed to lookup whether we're in session mode\n");
+       return -1;
+    }
+    if (session_mode) {
+       debug_printf(1, "Using session settings to run spindle\n");
+    }
+    else {
+       bootstrap_argc = ctx->argc;
+       bootstrap_argv = ctx->argv;
+    }
+       
+    /* Prepend spindle_argv to task cmd */
+    for (i = bootstrap_argc - 1; i >= 0; i--)
+       flux_cmd_argv_insert (cmd, 0, bootstrap_argv[i]);
+    
+    char *s = flux_cmd_stringify (cmd);
+    shell_trace ("running %s", s);
+    free (s);
+
+    if (session_mode)
+       free_bootstrap_args(bootstrap_argc, bootstrap_argv);
+    
     return 0;
 }
 
@@ -615,9 +718,14 @@ static int sp_exit (flux_plugin_t *p,
                     flux_plugin_arg_t *arg,
                     void *data)
 {
-    debug_printf(1, "In flux plugin sp_exit");
+   flux_shell_t *shell = flux_plugin_get_shell (p);
+    flux_t *h = flux_shell_get_flux (shell);
+    
+    debug_printf(1, "In flux plugin sp_exit\n");
     struct spindle_ctx *ctx = flux_plugin_aux_get (p, "spindle");
     if (!spindle_is_enabled(ctx))
+       return 0;
+    if (spindle_in_session_mode(h, NULL, NULL) > 0)
        return 0;
     if (ctx && ctx->params.opts & OPT_OFF)
        return 0;    
