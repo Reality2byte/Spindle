@@ -47,13 +47,13 @@ Place, Suite 330, Boston, MA 02111-1307 USA
       shell_die(1, FORMAT, ## __VA_ARGS__);                          \
    } while (0)
 
-#define errno_printf(PRIORITY, FORMAT, ...)                          \
+#define errno_printf_and_die(PRIORITY, FORMAT, ...)                          \
    do {                                                              \
       spindle_debug_printf(PRIORITY, FORMAT, ## __VA_ARGS__);   \
       shell_die_errno(1, FORMAT, ## __VA_ARGS__);                    \
    } while (0)
 
-#define logerrno_printf(PRIORITY, FORMAT, ...)                        \
+#define logerrno_printf_and_return(PRIORITY, FORMAT, ...)                        \
    do {                                                               \
       int log_errno_result;                                           \
       spindle_debug_printf(PRIORITY, FORMAT, ## __VA_ARGS__);    \
@@ -327,10 +327,10 @@ static void wait_for_shell_init (flux_future_t *f, void *arg)
     }
 
     if (flux_job_event_watch_get (f, &event) < 0)
-        errno_printf(1, "spindle failed waiting for shell.init event\n");
+        errno_printf_and_die(1, "spindle failed waiting for shell.init event\n");
     if (!(o = json_loads (event, 0, NULL))
             || json_unpack (o, "{s:s}", "name", &name) < 0)
-        errno_printf(1, "failed to get event name\n");
+        errno_printf_and_die(1, "failed to get event name\n");
     if (strcmp (name, "shell.init") == 0) {
         rc = json_unpack (o,
                 "{s:{s:i s:i}}",
@@ -361,7 +361,7 @@ static int parse_yesno(opt_t *opt, opt_t flag, const char *yesno)
    else if (strcasecmp(yesno, "yes") == 0 || strcasecmp(yesno, "true") == 0 || strcasecmp(yesno, "1") == 0)
       *opt |= 1;
    else
-      logerrno_printf(1, "Error in spindle option: Expected 'yes' or 'no', got %s\n", yesno);
+      logerrno_printf_and_return(1, "Error in spindle option: Expected 'yes' or 'no', got %s\n", yesno);
    return 0;
 }
 
@@ -417,7 +417,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
                         "numa-files", &numafiles,
                         "preload", &preload,
                         "level", &level) < 0)
-       logerrno_printf (1, "Error in spindle option: %s\n", error.text);
+       logerrno_printf_and_return(1, "Error in spindle option: %s\n", error.text);
 
     if (noclean)
         ctx->params.opts |= OPT_NOCLEAN;
@@ -455,7 +455,7 @@ static int sp_getopts (flux_shell_t *shell, struct spindle_ctx *ctx)
     if (pyprefix) {
         char *tmp;
         if (asprintf (&tmp, "%s:%s", ctx->params.pythonprefix, pyprefix) < 0)
-           logerrno_printf (1, "unable to append to pythonprefix\n");
+           logerrno_printf_and_return(1, "unable to append to pythonprefix\n");
         free (ctx->params.pythonprefix);
         ctx->params.pythonprefix = tmp;
     }
@@ -528,7 +528,7 @@ static int sp_init (flux_plugin_t *p,
 
     if (!(shell = flux_plugin_get_shell (p))
         || !(h = flux_shell_get_flux (shell)))
-       logerrno_printf (1, "failed to get shell or flux handle\n");
+       logerrno_printf_and_return(1, "failed to get shell or flux handle\n");
 
     if (flux_shell_getopt (shell, "spindle", NULL) != 1)
         return 0;
@@ -553,7 +553,7 @@ static int sp_init (flux_plugin_t *p,
     if (!tmpdir) {
         tmpdir = "/tmp";
         if (flux_shell_setenv (shell, 1, "TMPDIR", "%s", tmpdir) < 0)
-            logerrno_printf (1, "failed to set TMPDIR=/tmp in job environment");
+            logerrno_printf_and_return(1, "failed to set TMPDIR=/tmp in job environment");
     }
     setenv ("TMPDIR", tmpdir, 1);
 
@@ -568,7 +568,7 @@ static int sp_init (flux_plugin_t *p,
                                 "jobid", &id,
                                 "R", &R,
                                 "rank", &shell_rank) < 0)
-       logerrno_printf (1, "Failed to unpack shell info\n");
+       logerrno_printf_and_return(1, "Failed to unpack shell info\n");
 
     /*  Create an object for spindle related context.
      *
@@ -581,12 +581,12 @@ static int sp_init (flux_plugin_t *p,
                                 ctx,
                                 (flux_free_f) spindle_ctx_destroy) < 0) {
         spindle_ctx_destroy (ctx);
-        logerrno_printf (1, "failed to create spindle ctx\n");
+        logerrno_printf_and_return(1, "failed to create spindle ctx\n");
     }
 
     rc = spindle_in_session_mode(h, NULL, NULL);
     if (rc == -1) {
-       logerrno_printf(1, "failed to read session info from flux\n");
+       logerrno_printf_and_return(1, "failed to read session info from flux\n");
        spindle_ctx_destroy(ctx);
        return -1;
     }
@@ -605,7 +605,7 @@ static int sp_init (flux_plugin_t *p,
                                     0,
                                     NULL,
                                     NULL) < 0)
-       logerrno_printf (1, "fillInSpindleArgsCmdlineFE failed\n");
+       logerrno_printf_and_return (1, "fillInSpindleArgsCmdlineFE failed\n");
 
 
     /*  Read other spindle options from spindle option in jobspec:
@@ -680,7 +680,7 @@ static int sp_task (flux_plugin_t *p,
 
 
     if (!(shell = flux_plugin_get_shell (p)) || !(h = flux_shell_get_flux (shell))) {
-       logerrno_printf (1, "failed to get shell or flux handle\n");
+       logerrno_printf_and_return (1, "failed to get shell or flux handle\n");
        return -1;
     }
     flux_shell_task_t *task = flux_shell_current_task (shell);
@@ -688,7 +688,7 @@ static int sp_task (flux_plugin_t *p,
 
     session_mode = spindle_in_session_mode(h, &bootstrap_argc, &bootstrap_argv);
     if (session_mode == -1) {
-       logerrno_printf(1, "Failed to lookup whether we're in session mode\n");
+       logerrno_printf_and_return(1, "Failed to lookup whether we're in session mode\n");
        return -1;
     }
     if (session_mode) {
