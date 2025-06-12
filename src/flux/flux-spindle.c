@@ -552,8 +552,9 @@ static int sp_init (flux_plugin_t *p,
     tmpdir = flux_shell_getenv (shell, "TMPDIR");
     if (!tmpdir) {
         tmpdir = "/tmp";
-        if (flux_shell_setenv (shell, 1, "TMPDIR", "%s", tmpdir) < 0)
+        if (flux_shell_setenvf (shell, 1, "TMPDIR", "%s", tmpdir) < 0)
             logerrno_printf_and_return(1, "failed to set TMPDIR=/tmp in job environment");
+
     }
     setenv ("TMPDIR", tmpdir, 1);
 
