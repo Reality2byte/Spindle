@@ -501,6 +501,9 @@ char *spindle_realpath (const char *name, char *resolved)
    scratch_buffer_free (&bufs.link);
    scratch_buffer_free (&bufs.extra);
    scratch_buffer_free (&bufs.rname);
+   debug_printf3("spindle_realpath(%s, %p) returning %s\n", name, resolved, result);
+   if (result)
+      set_errno(0);
    return result;
 }
 
