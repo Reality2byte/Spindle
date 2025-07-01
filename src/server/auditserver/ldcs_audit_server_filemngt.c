@@ -291,6 +291,8 @@ int ldcs_audit_server_filemngt_clean()
    return 0;
 }
 
+#define EMPTY_FILE_PTR ((void *) 0xE977)
+
 int filemngt_create_file_space(char *filename, size_t size, void **buffer_out, int *fd_out)
 {
    int result;
@@ -300,8 +302,9 @@ int filemngt_create_file_space(char *filename, size_t size, void **buffer_out, i
       return -1;
    }
    if (size == 0) {
-       size = getpagesize();
-       debug_printf2("growing empty file to size %d", (int) size);
+      debug_printf2("Empty file %s", filename);
+      *buffer_out = EMPTY_FILE_PTR;
+      return 0;
    }
    result = ftruncate(*fd_out, size);
    if (result == -1) {
@@ -322,7 +325,7 @@ int filemngt_create_file_space(char *filename, size_t size, void **buffer_out, i
 int filemngt_clear_file_space(void *buffer, size_t size, int fd)
 {
    int result = 0;
-   if (buffer && size)
+   if (buffer && buffer != EMPTY_FILE_PTR && size)
       result = munmap(buffer, size);
    if (fd != -1)
       close(fd);
@@ -346,9 +349,10 @@ void *filemngt_sync_file_space(void *buffer, int fd, char *pathname, size_t size
    int result;
    char *buffer2;
 
-   if (size == 0) {
-       newsize = size = getpagesize();
-       debug_printf2("growing empty file to size %d", (int) size);
+   if (size == 0 || buffer == EMPTY_FILE_PTR) {
+      debug_printf2("Empty file sync for %s", pathname);
+      close(fd);
+      return EMPTY_FILE_PTR;
    }
 
    debug_printf3("Unmapping buffer %p of size %lu\n", buffer, size);
