@@ -97,9 +97,9 @@ char *filemngt_calc_localname(char *global_name, calc_local_t reqtype)
    //The naming decisions here need to be cordinated with name parsing in
    // cache/global_name.c
    static unsigned int unique_str_num = 0;
-   char target[MAX_NAME_LEN+1];
-   char dirpart[MAX_NAME_LEN+1];
-   char filepart[MAX_FILENAME_LEN+1];
+   char target[MAX_PATH_LEN+1];
+   char dirpart[MAX_PATH_LEN+1];
+   char filepart[MAX_PATH_LEN+1];
    char *endslash, *lastslash;
    const char *prefix = NULL;
    size_t dirpart_size, filepart_size;
@@ -192,7 +192,7 @@ int filemngt_encode_packet(char *filename, void *filecontents, size_t filesize, 
 {
    int cur_pos = 0;
    int filename_len = strlen(filename) + 1;
-   int is_elf = filemngt_is_elf_file(filecontents, *buffer_size);
+   int is_elf = filemngt_is_elf_file(filecontents, filesize);
    //TODO: Remove filesize from allocation if we're doing a non-contig send. Wastes memory.
    *buffer_size = sizeof(is_elf) + sizeof(stripped) + filename_len + sizeof(filename_len) + sizeof(filesize) + filesize;
    *buffer = (char *) malloc(*buffer_size);
