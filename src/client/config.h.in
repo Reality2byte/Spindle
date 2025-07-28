@@ -118,6 +118,10 @@
 /* The default local directory for Spindle */
 #undef SPINDLE_LOC
 
+/* The default colon-separated list of directories that Spindle will not cache
+   files out of */
+#undef SPINDLE_LOCAL_PREFIX
+
 /* The maximum port value */
 #undef SPINDLE_MAX_PORT
 
