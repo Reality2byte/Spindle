@@ -838,6 +838,7 @@ enable_maintainer_mode
 with_default_port
 with_default_num_ports
 with_localstorage
+with_default_local_prefix
 with_testrm
 with_rm
 enable_slurm
@@ -1567,6 +1568,9 @@ Optional Packages:
                           Number of TCP/IP ports to scan for Spindle server
                           communication
   --with-localstorage=DIR Directory on back-ends for storing relocated files
+  --with-default-local-prefix=DIRS
+                          Colon-seperated list of directories that Spindle
+                          will not cache files out of
   --with-testrm=ARG
   --with-rm=ARG           Default resource manager (valid options are 'slurm',
                           'slurm-plugin', 'flux', and 'serial')
@@ -16384,6 +16388,7 @@ SPINDLE_SOURCE_ROOT=`realpath ${srcdir}/../..`
 DEFAULT_PORT=21940
 DEFAULT_LOC='$TMPDIR'
 DEFAULT_NUM_COBO_PORTS=250
+DEFAULT_LOCAL_PREFIX='/var/:/tmp/:/proc/:/dev/:/sys/'
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable maintainer-specific portions of Makefiles" >&5
@@ -16437,6 +16442,14 @@ else
 fi
 
 
+# Check whether --with-default-local-prefix was given.
+if test "${with_default_local_prefix+set}" = set; then :
+  withval=$with_default_local_prefix; SPINDLE_LOCAL_PREFIX=${withval}
+else
+  SPINDLE_LOCAL_PREFIX="$DEFAULT_LOCAL_PREFIX:$SPINDLE_LOC"
+fi
+
+
 cat >>confdefs.h <<_ACEOF
 #define SPINDLE_PORT $SPINDLE_PORT
 _ACEOF
@@ -16454,6 +16467,11 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define SPINDLE_LOC "$SPINDLE_LOC"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define SPINDLE_LOCAL_PREFIX "$SPINDLE_LOCAL_PREFIX"
 _ACEOF
 
 

@@ -56,6 +56,12 @@ using namespace std;
 #define SPINDLE_LOC_STR "$TMPDIR"
 #endif
 
+#if defined(SPINDLE_LOCAL_PREFIX)
+#define SPINDLE_LOCAL_PREFIX_STR SPINDLE_LOCAL_PREFIX
+#else
+#define SPINDLE_LOCAL_PREFIX_STR "/var/:/tmp/:/proc/:/dev/:/sys/"
+#endif
+
 #if defined(TESTRM)
 #  define DEFAULT_LAUNCHER_STR TESTRM
 #else
@@ -251,7 +257,7 @@ void initOptionsList()
      "Alias for python-prefix" },
    { confExecExcludes, "exec-excludes", shortExecExcludes, groupMisc, cvList, {}, DEFAULT_EXEC_EXCLUDE_LIST,
      "Colon-seperated list of executable names that should not be run under spindle." },
-   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOC_STR,
+   { confLocalPrefix, "local-prefix", shortLocalPrefix, groupMisc, cvList, {}, SPINDLE_LOCAL_PREFIX_STR,
      "Colon-seperated list of directories that spindle will not cache files out of" },
    { confDebug, "debug", shortDebug, groupMisc, cvBool, {}, "false",
      "If yes, hide spindle from debuggers so they think libraries come from the original locations.  May cause extra overhead." },
