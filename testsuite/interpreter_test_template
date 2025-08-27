@@ -1,0 +1,9 @@
+#!/bin/bash
+
+export PATH="$PWD/interpreter_test_dir:$PATH"
+interpreter_test_perl
+RESULT=$?
+if [[ $RESULT != 0 ]] ; then
+    echo "FAILED."
+    exit $RESULT
+fi
