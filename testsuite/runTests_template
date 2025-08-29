@@ -18,6 +18,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --ldpreload --push
 CHECK_RETCODE
+./run_driver --spindleapi --push
+CHECK_RETCODE
 
 ./run_driver --dependency --pull
 CHECK_RETCODE
@@ -30,6 +32,8 @@ CHECK_RETCODE
 ./run_driver --partial --pull
 CHECK_RETCODE
 ./run_driver --ldpreload --pull
+CHECK_RETCODE
+./run_driver --spindleapi --pull
 CHECK_RETCODE
 
 ./run_driver --dependency --numa
@@ -44,6 +48,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --ldpreload --numa
 CHECK_RETCODE
+./run_driver --spindleapi --numa
+CHECK_RETCODE
 
 if test "x$SPINDLE_BLUEGENE" != "xtrue"; then
 ./run_driver --dependency --fork
@@ -57,6 +63,8 @@ CHECK_RETCODE
 ./run_driver --partial --fork
 CHECK_RETCODE
 ./run_driver --ldpreload --fork
+CHECK_RETCODE
+./run_driver --spindleapi --fork
 CHECK_RETCODE
 fi
 
@@ -73,6 +81,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --ldpreload --forkexec
 CHECK_RETCODE
+./run_driver --spindleapi --forkexec
+CHECK_RETCODE
 fi
 
 ./run_driver --dependency --chdir
@@ -87,6 +97,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --ldpreload --chdir
 CHECK_RETCODE
+./run_driver --spindleapi --chdir
+CHECK_RETCODE
 
 ./run_driver --dependency --preload
 CHECK_RETCODE
@@ -99,6 +111,8 @@ CHECK_RETCODE
 ./run_driver --partial --preload
 CHECK_RETCODE
 ./run_driver --ldpreload --preload
+CHECK_RETCODE
+./run_driver --spindleapi --preload
 CHECK_RETCODE
 
 if test "x$TEST_RM" != "xserial"; then
@@ -115,6 +129,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --ldpreload --session
 CHECK_RETCODE
+./run_driver --spindleapi --session
+CHECK_RETCODE
 ./run_driver --end-session $SESSION_ID
 CHECK_RETCODE
 unset SESSION_ID
@@ -125,6 +141,7 @@ echo Skipping: ./run_driver --dlreopen --session
 echo Skipping: ./run_driver --reorder --session
 echo Skipping: ./run_driver --partial --session
 echo Skipping: ./run_driver --ldpreload --session
+echo Skipping: ./run_driver --spindleapi --session
 fi
 
 ./run_driver --serial ./spindle_exec_test

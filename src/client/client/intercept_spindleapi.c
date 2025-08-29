@@ -40,6 +40,15 @@ static TLS int under_spindle_call = 0;
 #include "sym_alias.h"
 #endif
 
+int (*orig_spindle_open)(const char *pathname, int flags, ...);
+FILE* (*orig_spindle_fopen)(const char *path, const char *opts);
+int (*orig_spindle_stat)(const char *path, struct stat *buf);
+int (*orig_spindle_lstat)(const char *path, struct stat *buf);
+int (*orig_spindle_is_present)();
+int (*orig_spindle_enable)();
+int (*orig_spindle_disable)();
+int (*orig_spindle_is_enabled)();
+
 int int_spindle_open(const char *pathname, int flags, ...)
 {
    va_list argp;

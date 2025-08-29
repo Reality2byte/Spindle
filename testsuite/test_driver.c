@@ -1086,6 +1086,10 @@ void checkTlsSum()
 {
    int i;
    int sum = 0;
+
+   if (open_mode == om_spindleapi)
+      return;
+
    for (i = 0; libraries[i].libname; i++) {
       if (!libraries[i].tls_func)
          continue;
