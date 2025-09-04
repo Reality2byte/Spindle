@@ -338,7 +338,24 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ABS_TEST_DIR = $(abspath $(top_builddir)/testsuite)
-BUILT_SOURCES = libtest10.so libtest11.so libtest12.so libtest13.so libtest14.so libtest15.so libtest16.so libtest17.so libtest18.so libtest19.so libtest20.so libtest50.so libtest100.so libtest500.so libtest1000.so libtest2000.so libtest4000.so libtest6000.so libtest8000.so libtest10000.so libtls1.c libtls2.c libtls3.c libtls4.c libtls5.c libtls6.c libtls7.c libtls8.c libtls9.c libtls10.c libtls11.c libtls12.c libtls13.c libtls14.c libtls15.c libtls16.c libtls17.c libtls18.c libtls19.c libtls20.c libsymlink.so libdepC.so libdepB.so libdepA.so libcxxexceptB.so libcxxexceptA.so origin_dir/liboriginlib.so origin_dir/origin_subdir/liborigintarget.so libtestoutput.so libfuncdict.so runTests run_driver run_driver_rm spindle.rc preload_file_list test_driver test_driver_libs retzero_rx retzero_r retzero_x retzero_ badinterp hello_r.py hello_x.py hello_rx.py hello_.py hello_l.py badlink.py spindle_exec_test spindle_deactivated.sh liblocal.so symbind_test
+BUILT_SOURCES = libtest10.so libtest11.so libtest12.so libtest13.so \
+	libtest14.so libtest15.so libtest16.so libtest17.so \
+	libtest18.so libtest19.so libtest20.so libtest50.so \
+	libtest100.so libtest500.so libtest1000.so libtest2000.so \
+	libtest4000.so libtest6000.so libtest8000.so libtest10000.so \
+	libtls1.c libtls2.c libtls3.c libtls4.c libtls5.c libtls6.c \
+	libtls7.c libtls8.c libtls9.c libtls10.c libtls11.c libtls12.c \
+	libtls13.c libtls14.c libtls15.c libtls16.c libtls17.c \
+	libtls18.c libtls19.c libtls20.c libsymlink.so libdepC.so \
+	libdepB.so libdepA.so libcxxexceptB.so libcxxexceptA.so \
+	origin_dir/liboriginlib.so \
+	origin_dir/origin_subdir/liborigintarget.so libtestoutput.so \
+	libfuncdict.so runTests run_driver run_driver_rm spindle.rc \
+	preload_file_list test_driver test_driver_libs retzero_rx \
+	retzero_r retzero_x retzero_ badinterp hello_r.py hello_x.py \
+	hello_rx.py hello_.py hello_l.py badlink.py spindle_exec_test \
+	spindle_deactivated.sh liblocal.so symbind_test \
+	interpreter_test interpreter_test_dir/interpreter_test_perl
 @BGQ_BLD_FALSE@DYNAMIC_FLAG = 
 @BGQ_BLD_TRUE@DYNAMIC_FLAG = -dynamic
 @BGQ_BLD_FALSE@IS_BLUEGENE = false
@@ -377,7 +394,8 @@ CLEANFILES = libtest10.c libtest11.c libtest12.c libtest13.c \
 	libtls18.so libtls19.so libtls20.so symbind_test \
 	libsymbind_a.so libsymbind_b.so libsymbind_c.so \
 	libsymbind_d.so libsymbind_e.so libsymbind_f.so \
-	libsymbind_g.so
+	libsymbind_g.so interpreter_test \
+	interpreter_test_dir/interpreter_test_perl
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -1064,6 +1082,15 @@ spindle.rc: $(srcdir)/spindle_rc $(top_builddir)/Makefile
 preload_file_list: $(srcdir)/preload_file_list_template $(top_builddir)/Makefile
 	@rm -f ./preload_file_list
 	$(AM_V_GEN)$(SED) -e s,TEST_RUN_DIR,$(ABS_TEST_DIR),g < $(srcdir)/preload_file_list_template > $(top_builddir)/testsuite/preload_file_list
+
+interpreter_test_dir:
+	$(AM_V_GEN) mkdir -p $@
+
+interpreter_test_dir/interpreter_test_perl: interpreter_test_perl_template interpreter_test_dir
+	$(AM_V_GEN)cp $< $@; chmod 700 $@
+
+interpreter_test: interpreter_test_template
+	$(AM_V_GEN)cp $< $@; chmod 700 $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
