@@ -422,7 +422,17 @@ static int handshake_main(int sockfd, handshake_protocol_t *hdata, uint64_t sess
    debug_printf("Decrypting their random number packet\n");
    result = decrypt_packet(hdata, &recvd_random_number_packet, sizeof(random_number_packet_t), recvd_packet_buffer, recvd_packet_buffer_size);
    if (result < 0) {
-      debug_printf("Error decrypting and checking received packet\n");
+      debug_printf("Error checking initial packet\n");
+      return_result = result;
+      goto done;
+   }
+
+   //encrypt random number packet that they are expecting
+   random_number_packet.random_number = recvd_packet.random_number;
+   random_number_packet.signature = packet.signature;
+   result = encrypt_packet(hdata, &random_number_packet, sizeof(random_number_packet_t), &packet_buffer, &packet_buffer_size);
+   if (result < 0) {
+      debug_printf("Error in server encrypting outgoing random_number_packet");
       return_result = result;
       goto done;
    }
