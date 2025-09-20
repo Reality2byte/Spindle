@@ -53,6 +53,15 @@ extern int (*orig_setenv)(const char *name, const char *value, int overwrite);
 extern int (*orig_unsetenv)(const char *name);
 extern char* (*orig_dlerror)();
 extern char* (*orig_realpath)(const char *, char *);
+
+extern int (*orig_spindle_open)(const char *pathname, int flags, ...);
+extern FILE* (*orig_spindle_fopen)(const char *path, const char *opts);
+extern int (*orig_spindle_stat)(const char *path, struct stat *buf);
+extern int (*orig_spindle_lstat)(const char *path, struct stat *buf);
+extern int (*orig_spindle_is_present)();
+extern int (*orig_spindle_enable)();
+extern int (*orig_spindle_disable)();
+extern int (*orig_spindle_is_enabled)();
               
 int rtcache_stat(const char *path, struct stat *buf);
 int rtcache_lstat(const char *path, struct stat *buf);
