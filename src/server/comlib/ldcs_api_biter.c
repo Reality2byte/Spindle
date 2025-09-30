@@ -167,7 +167,7 @@ int ldcs_send_msg_biter(int fd, ldcs_message_t *msg)
    
    if (spindle_debug_prints) {
       int rank = biterd_get_rank(session, proc);
-      debug_printf3("Sending message of size %d to rank %d (session = %d, proc = %d)\n",
+      debug_printf3("Sending message of size %lu to rank %d (session = %d, proc = %d)\n",
                     msg->header.len, rank, session, proc);
    }
    
@@ -183,7 +183,7 @@ int ldcs_send_msg_biter(int fd, ldcs_message_t *msg)
 
    result = biterd_write(session, proc, msg->data, msg->header.len);
    if (result == -1) {
-      err_printf("Error writing message of size %d to session %d, proc %d: %s\n",
+      err_printf("Error writing message of size %lu to session %d, proc %d: %s\n",
                  msg->header.len, session, proc, biterd_lasterror_str());
       return -1;
    }
@@ -271,7 +271,7 @@ int ldcs_recv_msg_static_biter(int connid, ldcs_message_t *msg, ldcs_read_block_
       return -1;
    }
 
-   debug_printf3("Message to be read is of size %d (session = %d, proc = %d)\n",
+   debug_printf3("Message to be read is of size %lu (session = %d, proc = %d)\n",
                  msg->header.len, session, proc);
    
    if (msg->header.len == 0) {
@@ -281,7 +281,7 @@ int ldcs_recv_msg_static_biter(int connid, ldcs_message_t *msg, ldcs_read_block_
 
    result = biterd_read(session, proc, msg->data, msg->header.len);
    if (result == -1) {
-      err_printf("Error reading message of size %d from session %d, proc %d: %s\n",
+      err_printf("Error reading message of size %lu from session %d, proc %d: %s\n",
                  msg->header.len, session, proc, biterd_lasterror_str());
       return -1;
    }

@@ -247,7 +247,7 @@ int ldcs_send_msg_socket(int fd, ldcs_message_t * msg) {
   connfd=ldcs_socket_fdlist[fd].fd;
 
   bzero(help,41);if(msg->data) strncpy(help,msg->data,40);
-  debug_printf3("sending message of type: %s len=%d data=%s ...\n",
+  debug_printf3("sending message of type: %s len=%lu data=%s ...\n",
 	       _message_type_to_str(msg->header.type),
 	       msg->header.len,help );
 
@@ -295,7 +295,7 @@ ldcs_message_t * ldcs_recv_msg_socket(int fd,  ldcs_read_block_t block) {
   }
 
   bzero(help,41);if(msg->data) strncpy(help,msg->data,40);
-  debug_printf3("received message of type: %s len=%d data=%s ...\n",
+  debug_printf3("received message of type: %s len=%lu data=%s ...\n",
 	       _message_type_to_str(msg->header.type),
 	       msg->header.len,help );
   
@@ -330,7 +330,7 @@ int ldcs_recv_msg_static_socket(int fd, ldcs_message_t *msg,  ldcs_read_block_t 
   }
 
   bzero(help,41);if(msg->data) strncpy(help,msg->data,40);
-  debug_printf3("received message of type: %s len=%d data=%s ...\n",
+  debug_printf3("received message of type: %s len=%lu data=%s ...\n",
 	       _message_type_to_str(msg->header.type),
 	       msg->header.len,help );
   

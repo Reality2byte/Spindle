@@ -274,7 +274,7 @@ int ldcs_send_msg_pipe(int fd, ldcs_message_t * msg) {
 
   if ((fd<0) || (fd>fdlist_pipe_size) )  _error("wrong fd");
   
-  debug_printf3("sending message of type: %s len=%d data=%s ...\n",
+  debug_printf3("sending message of type: %s len=%lu data=%s ...\n",
 	       _message_type_to_str(msg->header.type),
 	       msg->header.len,msg->data );  
 
@@ -319,7 +319,7 @@ ldcs_message_t * ldcs_recv_msg_pipe(int fd, ldcs_read_block_t block ) {
     msg->data = NULL;
   }
 
-  debug_printf3("received message of type: %s len=%d data=%s ...\n",
+  debug_printf3("received message of type: %s len=%lu data=%s ...\n",
 	       _message_type_to_str(msg->header.type),
 	       msg->header.len, msg->data );
 
@@ -365,7 +365,7 @@ int ldcs_recv_msg_static_pipe(int fd, ldcs_message_t *msg, ldcs_read_block_t blo
     *msg->data = '\0';
   }
 
-  debug_printf3("received message of type: %s len=%d data=%s ...\n",
+  debug_printf3("received message of type: %s len=%lu data=%s ...\n",
 	       _message_type_to_str(msg->header.type),
 	       msg->header.len, msg->data );
 
