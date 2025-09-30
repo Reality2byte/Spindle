@@ -190,7 +190,7 @@ int filemngt_read_file(char *filename, void *buffer, size_t *size, int strip,
 int filemngt_encode_packet(char *filename, void *filecontents, size_t filesize, int stripped,
                            char **buffer, size_t *buffer_size)
 {
-   int cur_pos = 0;
+   size_t cur_pos = 0;
    int filename_len = strlen(filename) + 1;
    int is_elf = filemngt_is_elf_file(filecontents, filesize);
    //TODO: Remove filesize from allocation if we're doing a non-contig send. Wastes memory.
@@ -227,7 +227,7 @@ int filemngt_encode_packet(char *filename, void *filecontents, size_t filesize, 
    return 0;
 }
 
-int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename, size_t *filesize, int *bytes_read, int *is_elf, int *stripped)
+int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename, size_t *filesize, size_t *bytes_read, int *is_elf, int *stripped)
 {
    int filename_len = 0;
    int result;
@@ -259,7 +259,7 @@ int filemngt_decode_packet(node_peer_t peer, ldcs_message_t *msg, char *filename
       *bytes_read = sizeof(filename_len) + sizeof(*filesize) + filename_len;
    }
    else {
-      int pos = 0;
+      size_t pos = 0;
       unsigned char *data = (unsigned char *) msg->data;
       *is_elf = *((int *) (data+pos));
       pos += sizeof(int);

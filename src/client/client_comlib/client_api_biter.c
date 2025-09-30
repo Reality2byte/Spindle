@@ -72,7 +72,7 @@ int client_send_msg_biter(int connid, ldcs_message_t *msg)
       return -1;
    }
 
-   debug_printf3("sending message of size len=%d\n", msg->header.len);
+   debug_printf3("sending message of size len=%lu\n", msg->header.len);
 
    result = biterc_write(connid, &msg->header, sizeof(msg->header));
    if (result == -1) {

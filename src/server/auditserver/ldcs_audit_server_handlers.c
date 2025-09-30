@@ -1563,8 +1563,8 @@ static int handle_file_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, 
 {
    char pathname[MAX_PATH_LEN+1], *localname;
    char *buffer = NULL;
-   size_t size = 0;
-   int result, global_error = 0, already_loaded, fd = -1, bytes_read = 0, is_stripped = 0;
+   size_t size = 0, bytes_read = 0;
+   int result, global_error = 0, already_loaded, fd = -1, is_stripped = 0;
    int replicate, is_elf;
    
    pathname[MAX_PATH_LEN] = '\0';

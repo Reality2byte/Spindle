@@ -57,7 +57,7 @@ int send_file_query(int fd, char* path, int dso, char** newpath, int *errcode) {
 
    COMM_LOCK;
 
-   debug_printf3("sending message of type: file_query len=%d data='%s' ...(%s)\n",
+   debug_printf3("sending message of type: file_query len=%lu data='%s' ...(%s)\n",
                  message.header.len, message.data, path);  
    client_send_msg(fd, &message);
 
@@ -105,7 +105,7 @@ int send_stat_request(int fd, char *path, int is_lstat, char *newpath)
    
    COMM_LOCK;
 
-   debug_printf3("sending message of type: %sstat_query len=%d data='%s' ...(%s)\n",
+   debug_printf3("sending message of type: %sstat_query len=%lu data='%s' ...(%s)\n",
                  is_lstat ? "l" : "", message.header.len, message.data, path);  
    client_send_msg(fd, &message);
 
@@ -149,7 +149,7 @@ int send_existance_test(int fd, char *path, int *exists)
    message.header.len = strlen(path) + 1;
    message.data = (void *) buffer;
 
-   debug_printf3("Sending message of type: file_exist_query len=%d, data=%s\n",
+   debug_printf3("Sending message of type: file_exist_query len=%lu, data=%s\n",
                  message.header.len, path);
    COMM_LOCK;
 
@@ -186,7 +186,7 @@ int send_orig_path_request(int fd, const char *path, char *newpath)
    message.header.len = strlen(path) + 1;
    message.data = (void *) buffer;
 
-   debug_printf3("Sending message of type: file_orig_path len=%d, data=%s\n",
+   debug_printf3("Sending message of type: file_orig_path len=%lu, data=%s\n",
                  message.header.len, path);
    COMM_LOCK;
 
