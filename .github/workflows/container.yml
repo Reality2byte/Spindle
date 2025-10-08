@@ -1,0 +1,34 @@
+name: Build & Push Slurm Base Image
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push Slurm Base Image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: ./containers/spindle-slurm-ubuntu/base
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/llnl/spindle-slurm-base:latest
+          cache-from: type=registry,ref=ghcr.io/llnl/spindle-slurm-base:buildcache
+          cache-to: type=registry,ref=ghcr.io/llnl/spindle-slurm-base:buildcache,mode=max
