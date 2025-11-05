@@ -380,7 +380,6 @@ static int handshake_main(int sockfd, handshake_protocol_t *hdata, uint64_t sess
    debug_printf("Checking random number packets\n");
 
    debug_printf("Checking initial packet\n");
-   fprintf(stderr,"Checking initial packet\n");
    result = compare_packets( &expected_packet, &recvd_packet);
    if (result < 0) {
       debug_printf("Error checking initial packet\n");
@@ -430,8 +429,7 @@ static int handshake_main(int sockfd, handshake_protocol_t *hdata, uint64_t sess
 
    expected_random_number_packet.random_number = packet.random_number;
    expected_random_number_packet.signature = is_server ? CLIENT_TO_SERVER_SIG : SERVER_TO_CLIENT_SIG;
-   
-   
+
    debug_printf("Checking random number packets\n");
    result = compare_random_number_packets(&recvd_random_number_packet, &expected_random_number_packet);
    if (result < 0) {
@@ -491,34 +489,49 @@ static int encode_addr(struct sockaddr *addr, unsigned char *target_addr, uint16
 }
 
 int random_number(random_number_t *rand_num, uint64_t session_id) {
-   int local_errno, result;
+   int local_errno;   
+   int timeout = 100 * 30; //30 seconds
+   useconds_t ten_milliseconds = 10000;
+   ssize_t result, bytes_to_read, bytes_read;
    char hostname_buf[HOSTNAME_MAX_LEN];
 
     // Get hostname
    if (gethostname(hostname_buf, HOSTNAME_MAX_LEN) != 0) {
       local_errno = errno;
-      debug_printf("Trouble getting hostname. Error: %s\n",strerror(local_errno));
+      error_printf("Trouble getting hostname. Error: %s\n",strerror(local_errno));
       return -1;
    }
    hostname_buf[HOSTNAME_MAX_LEN-1] = '\0';
    
    //random number file
-again:   result = getrandom((void*) &rand_num->random_number,sizeof(rand_num->random_number),GRND_RANDOM|GRND_NONBLOCK); 
-   if (result<0) {
-      local_errno = errno;
-      if (local_errno == EAGAIN || local_errno == EINTR){
-         goto again;
+   bytes_to_read = sizeof(rand_num->random_number);
+   bytes_read = 0;
+   do {
+      result = getrandom(((unsigned char*) &rand_num->random_number) + bytes_read,
+                         bytes_to_read - bytes_read,
+                         GRND_NONBLOCK);
+      if (result<0) {
+         local_errno = errno;
+         if (local_errno == EAGAIN || local_errno == EINTR){
+            if (--timeout <= 0) {
+               error_printf("Random number collection failed with repeated EAGAIN or EINTR\n");
+               return -1;
+            }
+            usleep(ten_milliseconds);
+            continue;
+         }
+         else{
+            error_printf("Random number collection failed. Error: %s\n", strerror(local_errno));
+            return -1;
+         }
       }
-      else{
-         debug_printf("Random number collection failed. Error: %s\n",strerror(local_errno));
-      }
-      return -1;
-   }
+      bytes_read += result;
+   } while (bytes_read < bytes_to_read);
 
    rand_num->session_id = session_id;
    rand_num->counter = unique_number_counter;
    strcpy(rand_num->hostname, hostname_buf);
-   unique_number_counter +=1;
+   unique_number_counter++;
    
    return 0;
 }
@@ -968,7 +981,7 @@ static int munge_decrypt_packet(void *recvd_packet, size_t recvd_packet_size,
    munge_err_t result;
    munge_ctx_t ctx = NULL;
    void *payload = NULL;
-   int payload_size, return_result, iresult;
+   int payload_size, return_result = 0, iresult;
    uid_t uid;
    gid_t gid;
 
@@ -1097,7 +1110,7 @@ static int compare_packets(handshake_packet_t *expected_packet, handshake_packet
       //If sessions don't match, expect that we've just recv a packet
       //from another instance of handshake running on the same node.
       //Drop connection
-      error_printf("Received mismatching session IDs in initial packed.  Expected %lu, got %lu\n",
+      debug_printf("Received mismatching session IDs in initial packed.  Expected %lu, got %lu. Two different spindle sessions probably tried to connect.\n",
                    expected_packet->random_number.session_id, recvd_packet->random_number.session_id);
       return HSHAKE_DROP_CONNECTION;
    }
