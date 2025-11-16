@@ -69,7 +69,7 @@ void remove_libc_rogot();
 int handle_stat(const char *path, struct stat *buf, int flags);
 int open_worker(const char *path, int oflag, mode_t mode, int is_64);
 FILE *fopen_worker(const char *path, const char *mode, int is_64);
-void remap_executable();
+void remap_executable(int ldcsid);
 int get_ldso_metadata_bindingoffset(signed int *binding_offset);
 int get_ldso_metadata_statdata(signed long *stat_offset, signed long *lstat_offset, signed long *errno_offset);
 

@@ -85,6 +85,6 @@ int setup_ids(shminfo_t *shminfo);
 int take_heap_lock(shminfo_t *shminfo);
 int release_heap_lock(shminfo_t *shminfo);
 
-void update_shm_id();
+void update_shm_id(shminfo_t *shminfo);
 
 #endif
