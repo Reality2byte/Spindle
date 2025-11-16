@@ -198,7 +198,8 @@ int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char 
    for (i = 0; i < interp_argc; i++)
       (*new_argv)[j++] = spindle_strdup(interpreter_args[i]);
    /* If argv[0] is not a path, replace with absolute path to mimic kernel behavior */
-   (*new_argv)[j++] = (argv[0] && strchr(argv[0], '/')) ? argv[0] : orig_path;
+   char *orig_path_copy = strdup( orig_path ); /* Preserve constness of orig_path. */
+   (*new_argv)[j++] = (argv[0] && strchr(argv[0], '/')) ? argv[0] : orig_path_copy;
    for (i = 1; i < argc; i++) {
       (*new_argv)[j++] = argv[i];
    }

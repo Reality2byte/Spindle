@@ -24,7 +24,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 
 int addCWDToDir(pid_t pid, char *dir, int result_size)
 {
-   int cwd_len, dir_len, i, result;
+   int cwd_len, dir_len, result;
    char cwd[MAX_PATH_LEN+1];
    char cwd_loc[64];
    
@@ -55,10 +55,9 @@ int addCWDToDir(pid_t pid, char *dir, int result_size)
       return 0;
    }
 
-   for (i = dir_len; i >= 0; i--)
-      dir[i + cwd_len + 1] = dir[i];
-   dir[cwd_len] = '/';
-   strncpy(dir, cwd, cwd_len);
+   char *dir2 = strdup( dir );
+   snprintf( dir, result_size, "%s/%s", cwd, dir2 );
+   free(dir2);
    return 0;
 }
 
