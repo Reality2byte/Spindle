@@ -1440,7 +1440,8 @@ static int handle_request_file(ldcs_process_data_t *procdata, node_peer_t from, 
       case REQ_DIRECTORY:
          dir_result = handle_send_query(procdata, dirname, 1, 0);
          add_requestor(procdata->file_requests, dirname, from);
-         /* Fall through to next case and request file */
+         /* Fall through */
+         /* to next case and request file */
       case REQ_FILE:
          result = handle_send_query(procdata, pathname, 0, is_dso);
          add_requestor(requestor_list, pathname, from);

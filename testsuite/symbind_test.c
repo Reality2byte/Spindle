@@ -307,7 +307,7 @@ void *runtest_for_lib(const char *libname, int options)
       { "fxstat", "fstat", libspindle, NULL, NULL, 0 },
       { "lxstat", "lstat", libspindle, NULL, NULL, 0 },
       { "xstat", "stat", libspindle, NULL, NULL, 0 },
-      { NULL, NULL, NULL, NULL, 0 }
+      { NULL, NULL, NULL, NULL, NULL, 0 }
    };
 
    if (options & TDL_NO_STAT) {
