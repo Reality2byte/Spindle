@@ -263,7 +263,7 @@ static int handle_client_dirlists_req(ldcs_process_data_t *procdata, int nc)
    len += sizeof(ee_len);
    memcpy(buffer + len, procdata->exec_excludes, ee_len);
    len += ee_len;
-   assert(len == msg.header.len);
+   assert((size_t)len == msg.header.len);
    msg.data = buffer;
    
    ldcs_send_msg(connid, &msg);
@@ -1071,7 +1071,7 @@ static int handle_broadcast_errorcode(ldcs_process_data_t *procdata, char *pathn
    size_t packet_size = 0;
    int result;
    int pathname_len = strlen(pathname)+1;
-   int pos = 0;
+   size_t pos = 0;
    ldcs_message_t msg;
    double starttime;
    
@@ -1533,7 +1533,8 @@ static int handle_send_file_query(ldcs_process_data_t *procdata, char *fullpath,
 static int handle_file_errcode(ldcs_process_data_t *procdata, ldcs_message_t *msg, node_peer_t peer, broadcast_t bcast)
 {
    char *pathname;
-   int errcode, pathname_len, result, pos = 0;
+   int errcode, result, pathname_len;
+   size_t pos = 0;
    unsigned char *data;
 
    data = (unsigned char *) msg->data;
@@ -2024,8 +2025,8 @@ int handle_client_end(ldcs_process_data_t *procdata, int nc)
 
 static int handle_preload_filelist(ldcs_process_data_t *procdata, ldcs_message_t *msg)
 {
-   int cur = 0, global_result = 0, result;
-   int num_dirs, num_files, i;
+   size_t cur = 0;
+   int num_dirs, num_files, i, global_result = 0, result;
    char *data = (char *) msg->data;
    char *pathname;
    
@@ -2499,12 +2500,11 @@ static int handle_cache_ldso(ldcs_process_data_t *procdata, char *pathname, int 
 static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathname, int file_exists, unsigned char *buf, size_t buf_size, metadata_t mdtype)
 {
    char *packet_buffer = NULL;
-   size_t packet_size;
+   size_t packet_size, pos = 0;
    double starttime;
    int result;
    ldcs_message_t msg;
    int pathname_len = strlen(pathname) + 1;
-   int pos = 0;
    extended_stat_t *sbuf = (extended_stat_t *) buf;
    const char *mount;
    int mount_len;
@@ -2583,11 +2583,12 @@ static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathna
  **/
 static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, metadata_t mdtype, node_peer_t peer)
 {
-   int file_exists;
+   int file_exists, result;
    char pathname[MAX_PATH_LEN+1], *localpath;
    extended_stat_t buf;
    ldso_info_t ldsoinfo;
-   int pos = 0, pathlen, result, payload_size = 0, mount_len = 0, bytes_left;
+   size_t pos = 0, bytes_left;
+   int mount_len = 0, pathlen, payload_size = 0;
    char *buffer = (char *) msg->data;
    unsigned char *payload = NULL;
    char mount[MAX_PATH_LEN+1];
@@ -2599,11 +2600,11 @@ static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *m
 
    memcpy(&pathlen, buffer + pos, sizeof(int));
    pos += sizeof(int);
-   assert(pathlen >= 0 && pathlen <= MAX_PATH_LEN);
+   assert(pathlen <= MAX_PATH_LEN);
 
    memcpy(&mount_len, buffer + pos, sizeof(int));
    pos += sizeof(int);
-   assert(mount_len >= 0 && mount_len <= MAX_PATH_LEN);
+   assert(mount_len <= MAX_PATH_LEN);
    
    memcpy(pathname, buffer + pos, pathlen);
    pos += pathlen;

@@ -270,7 +270,7 @@ int ldcs_destroy_server_pipe(int fd) {
 /* ************************************************************** */
 int ldcs_send_msg_pipe(int fd, ldcs_message_t * msg) {
 
-  int n;
+  size_t n;
 
   if ((fd<0) || (fd>fdlist_pipe_size) )  _error("wrong fd");
   
@@ -279,11 +279,9 @@ int ldcs_send_msg_pipe(int fd, ldcs_message_t * msg) {
 	       msg->header.len,msg->data );  
 
   n = _ldcs_write_pipe(fdlist_pipe[fd].out_fd,&msg->header,sizeof(msg->header));
-  if (n < 0) _error("ERROR writing header to pipe");
 
   if(msg->header.len>0) {
     n = _ldcs_write_pipe(fdlist_pipe[fd].out_fd,(void *) msg->data,msg->header.len);
-    if (n < 0) _error("ERROR writing data to pipe");
     if (n != msg->header.len) _error("sent different number of bytes for message data");
   }
     
@@ -292,7 +290,7 @@ int ldcs_send_msg_pipe(int fd, ldcs_message_t * msg) {
 
 ldcs_message_t * ldcs_recv_msg_pipe(int fd, ldcs_read_block_t block ) {
   ldcs_message_t *msg;
-  int n;
+  size_t n;
 
   if ((fd<0) || (fd>fdlist_pipe_size) )  _error("wrong fd");
 
@@ -304,7 +302,6 @@ ldcs_message_t * ldcs_recv_msg_pipe(int fd, ldcs_read_block_t block ) {
     free(msg);
     return(NULL);
   }
-  if (n < 0) _error("ERROR reading header from connection");
 
   if(msg->header.len>0) {
 
@@ -312,7 +309,6 @@ ldcs_message_t * ldcs_recv_msg_pipe(int fd, ldcs_read_block_t block ) {
     if (!msg)  _error("could not allocate memory for message data");
 
     n = _ldcs_read_pipe(fdlist_pipe[fd].in_fd,msg->data,msg->header.len, LDCS_READ_BLOCK);
-    if (n < 0) _error("ERROR reading message data from socket");
     if (n != msg->header.len) _error("received different number of bytes for message data");
 
   } else {
@@ -327,7 +323,7 @@ ldcs_message_t * ldcs_recv_msg_pipe(int fd, ldcs_read_block_t block ) {
 }
 
 int ldcs_recv_msg_static_pipe(int fd, ldcs_message_t *msg, ldcs_read_block_t block) {
-  int n;
+  size_t n;
   int rc=0;
   msg->header.type=LDCS_MSG_UNKNOWN;
   msg->header.len=0;
@@ -342,17 +338,11 @@ int ldcs_recv_msg_static_pipe(int fd, ldcs_message_t *msg, ldcs_read_block_t blo
      msg->data = NULL;
      return(rc);
   }
-  if (n < 0) _error("ERROR reading header from connection");
 
   if(msg->header.len>0) {
     n = _ldcs_read_pipe(fdlist_pipe[fd].in_fd,msg->data,msg->header.len, LDCS_READ_BLOCK);
     if (n == 0) 
        return(rc);
-    if (n < 0) {
-       int error = errno;
-       err_printf("Error during read of pipe: %s (%d)\n", strerror(error), error);
-       return -1;
-    }
     if (n != msg->header.len) {
        int error = errno;
        err_printf("Partial read on pipe.  Got %u / %u: %s (%d)\n",
@@ -372,9 +362,10 @@ int ldcs_recv_msg_static_pipe(int fd, ldcs_message_t *msg, ldcs_read_block_t blo
   return(rc);
 }
 
-int _ldcs_read_pipe(int fd, void *data, int bytes, ldcs_read_block_t block ) {
+size_t _ldcs_read_pipe(int fd, void *data, int bytes, ldcs_read_block_t block ) {
 
-  int         left,bsumread;
+  int         left;
+  size_t      bsumread;
   ssize_t     btoread, bread;
   char       *dataptr;
   int print_count = 512;
@@ -414,9 +405,9 @@ int _ldcs_read_pipe(int fd, void *data, int bytes, ldcs_read_block_t block ) {
 
 
 
-int _ldcs_write_pipe(int fd, const void *data, int bytes ) {
-  int         left,bsumwrote;
-  ssize_t     bwrite, bwrote;
+size_t _ldcs_write_pipe(int fd, const void *data, int bytes ) {
+  size_t      bsumwrote;
+  ssize_t     bwrite, bwrote, left;
   char       *dataptr;
   
   left      = bytes;

@@ -397,8 +397,8 @@ static int shmcache_add_worker(const char *libname, const char *mapped_name, int
 
 static int init_cache_locks()
 {
-   cache_lock.lock = shminfo->shared_header->shmcache.locks + 0;
-   cache_lock.held_by = shminfo->shared_header->shmcache.locks + 1;
+   cache_lock.lock = shminfo->shared_header->shmcache.lock;
+   cache_lock.held_by = shminfo->shared_header->shmcache.held_by;
 
    return init_heap_lock(shminfo);
 }

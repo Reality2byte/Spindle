@@ -57,7 +57,7 @@ int ldcs_audit_server_fe_md_open ( char **hostlist, int numhosts, unsigned int p
    int rc=0;
    int *portlist;
    int root_fd, ack;
-   int i;
+   unsigned int i;
 
    assert(num_ports >= 1);
    portlist = malloc(sizeof(int) * (num_ports+1));

@@ -76,12 +76,12 @@ static int init_locks(biterc_session_t *session)
 {
    shminfo_t *shm = session->shm;
    biter_header_t *header = &shm->shared_header->biter;
-   session->pipe_lock.lock = header->locks + 0;
-   session->pipe_lock.held_by = header->locks + 1;
-   session->queue_lock.lock = header->locks + 2;
-   session->queue_lock.held_by = header->locks + 3;
-   session->write_lock.lock = header->locks + 4;
-   session->write_lock.held_by = header->locks + 5;
+   session->pipe_lock.lock = header->lock + 0;
+   session->pipe_lock.held_by = header->held_by + 0;
+   session->queue_lock.lock = header->lock + 1;
+   session->queue_lock.held_by = header->held_by + 1;
+   session->write_lock.lock = header->lock + 2;
+   session->write_lock.held_by = header->held_by + 2;
    return init_heap_lock(shm);
 }
 

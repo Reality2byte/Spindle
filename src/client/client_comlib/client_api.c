@@ -208,9 +208,9 @@ int send_orig_path_request(int fd, const char *path, char *newpath)
 int send_dirlists_request(int fd, char **local_result, char **exece_result, char **to_free)
 {
    ldcs_message_t message;
-   int local_len, ee_len;
+   unsigned int local_len, ee_len;
    char *buffer;
-   int buffer_pos = 0;
+   unsigned int buffer_pos = 0;
    
    message.header.type = LDCS_MSG_DIRLISTS_REQ;
    message.header.len = 0;

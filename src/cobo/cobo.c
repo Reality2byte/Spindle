@@ -473,8 +473,7 @@ static int cobo_connect_hostname(char* hostname, int rank)
     struct hostent* he = gethostbyname(hostname);
     if (!he) {
        /* gethostbyname doesn't know how to resolve hostname, trying inet_addr */ 
-       saddr.s_addr = inet_addr(hostname);
-       if (saddr.s_addr == -1) {
+       if ( inet_aton( hostname, &saddr ) == 0 ){
            err_printf("Hostname lookup failed (gethostbyname(%s) %s h_errno=%d)\n",
                 hostname, hstrerror(h_errno), h_errno);
            return s;

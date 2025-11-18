@@ -81,9 +81,8 @@ int ldcs_audit_server_md_init(unsigned int port, unsigned int num_ports,
                               unique_id_t unique_id, ldcs_process_data_t *data)
 {
    int rc=0;
-   unsigned int *portlist;
+   unsigned int *portlist, i;
    int my_rank, ranks, fanout;
-   int i;
 
    portlist = malloc(sizeof(unsigned int) * (num_ports + 1));
    for (i = 0; i < num_ports; i++) {

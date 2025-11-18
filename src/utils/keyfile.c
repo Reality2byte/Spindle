@@ -80,7 +80,7 @@ void create_keyfile(uint64_t unique_id)
 {
    char path[MAX_PATH_LEN+1];
    int key_fd, result;
-   int bytes_written;
+   size_t bytes_written;
    char *last_slash;
    struct stat buf;
    unsigned char key[KEY_SIZE_BYTES];

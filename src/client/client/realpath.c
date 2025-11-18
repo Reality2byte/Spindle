@@ -109,6 +109,7 @@ B. Use spindle versions of the IO accessing lower-level routines.
 The source file is glibc/stdlib/canonicalize.c at git commit 1894e219dc530d7074085e95ffe3c1e66cebc072
  */
 
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #define ISSLASH(c) ((c) == '/')
 #define PATH_MAX 4096
 #define IS_ABSOLUTE_FILE_NAME(name) (ISSLASH((name)[0]))

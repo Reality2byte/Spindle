@@ -35,8 +35,8 @@ char *ldcs_get_connection_string_pipe(int fd);
 int ldcs_register_connection_pipe(char *connection_str);
 
 /* internal */
-int _ldcs_write_pipe(int fd, const void *data, int bytes );
-int _ldcs_read_pipe(int fd, void *data, int bytes, ldcs_read_block_t block );
+size_t _ldcs_write_pipe(int fd, const void *data, int bytes );
+size_t _ldcs_read_pipe(int fd, void *data, int bytes, ldcs_read_block_t block );
 
 typedef enum {
    LDCS_PIPE_FD_TYPE_SERVER,
