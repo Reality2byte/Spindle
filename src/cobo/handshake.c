@@ -586,14 +586,14 @@ static int encrypt_packet(handshake_protocol_t *hdata, void *packet, size_t pack
          debug_printf("Server encrypting packet with munge\n");
          return munge_encrypt_packet(packet, packet_size, packet_buffer, packet_buffer_size);
       case hs_key_in_file:
-         debug_printf("Server encrypting packet with key of size %d from file %s\n",
+         debug_printf("Server encrypting packet with key of size %ld from file %s\n",
                       hdata->data.key_in_file.key_length_bytes,
                       hdata->data.key_in_file.key_filepath);
          return filekey_encrypt_packet(hdata->data.key_in_file.key_filepath,
                                        hdata->data.key_in_file.key_length_bytes,
                                        packet, packet_size, packet_buffer, packet_buffer_size);
       case hs_explicit_key:
-         debug_printf("Server encrypting packet with provided key of size %d\n",
+         debug_printf("Server encrypting packet with provided key of size %ld\n",
                       hdata->data.explicit_key.key_length_bytes);
          return key_encrypt_packet(hdata->data.explicit_key.key,
                                    hdata->data.explicit_key.key_length_bytes,
