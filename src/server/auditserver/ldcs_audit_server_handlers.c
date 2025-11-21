@@ -278,6 +278,7 @@ static int handle_client_dirlists_req(ldcs_process_data_t *procdata, int nc)
  **/
 static int handle_client_myrankinfo_msg(ldcs_process_data_t *procdata, int nc, ldcs_message_t *msg)
 {
+   (void)msg;
    int tmpdata[4];
    ldcs_message_t out_msg;
    int connid;
@@ -890,6 +891,7 @@ static int handle_finish_buffer_setup(ldcs_process_data_t *procdata, char *local
  **/
 static int handle_setup_alias(ldcs_process_data_t *procdata, char *pathname, char *alias_to)
 {
+   (void)procdata;
    char filename[MAX_PATH_LEN+1], dirname[MAX_PATH_LEN+1];
    char *localname;
    int errcode;
@@ -1532,6 +1534,8 @@ static int handle_send_file_query(ldcs_process_data_t *procdata, char *fullpath,
  **/
 static int handle_file_errcode(ldcs_process_data_t *procdata, ldcs_message_t *msg, node_peer_t peer, broadcast_t bcast)
 {
+   (void)peer;
+   (void)bcast;
    char *pathname;
    int errcode, result, pathname_len;
    size_t pos = 0;
@@ -1667,6 +1671,7 @@ static int handle_directory_recv(ldcs_process_data_t *procdata, ldcs_message_t *
  **/
 static int handle_alias_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, broadcast_t bcast)
 {
+   (void)bcast;
    char *alias_from, *alias_to;
    char *data;
    size_t from_size;
@@ -1994,6 +1999,7 @@ int handle_server_message(ldcs_process_data_t *procdata, node_peer_t peer, ldcs_
  **/
 int handle_client_start(ldcs_process_data_t *procdata, int nc)
 {
+   (void)nc;
    if (procdata->sent_exit_ready) {
       return handle_send_exit_cancel(procdata);
    }
@@ -2583,6 +2589,7 @@ static int handle_broadcast_metadata(ldcs_process_data_t *procdata, char *pathna
  **/
 static int handle_metadata_recv(ldcs_process_data_t *procdata, ldcs_message_t *msg, metadata_t mdtype, node_peer_t peer)
 {
+   (void)peer;
    int file_exists, result;
    char pathname[MAX_PATH_LEN+1], *localpath;
    extended_stat_t buf;
@@ -3065,6 +3072,7 @@ static int handle_send_exit_ready_if_done(ldcs_process_data_t *procdata)
  **/
 static int handle_exit_ready_msg(ldcs_process_data_t *procdata, ldcs_message_t *msg)
 {
+   (void)msg;
    debug_printf2("Got exit ready message\n");
    procdata->exit_readys_recvd++;
    return handle_send_exit_ready_if_done(procdata);
@@ -3077,6 +3085,7 @@ static int handle_exit_ready_msg(ldcs_process_data_t *procdata, ldcs_message_t *
  **/
 static int handle_exit_cancel_msg(ldcs_process_data_t *procdata, ldcs_message_t *msg)
 {
+   (void)msg;
    debug_printf2("Got exit cancel\n");
    assert(procdata->exit_readys_recvd > 0);
    procdata->exit_readys_recvd--;
@@ -3130,6 +3139,7 @@ static int handle_close_client_query(ldcs_process_data_t *procdata, int nc)
  **/
 int exit_note_cb(int fd, int serverid, void *data)
 {
+   (void)serverid;
    int result;
    ldcs_process_data_t *procdata = (ldcs_process_data_t *) data;
    int eresult = 0;

@@ -54,6 +54,7 @@ void msgbundle_init(ldcs_process_data_t *procdata)
 
 void msgbundle_done(ldcs_process_data_t *procdata)
 {   
+   (void)procdata;
    void *retval;
    if (!initialized)
       return;
@@ -173,6 +174,7 @@ static int flush_msgbuffer(msgbundle_entry_t *mb, ldcs_process_data_t *procdata)
 
 static int flush_msgbuffer_cb(int fd, int serverid, void *data)
 {
+   (void)serverid;
    msgbundle_entry_t *mb;
    ldcs_process_data_t *procdata = (ldcs_process_data_t *) data;
    char throwaway_byte;
@@ -201,6 +203,8 @@ void msgbundle_force_flush(ldcs_process_data_t *procdata)
 
 static void start_cache_timeout(int timeout_ms, ldcs_process_data_t *procdata)
 {
+   (void)timeout_ms;
+   (void)procdata;
    pthread_mutex_lock(&mut);
 
    if (!active_timeout) {

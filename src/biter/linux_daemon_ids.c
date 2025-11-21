@@ -25,6 +25,7 @@ int biterd_num_compute_nodes()
 
 int biterd_ranks_in_cn(int cn_id)
 {
+   (void)cn_id;
    char *proc_s = getenv("PROCS");
    if (proc_s)
       return atoi(proc_s);
@@ -34,20 +35,26 @@ int biterd_ranks_in_cn(int cn_id)
 
 int biterd_unique_num_for_cn(int cn_id)
 {
+   (void)cn_id;
    return 0;
 }
 
 int biterd_get_rank(int compute_node_id, int client_id)
 {
+   (void)compute_node_id;
    return client_id;
 }
 
 int biterd_register_rank(int session_id, uint32_t client_id, uint32_t rank)
 {
+   (void)session_id;
+   (void)client_id;
+   (void)rank;
    return 0;
 }
 
 int biterd_init_comms(const char *tmpdir)
 {
+   (void)tmpdir;
    return 0;
 }

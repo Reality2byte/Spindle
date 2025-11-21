@@ -446,6 +446,7 @@ bool LauncherParser::parseCustomArg(int /*argc*/, char** /*argv*/, int /*arg_pos
  **/
 bool LauncherParser::includeArg(int argc, char **argv, int pos)
 {
+   (void)argc;
    if (argv[pos][0] == '\0')
       return false;
    return true;
@@ -670,6 +671,9 @@ bool SerialParser::usesLauncher() const
 
 bool SerialParser::isExecutable(int argc, char **argv, int pos, const set<string> &exedirs) const
 {
+   (void)argc;
+   (void)argv;
+   (void)exedirs;
    return (pos == 0);
 }
 
@@ -684,6 +688,8 @@ OpenMPIParser::~OpenMPIParser()
 
 bool OpenMPIParser::parseCustomArg(int argc, char **argv, int arg_pos, int &inc_argc) const
 {
+   (void)argc;
+   (void)inc_argc;
    fprintf(stderr, "%s under OpenMPI is not yet supported by Spindle\n", argv[arg_pos]);
    exit(-1);
 }
@@ -699,6 +705,8 @@ JSRunParser::~JSRunParser()
 
 bool JSRunParser::parseCustomArg(int argc, char **argv, int arg_pos, int &inc_argc) const
 {
+   (void)argc;
+   (void)inc_argc;
    if (strcmp(argv[arg_pos], "--use_spindle") == 0 || (strcmp(argv[arg_pos], "-L") == 0)) {
       fprintf(stderr, "Error: Do not mix spindle job launch wrapper with the jsrun spindle option %s. "
               "Use one or the other.\n", argv[arg_pos]);
@@ -720,6 +728,8 @@ LRunParser::~LRunParser()
 
 bool LRunParser::parseCustomArg(int argc, char **argv, int arg_pos, int &inc_argc) const
 {
+   (void)argc;
+   (void)inc_argc;
    if (strcmp(argv[arg_pos], "--use_spindle") == 0 || (strcmp(argv[arg_pos], "-L") == 0)) {
       fprintf(stderr, "Error: Do not mix spindle job launch wrapper with the lrun spindle option %s. "
               "Use one or the other.\n", argv[arg_pos]);
@@ -769,6 +779,8 @@ cmdoption_t *MarkerParser::getArg(int argc, char **argv, int pos) const
 
 bool MarkerParser::isExecutable(int argc, char **argv, int pos, const std::set<std::string> &exedirs) const
 {
+   (void)argc;
+   (void)exedirs;
    return (pos > 0 && strcmp(argv[pos-1], "spindlemarker") == 0);
 }
 

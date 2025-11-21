@@ -190,6 +190,7 @@ static int remap_to_high_fd(int fd)
 
 int client_open_connection_pipe(char* location, number_t number)
 {
+   (void)number;
    int fd, result;
    struct stat st;
    int stat_cnt;

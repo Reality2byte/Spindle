@@ -84,6 +84,7 @@ int ldcs_get_fd_socket (int fd) {
 
 
 int ldcs_create_server_socket(char* location, number_t number) {
+  (void)location;
   int fd, sockfd;
   struct sockaddr_in serv_addr;
 
@@ -157,6 +158,7 @@ int ldcs_open_server_connection_socket(int fd) {
 };
 
 int ldcs_open_server_connections_socket(int fd, int nc, int *more_avail) {
+  (void)nc;
   *more_avail=0;
   return(ldcs_open_server_connection_socket(fd));
 };
@@ -340,5 +342,7 @@ int ldcs_get_aux_fd_socket()
 
 int ldcs_socket_id_to_nc_socket(int id, int fd, ldcs_process_data_t *process_data)
 {
+   (void)fd;
+   (void)process_data;
    return id;
 }

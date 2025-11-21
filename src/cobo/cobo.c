@@ -1344,6 +1344,9 @@ int cobo_allgather(void* sendbuf, int sendcount, void* recvbuf)
  */
 int cobo_alltoall(void* sendbuf, int sendcount, void* recvbuf)
 {
+    (void)sendbuf;
+    (void)sendcount;
+    (void)recvbuf;
     struct timeval start, end;
     cobo_gettimeofday(&start);
     debug_printf3("Starting cobo_alltoall()");

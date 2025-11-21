@@ -45,6 +45,9 @@ void get_keyfile_path(char *pathname, int pathname_len, uint64_t unique_id)
    snprintf(pathname, pathname_len, "%s/spindle_key.%d.%lu", demangled_loc, getuid(), (unsigned long) unique_id);
    pathname[pathname_len-1] = '\0';
 #else
+   (void)pathname;
+   (void)pathname_len;
+   (void)unique_id;
    assert(0 && "Tried to use keyfile when not compiled with keyfile.");
 #endif
 }

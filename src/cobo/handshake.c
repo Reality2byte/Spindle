@@ -612,6 +612,10 @@ static int none_encrypt_packet(void *packet, size_t packet_size,
    memcpy(*packet_buffer, packet, *packet_buffer_size);
    return 0;
 #else
+   (void)packet;
+   (void)packet_size;
+   (void)packet_buffer;
+   (void)packet_buffer_size;
    error_printf("Null encryption must be explicitly enabled\n");
    return HSHAKE_INTERNAL_ERROR;
 #endif
@@ -875,6 +879,12 @@ static int key_encrypt_packet(unsigned char *key, ssize_t key_length_bytes,
 
    return 0;   
 #else
+   (void)key;
+   (void)key_length_bytes;
+   (void)packet;
+   (void)packet_size;
+   (void)packet_buffer;
+   (void)packet_buffer_size;
    error_printf("Handshake not built against gcrypt\n");
    return HSHAKE_INTERNAL_ERROR;
 #endif   
@@ -980,6 +990,10 @@ static int none_decrypt_packet(void *recvd_packet, size_t packet_size,
    memcpy(recvd_packet, recvd_buffer, recvd_buffer_size);
    return 0;
 #else
+   (void)recvd_packet;
+   (void)packet_size;
+   (void)recvd_buffer;
+   (void)recvd_buffer_size;
    error_printf("Null encryption must be explicitly enabled\n");
    return HSHAKE_INTERNAL_ERROR;
 #endif
@@ -988,6 +1002,7 @@ static int none_decrypt_packet(void *recvd_packet, size_t packet_size,
 static int munge_decrypt_packet(void *recvd_packet, size_t recvd_packet_size,
                                 unsigned char *recvd_buffer, size_t recvd_buffer_size)
 {
+   (void)recvd_buffer_size;
 #if defined(MUNGE)
    munge_err_t result;
    munge_ctx_t ctx = NULL;
@@ -1110,6 +1125,12 @@ static int key_decrypt_packet(unsigned char *key, unsigned int key_len,
    
    return return_result;
 #else
+   (void)key;
+   (void)key_len;
+   (void)recvd_packet;
+   (void)packet_size;
+   (void)recvd_buffer;
+   (void)recvd_buffer_size;
    error_printf("handshake was not compiled with gcrypt support");
    return HSHAKE_INTERNAL_ERROR;
 #endif

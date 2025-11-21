@@ -84,6 +84,7 @@ void Launcher::getSecondaryDaemonArgs(vector<const char *> &)
 
 bool Launcher::setupJob(app_id_t id, int &app_argc, char** &app_argv)
 {
+   (void)id;
    int mod_argc;
    char **mod_argv;
 
@@ -279,16 +280,21 @@ const char *PassthroughLauncher::getDaemonArg()
 
 void PassthroughLauncher::getSecondaryDaemonArgs(std::vector<const char *> &secondary_args)
 {
+   (void)secondary_args;
    return;
 }
 
 bool PassthroughLauncher::setupJob(app_id_t id, int &app_argc, char** &app_argv)
 {
+   (void)id;
+   (void)app_argc;
+   (void)app_argv;
    return true;
 }
 
 bool PassthroughLauncher::spawnJob(app_id_t id, int app_argc, char **app_argv)
 {
+   (void)app_argc;
    debug_printf("Launching job with app-id %lu: %s\n", id, app_argv[0]);
    int pid = fork();
    if (pid == -1) {

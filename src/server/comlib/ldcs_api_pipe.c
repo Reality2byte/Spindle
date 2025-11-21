@@ -101,6 +101,7 @@ int ldcs_get_fd_pipe (int fd) {
 extern int spindle_mkdir(char *orig_path);
 
 int ldcs_create_server_pipe(char* location, number_t number) {
+  (void)number;
   int fd;
 
   fd=get_new_fd_pipe();
@@ -138,10 +139,12 @@ int ldcs_create_server_pipe(char* location, number_t number) {
 
 int ldcs_open_server_connection_pipe(int fd) {
   /*  */
+  (void)fd;
   return(-1);
 }
 
 int ldcs_open_server_connections_pipe(int fd, int nc, int *more_avail) {
+  (void)nc;
   int  fifoid, inout, connfd;
   char fifo[MAX_PATH_LEN];
   char *fifo_file;
@@ -431,5 +434,7 @@ int ldcs_get_aux_fd_pipe()
 
 int ldcs_socket_id_to_nc_pipe(int id, int fd, ldcs_process_data_t *process_data)
 {
+   (void)fd;
+   (void)process_data;
    return id;
 }
