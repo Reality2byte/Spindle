@@ -76,6 +76,9 @@
    */
 #undef LT_OBJDIR
 
+/* Defined if GLIBC has locale TLS bug */
+#undef NEWTHREAD_LOCALE_BUG
+
 /* Exclusions for numa optimization */
 #undef NUMA_EXCLUDES
 

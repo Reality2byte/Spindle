@@ -143,10 +143,11 @@ libspindle_audit_biter_la_DEPENDENCIES =  \
 	$(top_builddir)/client/libspindlec_biter.la $(AUDITLIB)
 am__libspindle_audit_biter_la_SOURCES_DIST = auditclient.c \
 	auditclient_common.c patch_linkmap.c redirect.c bindgot.c \
-	writablegot.c patch_bad_dtv.c auditclient_aarch64.c \
-	auditclient_ppc64.c auditclient_x86_64.c
+	writablegot.c patch_bad_dtv.c malloc_wrapper.c fixlocale.c \
+	auditclient_aarch64.c auditclient_ppc64.c auditclient_x86_64.c
 am__objects_1 = auditclient.lo auditclient_common.lo patch_linkmap.lo \
-	redirect.lo bindgot.lo writablegot.lo patch_bad_dtv.lo
+	redirect.lo bindgot.lo writablegot.lo patch_bad_dtv.lo \
+	malloc_wrapper.lo fixlocale.lo
 @AARCH64_BLD_FALSE@@PPC64LE_BLD_FALSE@@PPC64_BLD_FALSE@@X86_64_BLD_TRUE@am__objects_2 = auditclient_x86_64.lo
 @AARCH64_BLD_FALSE@@PPC64LE_BLD_FALSE@@PPC64_BLD_TRUE@am__objects_2 = auditclient_ppc64.lo
 @AARCH64_BLD_FALSE@@PPC64LE_BLD_TRUE@am__objects_2 =  \
@@ -169,8 +170,8 @@ libspindle_audit_pipe_la_DEPENDENCIES =  \
 	$(top_builddir)/client/libspindlec_pipe.la $(AUDITLIB)
 am__libspindle_audit_pipe_la_SOURCES_DIST = auditclient.c \
 	auditclient_common.c patch_linkmap.c redirect.c bindgot.c \
-	writablegot.c patch_bad_dtv.c auditclient_aarch64.c \
-	auditclient_ppc64.c auditclient_x86_64.c
+	writablegot.c patch_bad_dtv.c malloc_wrapper.c fixlocale.c \
+	auditclient_aarch64.c auditclient_ppc64.c auditclient_x86_64.c
 am_libspindle_audit_pipe_la_OBJECTS = $(am__objects_1) \
 	$(am__objects_2)
 libspindle_audit_pipe_la_OBJECTS =  \
@@ -184,8 +185,8 @@ libspindle_audit_socket_la_DEPENDENCIES =  \
 	$(top_builddir)/client/libspindlec_socket.la $(AUDITLIB)
 am__libspindle_audit_socket_la_SOURCES_DIST = auditclient.c \
 	auditclient_common.c patch_linkmap.c redirect.c bindgot.c \
-	writablegot.c patch_bad_dtv.c auditclient_aarch64.c \
-	auditclient_ppc64.c auditclient_x86_64.c
+	writablegot.c patch_bad_dtv.c malloc_wrapper.c fixlocale.c \
+	auditclient_aarch64.c auditclient_ppc64.c auditclient_x86_64.c
 am_libspindle_audit_socket_la_OBJECTS = $(am__objects_1) \
 	$(am__objects_2)
 libspindle_audit_socket_la_OBJECTS =  \
@@ -216,6 +217,7 @@ am__depfiles_remade = ./$(DEPDIR)/auditclient.Plo \
 	./$(DEPDIR)/auditclient_common.Plo \
 	./$(DEPDIR)/auditclient_ppc64.Plo \
 	./$(DEPDIR)/auditclient_x86_64.Plo ./$(DEPDIR)/bindgot.Plo \
+	./$(DEPDIR)/fixlocale.Plo ./$(DEPDIR)/malloc_wrapper.Plo \
 	./$(DEPDIR)/patch_bad_dtv.Plo ./$(DEPDIR)/patch_linkmap.Plo \
 	./$(DEPDIR)/redirect.Plo ./$(DEPDIR)/writablegot.Plo
 am__mv = mv -f
@@ -407,7 +409,7 @@ top_srcdir = @top_srcdir@
 pkglib_LTLIBRARIES = $(am__append_1) $(am__append_2) $(am__append_3)
 AM_CFLAGS = -fvisibility=hidden
 AM_CPPFLAGS = -I$(top_srcdir)/../logging -I$(top_srcdir)/../include -I$(top_srcdir)/client -I$(top_srcdir)/client_comlib
-BASE_SRCS = auditclient.c auditclient_common.c patch_linkmap.c redirect.c bindgot.c writablegot.c patch_bad_dtv.c
+BASE_SRCS = auditclient.c auditclient_common.c patch_linkmap.c redirect.c bindgot.c writablegot.c patch_bad_dtv.c malloc_wrapper.c fixlocale.c
 @AARCH64_BLD_TRUE@ARCH_SRCS = auditclient_aarch64.c
 @PPC64LE_BLD_TRUE@ARCH_SRCS = auditclient_ppc64.c
 @PPC64_BLD_TRUE@ARCH_SRCS = auditclient_ppc64.c
@@ -512,6 +514,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/auditclient_ppc64.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/auditclient_x86_64.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bindgot.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fixlocale.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/malloc_wrapper.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/patch_bad_dtv.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/patch_linkmap.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/redirect.Plo@am__quote@ # am--include-marker
@@ -687,6 +691,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/auditclient_ppc64.Plo
 	-rm -f ./$(DEPDIR)/auditclient_x86_64.Plo
 	-rm -f ./$(DEPDIR)/bindgot.Plo
+	-rm -f ./$(DEPDIR)/fixlocale.Plo
+	-rm -f ./$(DEPDIR)/malloc_wrapper.Plo
 	-rm -f ./$(DEPDIR)/patch_bad_dtv.Plo
 	-rm -f ./$(DEPDIR)/patch_linkmap.Plo
 	-rm -f ./$(DEPDIR)/redirect.Plo
@@ -742,6 +748,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/auditclient_ppc64.Plo
 	-rm -f ./$(DEPDIR)/auditclient_x86_64.Plo
 	-rm -f ./$(DEPDIR)/bindgot.Plo
+	-rm -f ./$(DEPDIR)/fixlocale.Plo
+	-rm -f ./$(DEPDIR)/malloc_wrapper.Plo
 	-rm -f ./$(DEPDIR)/patch_bad_dtv.Plo
 	-rm -f ./$(DEPDIR)/patch_linkmap.Plo
 	-rm -f ./$(DEPDIR)/redirect.Plo

@@ -115,6 +115,9 @@
 /* Use munge for authentication */
 #undef MUNGE
 
+/* Defined if GLIBC has locale TLS bug */
+#undef NEWTHREAD_LOCALE_BUG
+
 /* Exclusions for numa optimization */
 #undef NUMA_EXCLUDES
 

@@ -87,7 +87,7 @@ fi
 AM_CONDITIONAL([BLD_FLUXPLUGIN], [test "x$ENABLE_FLUX_PLUGIN" = "xtrue"])
 
 AC_MSG_CHECKING([for glibc dtv allocation bug])
-if test "x`${SPINDLE_SOURCE_ROOT}/scripts/dtvtest/run_dtvtest.sh ${SPINDLE_SOURCE_ROOT}/scripts/dtvtest ${SPINDLE_BUILD_ROOT}/dtvtest '$CC' '$CFLAGS'`" == "x0"; then
+if ${SPINDLE_SOURCE_ROOT}/scripts/dtvtest/run_dtvtest.sh ${SPINDLE_SOURCE_ROOT}/scripts/dtvtest ${SPINDLE_BUILD_ROOT}/dtvtest '$CC' '$CFLAGS'; then
    DTV_ALLOC_BUG=0
    AC_MSG_RESULT([no])
 else
@@ -95,6 +95,17 @@ else
    AC_MSG_RESULT([yes])
 fi
 AC_DEFINE_UNQUOTED([DTV_ALLOCATION_BUG],[$DTV_ALLOC_BUG],[Defined if GLIBC has an allocation bug])
+
+AC_MSG_CHECKING([for locale tls fault glibc bug])
+if ${SPINDLE_SOURCE_ROOT}/scripts/locale_tls_fault/tls_locale_fault.sh ${SPINDLE_SOURCE_ROOT}/scripts/locale_tls_fault ${SPINDLE_BUILD_ROOT}/locale_tls_fault $CC; then
+   LOCALE_FAULT_BUG=0
+   AC_MSG_RESULT([no])
+else
+   LOCALE_FAULT_BUG=1
+   AC_MSG_RESULT([yes])
+fi
+AC_DEFINE_UNQUOTED([NEWTHREAD_LOCALE_BUG],[$LOCALE_FAULT_BUG],[Defined if GLIBC has locale TLS bug])
+
 
 #OS Detection
 AC_ARG_ENABLE(bluegene,
