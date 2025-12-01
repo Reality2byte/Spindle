@@ -1,5 +1,5 @@
-DEP_NUMS = 01 02 03 04 05 06 07 08 09 10 11 12 13
-DLOPEN_NUMS = 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15
+DEP_NUMS = 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18
+DLOPEN_NUMS = 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18
 
 DEP_LIBS = $(DEP_NUMS:%=libdeptls%.so)
 DEP_LINKS = $(DEP_NUMS:%=-ldeptls%)
@@ -23,9 +23,8 @@ libminaudit.so: $(SRCDIR)/minaudit.c
 	gcc -shared -fPIC -o $@ $<
 
 dtvtest: $(SRCDIR)/dtvtest.c $(DEP_LIBS)
-	gcc -o $@ $(SRCDIR)/dtvtest.c -ldl -lpthread -g -Wl,-rpath,`pwd` -L`pwd` $(DEP_LINKS)
+	gcc -o $@ $(SRCDIR)/dtvtest.c -ldl -lpthread -g -Wl,-rpath,`pwd` -L`pwd` -Wl,--no-as-needed -Wl,--disable-new-dtags $(DEP_LINKS)
 
 run: dtvtest libminaudit.so $(DLOPEN_LIBS)
-	echo LD_AUDIT=./libminaudit.so ./dtvtest $(DLOPEN_NUMS)
 	LD_AUDIT=./libminaudit.so ./dtvtest $(DLOPEN_NUMS)
-	echo $?
+	@echo $$?
