@@ -144,7 +144,7 @@ libspindle_subaudit_biter_la_DEPENDENCIES =  \
 am__dirstamp = $(am__leading_dot)dirstamp
 am__objects_1 = subaudit.lo intercept_malloc.lo update_pltbind.lo \
 	../auditclient/auditclient_common.lo \
-	../auditclient/patch_linkmap.lo
+	../auditclient/patch_linkmap.lo ../auditclient/fixlocale.lo
 am_libspindle_subaudit_biter_la_OBJECTS = $(am__objects_1)
 libspindle_subaudit_biter_la_OBJECTS =  \
 	$(am_libspindle_subaudit_biter_la_OBJECTS)
@@ -202,6 +202,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/../../scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ../auditclient/$(DEPDIR)/auditclient_common.Plo \
+	../auditclient/$(DEPDIR)/fixlocale.Plo \
 	../auditclient/$(DEPDIR)/patch_linkmap.Plo \
 	./$(DEPDIR)/intercept_malloc.Plo ./$(DEPDIR)/preloadlib.Plo \
 	./$(DEPDIR)/subaudit.Plo ./$(DEPDIR)/update_pltbind.Plo
@@ -397,7 +398,7 @@ pkglib_LTLIBRARIES = libspindleint.la $(am__append_1) $(am__append_2) \
 	$(am__append_3)
 AM_CFLAGS = -fvisibility=hidden
 AM_CPPFLAGS = -I$(top_srcdir)/../logging -I$(top_srcdir)/../include -I$(top_srcdir)/client -I$(top_srcdir)/client_comlib -I$(top_srcdir)/auditclient -I$(top_srcdir)/../utils
-BASE_SRCS = subaudit.c intercept_malloc.c update_pltbind.c ../auditclient/auditclient_common.c ../auditclient/patch_linkmap.c
+BASE_SRCS = subaudit.c intercept_malloc.c update_pltbind.c ../auditclient/auditclient_common.c ../auditclient/patch_linkmap.c ../auditclient/fixlocale.c
 AUDITLIB = $(top_builddir)/client/libspindle_audit.la
 libspindleint_la_SOURCES = preloadlib.c
 libspindleint_la_LDFLAGS = -shared -avoid-version
@@ -488,6 +489,8 @@ clean-pkglibLTLIBRARIES:
 	../auditclient/$(DEPDIR)/$(am__dirstamp)
 ../auditclient/patch_linkmap.lo: ../auditclient/$(am__dirstamp) \
 	../auditclient/$(DEPDIR)/$(am__dirstamp)
+../auditclient/fixlocale.lo: ../auditclient/$(am__dirstamp) \
+	../auditclient/$(DEPDIR)/$(am__dirstamp)
 
 libspindle_subaudit_biter.la: $(libspindle_subaudit_biter_la_OBJECTS) $(libspindle_subaudit_biter_la_DEPENDENCIES) $(EXTRA_libspindle_subaudit_biter_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libspindle_subaudit_biter_la_LINK) $(am_libspindle_subaudit_biter_la_rpath) $(libspindle_subaudit_biter_la_OBJECTS) $(libspindle_subaudit_biter_la_LIBADD) $(LIBS)
@@ -510,6 +513,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@../auditclient/$(DEPDIR)/auditclient_common.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@../auditclient/$(DEPDIR)/fixlocale.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@../auditclient/$(DEPDIR)/patch_linkmap.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intercept_malloc.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/preloadlib.Plo@am__quote@ # am--include-marker
@@ -684,6 +688,7 @@ clean-am: clean-generic clean-libtool clean-pkglibLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ../auditclient/$(DEPDIR)/auditclient_common.Plo
+	-rm -f ../auditclient/$(DEPDIR)/fixlocale.Plo
 	-rm -f ../auditclient/$(DEPDIR)/patch_linkmap.Plo
 	-rm -f ./$(DEPDIR)/intercept_malloc.Plo
 	-rm -f ./$(DEPDIR)/preloadlib.Plo
@@ -735,6 +740,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ../auditclient/$(DEPDIR)/auditclient_common.Plo
+	-rm -f ../auditclient/$(DEPDIR)/fixlocale.Plo
 	-rm -f ../auditclient/$(DEPDIR)/patch_linkmap.Plo
 	-rm -f ./$(DEPDIR)/intercept_malloc.Plo
 	-rm -f ./$(DEPDIR)/preloadlib.Plo

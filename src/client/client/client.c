@@ -40,6 +40,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "ccwarns.h"
 #include "exec_util.h"
 #include "intercept.h"
+#include "fixlocale.h"
 
 errno_location_t app_errno_location;
 
@@ -286,6 +287,8 @@ static void reset_server_connection()
 void check_for_fork()
 {
    static int cached_pid = 0;
+   check_for_new_thread();
+   
    int current_pid = getpid();
    if (!cached_pid) {
       cached_pid = current_pid;
@@ -483,7 +486,7 @@ char *client_library_load(const char *name)
          // that shouldn't get relocated.
          //We'll leak this strdup memory for a path in that case. Oh well.
          debug_printf2("Warning. Accessing spindle cache location corresponding to non-cachable location: %s", orig_file_name);
-         return strdup(orig_file_name);
+         return spindle_strdup(orig_file_name);
       }
       return (char *) name;
    }

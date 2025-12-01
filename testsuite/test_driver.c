@@ -37,6 +37,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <pthread.h>
 
 #include "spindle.h"
 #include "ccwarns.h"
@@ -80,6 +81,7 @@ typedef enum
    om_ldpreload,
    om_dependency,
    om_dlopen,
+   om_thrdopen,
    om_dlreopen,
    om_reorder,
    om_partial,
@@ -538,6 +540,25 @@ void dlopen_mode()
    }
 }
 
+static void* thrd_dlopen_mode(void *arg)
+{
+   dlopen_mode();
+   return NULL;
+}
+
+void thrd_mode()
+{
+   pthread_t thrd;
+   int result;
+
+   result = pthread_create(&thrd, NULL, thrd_dlopen_mode, NULL);
+   if (result != 0) {
+      err_printf("pthread_create returned error code %d\n", result);
+      return;
+   }
+   pthread_join(thrd, NULL);
+}
+
 void dlreopen_mode()
 {
    dependency_mode();
@@ -696,6 +717,9 @@ void open_libraries()
          break;
       case om_dlopen:
          dlopen_mode();
+         break;
+      case om_thrdopen:
+         thrd_mode();
          break;
       case om_dlreopen:
          dlreopen_mode();
@@ -1022,6 +1046,7 @@ void parse_args(int argc, char *argv[])
       TEST_ARG(ldpreload);
       TEST_ARG(dependency);
       TEST_ARG(dlopen);
+      TEST_ARG(thrdopen);
       TEST_ARG(dlreopen);
       TEST_ARG(reorder);
       TEST_ARG(partial);
@@ -1088,6 +1113,8 @@ void checkTlsSum()
    int sum = 0;
 
    if (open_mode == om_spindleapi)
+      return;
+   if (open_mode == om_thrdopen)
       return;
 
    for (i = 0; libraries[i].libname; i++) {

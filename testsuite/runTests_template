@@ -12,6 +12,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --dlreopen --push
 CHECK_RETCODE
+./run_driver --thrdopen --push
+CHECK_RETCODE
 ./run_driver --reorder --push
 CHECK_RETCODE
 ./run_driver --partial --push
@@ -26,6 +28,8 @@ CHECK_RETCODE
 ./run_driver --dlopen --pull
 CHECK_RETCODE
 ./run_driver --dlreopen --pull
+CHECK_RETCODE
+./run_driver --thrdopen --pull
 CHECK_RETCODE
 ./run_driver --reorder --pull
 CHECK_RETCODE
@@ -42,6 +46,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --dlreopen --numa
 CHECK_RETCODE
+./run_driver --thrdopen --numa
+CHECK_RETCODE
 ./run_driver --reorder --numa
 CHECK_RETCODE
 ./run_driver --partial --numa
@@ -57,6 +63,8 @@ CHECK_RETCODE
 ./run_driver --dlopen --fork
 CHECK_RETCODE
 ./run_driver --dlreopen --fork
+CHECK_RETCODE
+./run_driver --thrdopen --fork
 CHECK_RETCODE
 ./run_driver --reorder --fork
 CHECK_RETCODE
@@ -75,6 +83,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --dlreopen --forkexec
 CHECK_RETCODE
+./run_driver --thrdopen --forkexec
+CHECK_RETCODE
 ./run_driver --reorder --forkexec
 CHECK_RETCODE
 ./run_driver --partial --forkexec
@@ -91,6 +101,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --dlreopen --chdir
 CHECK_RETCODE
+./run_driver --thrdopen --chdir
+CHECK_RETCODE
 ./run_driver --reorder --chdir
 CHECK_RETCODE
 ./run_driver --partial --chdir
@@ -105,6 +117,8 @@ CHECK_RETCODE
 ./run_driver --dlopen --preload
 CHECK_RETCODE
 ./run_driver --dlreopen --preload
+CHECK_RETCODE
+./run_driver --thrdopen --preload
 CHECK_RETCODE
 ./run_driver --reorder --preload
 CHECK_RETCODE
@@ -123,6 +137,8 @@ CHECK_RETCODE
 CHECK_RETCODE
 ./run_driver --dlreopen --session
 CHECK_RETCODE
+./run_driver --thrdopen --session
+CHECK_RETCODE
 ./run_driver --reorder --session
 CHECK_RETCODE
 ./run_driver --partial --session
@@ -138,6 +154,7 @@ else
 echo Skipping: ./run_driver --dependency --session
 echo Skipping: ./run_driver --dlopen --session
 echo Skipping: ./run_driver --dlreopen --session
+echo Skipping: ./run_driver --thrdopen --session
 echo Skipping: ./run_driver --reorder --session
 echo Skipping: ./run_driver --partial --session
 echo Skipping: ./run_driver --ldpreload --session
