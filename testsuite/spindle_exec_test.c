@@ -255,6 +255,8 @@ void setuppath()
 
 int main(int argc, char *argv[])
 {
+   (void)argc;
+   (void)argv;
    setuppath();
    runtest(set_true, e_execl);
    runtest(set_true, e_execlp);

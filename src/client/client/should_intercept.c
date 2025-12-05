@@ -78,6 +78,7 @@ static int is_python_path(const char *pathname)
 
 static int is_python(const char *pathname, char *last_dot)
 {
+   (void)pathname;
    if (last_dot &&
        (strcmp(last_dot, ".py") == 0 ||
         strcmp(last_dot, ".pyc") == 0 ||
@@ -88,6 +89,7 @@ static int is_python(const char *pathname, char *last_dot)
 
 static int is_compiled_python(const char *pathname, char *last_dot)
 {
+   (void)pathname;
    if (last_dot &&
        (strcmp(last_dot, ".pyc") == 0 ||
         strcmp(last_dot, ".pyo") == 0))
@@ -97,6 +99,7 @@ static int is_compiled_python(const char *pathname, char *last_dot)
 
 static int is_dso(const char *pathname, char *last_slash, char *last_dot)
 {
+   (void)pathname;
    if (last_dot &&
        strcmp(last_dot, ".so") == 0)
       return 1;

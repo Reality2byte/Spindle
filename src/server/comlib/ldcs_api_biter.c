@@ -67,6 +67,7 @@ int ldcs_create_server_biter(char* location, number_t num)
 
 int ldcs_open_server_connection_biter(int id)
 {
+   (void)id;
    assert(0 && "Unused");
    return -1;
 }
@@ -246,6 +247,7 @@ int ldcs_socket_id_to_nc_biter(int id, int fd, ldcs_process_data_t *process_data
 
 int ldcs_recv_msg_static_biter(int connid, ldcs_message_t *msg, ldcs_read_block_t block)
 {
+   (void)block;
    int session = CLIENT_ID_SESSION(connid);
    int proc = CLIENT_ID_PROC(connid);
    int result;

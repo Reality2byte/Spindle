@@ -51,6 +51,7 @@ int verbose = 0;
 
 static int get_phdr_for_cb(struct dl_phdr_info *info, size_t size, void *data)
 {
+   (void)size;
    get_phdr_for_t *params;
 
    params = (get_phdr_for_t *) data;
@@ -92,6 +93,7 @@ typedef struct {
 
 static int check_dso_cb(struct dl_phdr_info *info, size_t size, void *data)
 {
+   (void)size;
    find_dso_t *params;
    int i;
    ElfW(Addr) addr, start, end;
@@ -307,7 +309,7 @@ void *runtest_for_lib(const char *libname, int options)
       { "fxstat", "fstat", libspindle, NULL, NULL, 0 },
       { "lxstat", "lstat", libspindle, NULL, NULL, 0 },
       { "xstat", "stat", libspindle, NULL, NULL, 0 },
-      { NULL, NULL, NULL, NULL, 0 }
+      { NULL, NULL, NULL, NULL, NULL, 0 }
    };
 
    if (options & TDL_NO_STAT) {

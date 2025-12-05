@@ -31,11 +31,7 @@ static int readUpTo(FILE *f, unsigned char *buffer, size_t *cur_pos, size_t new_
    if (*cur_pos >= new_size)
       return 0;
 
-   do {
-      result = fread(buffer + *cur_pos, 1, new_size - *cur_pos, f);
-   } while (result == -1 && errno == EINTR);
-   if (result == -1)
-      return -1;
+   result = fread(buffer + *cur_pos, 1, new_size - *cur_pos, f);
    *cur_pos += result;
    return 0;
 }

@@ -17,12 +17,13 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #if !defined(SHMUTIL_H_)
 #define SHMUTIL_H_
 
+#include <sys/types.h>
 #include "sheep.h"
 #include "spindle_launch.h"
 
 typedef struct {
    volatile unsigned long *lock;
-   volatile unsigned long *held_by;
+   volatile pid_t *held_by;
    int ref_count;
 } lock_t;
 
@@ -85,6 +86,6 @@ int setup_ids(shminfo_t *shminfo);
 int take_heap_lock(shminfo_t *shminfo);
 int release_heap_lock(shminfo_t *shminfo);
 
-void update_shm_id();
+void update_shm_id(shminfo_t *shminfo);
 
 #endif

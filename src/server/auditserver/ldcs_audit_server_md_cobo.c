@@ -81,9 +81,8 @@ int ldcs_audit_server_md_init(unsigned int port, unsigned int num_ports,
                               unique_id_t unique_id, ldcs_process_data_t *data)
 {
    int rc=0;
-   unsigned int *portlist;
+   unsigned int *portlist, i;
    int my_rank, ranks, fanout;
-   int i;
 
    portlist = malloc(sizeof(unsigned int) * (num_ports + 1));
    for (i = 0; i < num_ports; i++) {
@@ -170,6 +169,7 @@ int ldcs_audit_server_md_unregister_fd ( ldcs_process_data_t *ldcs_process_data 
 int ldcs_audit_server_md_destroy ( ldcs_process_data_t *ldcs_process_data ) 
 {
    /* Nothing to be done.  Sockets will be closed when we exit. */
+   (void)ldcs_process_data;
    if (cobo_close() != COBO_SUCCESS) {
       debug_printf3("Failed to close\n");
    }
@@ -283,6 +283,7 @@ int ldcs_audit_server_md_is_parent(node_peer_t peer)
 
 int ldcs_audit_server_md_cobo_CB(int fd, int nc, void *data)
 {
+   (void)nc;
    int rc=0;
    ldcs_process_data_t *ldcs_process_data = ( ldcs_process_data_t *) data ;
    ldcs_message_t msg;
@@ -310,6 +311,7 @@ int ldcs_audit_server_md_cobo_CB(int fd, int nc, void *data)
 
 int ldcs_audit_server_md_send(ldcs_process_data_t *ldcs_process_data, ldcs_message_t *msg, node_peer_t peer)
 {
+   (void)ldcs_process_data;
    int fd = (int) (long) peer;
    return write_msg(fd, msg);
 }
@@ -352,6 +354,7 @@ int ldcs_audit_server_md_send_noncontig(ldcs_process_data_t *ldcs_process_data, 
 
 int ldcs_audit_server_md_broadcast(ldcs_process_data_t *ldcs_process_data, ldcs_message_t *msg)
 {
+   (void)ldcs_process_data;
    int fd, i;
    int result, global_result = 0;
    int num_childs = 0;
@@ -393,6 +396,7 @@ int ldcs_audit_server_md_broadcast_noncontig(ldcs_process_data_t *ldcs_process_d
 
 int ldcs_audit_server_md_get_num_children(ldcs_process_data_t *procdata)
 {
+   (void)procdata;
    int num_childs = 0;
    cobo_get_num_childs(&num_childs);
    return num_childs;

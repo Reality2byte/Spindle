@@ -84,6 +84,7 @@ int ldcs_get_fd_socket (int fd) {
 
 
 int ldcs_create_server_socket(char* location, number_t number) {
+  (void)location;
   int fd, sockfd;
   struct sockaddr_in serv_addr;
 
@@ -157,6 +158,7 @@ int ldcs_open_server_connection_socket(int fd) {
 };
 
 int ldcs_open_server_connections_socket(int fd, int nc, int *more_avail) {
+  (void)nc;
   *more_avail=0;
   return(ldcs_open_server_connection_socket(fd));
 };
@@ -183,10 +185,9 @@ int ldcs_destroy_server_socket(int fd) {
 /* ************************************************************** */
 /* message transfer functions                                     */
 /* ************************************************************** */
-static int _ldcs_read_socket(int fd, void *data, int bytes, ldcs_read_block_t block) {
+static size_t _ldcs_read_socket(int fd, void *data, int bytes, ldcs_read_block_t block) {
 
-  int         left,bsumread;
-  ssize_t      btoread, bread;
+  ssize_t    btoread, bread, left, bsumread;
   char       *dataptr;
   
   left      = bytes;
@@ -266,7 +267,8 @@ int ldcs_send_msg_socket(int fd, ldcs_message_t * msg) {
 ldcs_message_t * ldcs_recv_msg_socket(int fd,  ldcs_read_block_t block) {
   ldcs_message_t *msg;
   char help[41];
-  int n, connfd;
+  size_t n;
+  int connfd;
   if ((fd<0) || (fd>MAX_FD) )  _error("wrong fd");
   connfd=ldcs_socket_fdlist[fd].fd;
 
@@ -279,7 +281,6 @@ ldcs_message_t * ldcs_recv_msg_socket(int fd,  ldcs_read_block_t block) {
     free(msg);
     return(NULL);
   }
-  if (n < 0) _error("ERROR reading header from socket");
 
   if(msg->header.len>0) {
 
@@ -287,7 +288,6 @@ ldcs_message_t * ldcs_recv_msg_socket(int fd,  ldcs_read_block_t block) {
     if (!msg)  _error("could not allocate memory for message data");
     
     n = _ldcs_read_socket(connfd,msg->data,msg->header.len, LDCS_READ_BLOCK);
-    if (n < 0) _error("ERROR reading message data from socket");
     if (n != msg->header.len) _error("received different number of bytes for message data");
 
   } else {
@@ -305,15 +305,14 @@ ldcs_message_t * ldcs_recv_msg_socket(int fd,  ldcs_read_block_t block) {
 
 int ldcs_recv_msg_static_socket(int fd, ldcs_message_t *msg,  ldcs_read_block_t block) {
   char help[41];
-  int rc=0;
-  int n, connfd;
+  int rc=0, connfd;
+  size_t n;
   if ((fd<0) || (fd>MAX_FD) )  _error("wrong fd");
   connfd=ldcs_socket_fdlist[fd].fd;
 
 
   n = _ldcs_read_socket(connfd,&msg->header,sizeof(msg->header), block);
   if (n == 0) return(rc);
-  if (n < 0) _error("ERROR reading header from socket");
 
   if(msg->header.len>0) {
 
@@ -322,7 +321,6 @@ int ldcs_recv_msg_static_socket(int fd, ldcs_message_t *msg,  ldcs_read_block_t 
     
     n = _ldcs_read_socket(connfd,msg->data,msg->header.len, LDCS_READ_BLOCK);
     if (n == 0) return(rc);
-    if (n < 0) _error("ERROR reading message data from socket");
     if (n != msg->header.len) _error("received different number of bytes for message data");
 
   } else {
@@ -344,5 +342,7 @@ int ldcs_get_aux_fd_socket()
 
 int ldcs_socket_id_to_nc_socket(int id, int fd, ldcs_process_data_t *process_data)
 {
+   (void)fd;
+   (void)process_data;
    return id;
 }

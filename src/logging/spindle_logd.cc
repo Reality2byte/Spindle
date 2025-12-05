@@ -183,6 +183,7 @@ public:
 
    virtual void writeMessage(int proc, const char *msg1, int msg1_size, const char *msg2, int msg2_size)
    {
+      (void)proc;
       if (isExitCode(msg1, msg1_size, msg2, msg2_size)) {
          /* We've received the exitcode */
          shouldExit = true;
@@ -679,6 +680,7 @@ void cleanFiles()
 
 void on_sig(int sig)
 {
+   (void)sig;
    clean();
    exit(0);
 }

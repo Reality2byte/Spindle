@@ -54,10 +54,11 @@ static int read_msg(int fd, ldcs_message_t *msg)
 int ldcs_audit_server_fe_md_open ( char **hostlist, int numhosts, unsigned int port, unsigned int num_ports,
                                    unique_id_t unique_id, 
                                    void **data  ) {
+   (void)data;
    int rc=0;
    int *portlist;
    int root_fd, ack;
-   int i;
+   unsigned int i;
 
    assert(num_ports >= 1);
    portlist = malloc(sizeof(int) * (num_ports+1));
@@ -167,7 +168,7 @@ int ldcs_audit_server_fe_md_waitfor_alive(int timeout_seconds)
 }
 
 int ldcs_audit_server_fe_md_close ( void *data  ) {
-  
+   (void)data;
    ldcs_message_t out_msg;
    int root_fd;
 
@@ -183,6 +184,7 @@ int ldcs_audit_server_fe_md_close ( void *data  ) {
 
 int ldcs_audit_server_fe_broadcast(ldcs_message_t *msg, void *data)
 {
+   (void)data;
    int root_fd;
 
    debug_printf("Broadcasting message to daemons\n");

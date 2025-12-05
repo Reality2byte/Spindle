@@ -19,6 +19,9 @@ cat <<EOF | $CCLINE -I $SRCDIR -shared -DWORKINGDIR=\"$WORKINGDIR\" -DUNIQ=\"$UN
 
 void get_relocated_file(int ldcs_id, char *orig_exec, int dso, char **reloc_exec, int *errcode, int *direxists)
 {
+   (void)ldcs_id;
+   (void)orig_exec;
+   (void)dso;
    *reloc_exec = strdup(WORKINGDIR "/remap2" UNIQ);
    *errcode = 0;
    if (direxists) *direxists = 1;
@@ -44,6 +47,8 @@ extern int dowork();
 int data = 5;
 int main(int argc, char *argv[])
 {
+   (void)argc;
+   (void)argv;
    return dowork();
 }
 EOF

@@ -21,6 +21,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include "ccwarns.h"
 
 #if !defined(RPTEST)
 #include "intercept.h"
@@ -365,6 +366,7 @@ realpath_stk (const char *name, char *resolved, struct realpath_bufs *bufs)
          if (!ISSLASH (dest[-1]))
             *dest++ = '/';
 
+         GCC_DISABLE_WARNING("-Wsign-compare")  // long int vs long unsigned int
          while (rname + bufs->rname.length - dest
                 < startlen + sizeof dir_suffix)
          {
@@ -374,6 +376,7 @@ realpath_stk (const char *name, char *resolved, struct realpath_bufs *bufs)
             rname = bufs->rname.data;
             dest = rname + dest_offset;
          }
+         GCC_ENABLE_WARNING
 
          dest = mempcpy (dest, start, startlen);
          *dest = '\0';
