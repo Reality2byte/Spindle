@@ -21,6 +21,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include "ccwarns.h"
 
 #if !defined(RPTEST)
 #include "intercept.h"
@@ -109,7 +110,6 @@ B. Use spindle versions of the IO accessing lower-level routines.
 The source file is glibc/stdlib/canonicalize.c at git commit 1894e219dc530d7074085e95ffe3c1e66cebc072
  */
 
-#pragma GCC diagnostic ignored "-Wsign-compare"
 #define ISSLASH(c) ((c) == '/')
 #define PATH_MAX 4096
 #define IS_ABSOLUTE_FILE_NAME(name) (ISSLASH((name)[0]))
@@ -366,6 +366,7 @@ realpath_stk (const char *name, char *resolved, struct realpath_bufs *bufs)
          if (!ISSLASH (dest[-1]))
             *dest++ = '/';
 
+         GCC_DISABLE_WARNING("-Wsign-compare")  // long int vs long unsigned int
          while (rname + bufs->rname.length - dest
                 < startlen + sizeof dir_suffix)
          {
@@ -375,6 +376,7 @@ realpath_stk (const char *name, char *resolved, struct realpath_bufs *bufs)
             rname = bufs->rname.data;
             dest = rname + dest_offset;
          }
+         GCC_ENABLE_WARNING
 
          dest = mempcpy (dest, start, startlen);
          *dest = '\0';

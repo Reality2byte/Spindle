@@ -29,8 +29,7 @@ typedef struct {
 
 typedef struct {
    volatile int cur_id;
-   unsigned long *lock;
-   pid_t *held_by;
+   unsigned long locks[2];
 } base_header_t;
 
 #include "demultiplex.h"
@@ -45,13 +44,11 @@ typedef struct {
    int num_ranks;
    int read_file;
    int num_started;
-   unsigned long lock[3];
-   pid_t held_by[3];
+   unsigned long locks[6];
 } biter_header_t;
 
 typedef struct {
-   unsigned long *lock;
-   pid_t *held_by;
+   unsigned long locks[2];
    sheep_ptr_t hash;
    sheep_ptr_t lru_head;
    sheep_ptr_t lru_end;

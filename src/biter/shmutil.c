@@ -28,6 +28,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "shmutil.h"
 #include "sheep.h"
 #include "spindle_launch.h"
+#include "ccwarns.h"
 
 static pid_t gettid()
 {
@@ -185,8 +186,11 @@ int init_heap_lock(shminfo_t *shminfo)
       return 0;
    initialized = 1;
 
-   shminfo->mem_lock.lock = shminfo->shared_header->base.lock;
-   shminfo->mem_lock.held_by = shminfo->shared_header->base.held_by;
+   GCC_DISABLE_WARNING("-Wincompatible-pointer-types")
+   // unsigned long int * assigned to volatile pid_t *
+   shminfo->mem_lock.lock = shminfo->shared_header->base.locks + 0;
+   shminfo->mem_lock.held_by = shminfo->shared_header->base.locks + 1;
+   GCC_ENABLE_WARNING
    return 0;
 }
 

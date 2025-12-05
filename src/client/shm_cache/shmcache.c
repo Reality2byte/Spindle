@@ -20,6 +20,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "client_heap.h"
 #include "shmutil.h"
 #include "spindle_debug.h"
+#include "ccwarns.h"
 #include <string.h>
 #include <assert.h>
 
@@ -397,8 +398,11 @@ static int shmcache_add_worker(const char *libname, const char *mapped_name, int
 
 static int init_cache_locks()
 {
-   cache_lock.lock = shminfo->shared_header->shmcache.lock;
-   cache_lock.held_by = shminfo->shared_header->shmcache.held_by;
+   cache_lock.lock = shminfo->shared_header->shmcache.locks + 0;
+   GCC_DISABLE_WARNING("-Wincompatible-pointer-types")
+   // unsigned long int * assigned to volatile pid_t *
+   cache_lock.held_by = shminfo->shared_header->shmcache.locks + 1;
+   GCC_ENABLE_WARNING
 
    return init_heap_lock(shminfo);
 }

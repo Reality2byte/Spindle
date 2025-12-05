@@ -32,6 +32,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 
 #include "spindle_debug.h"
 #include "shmutil.h"
+#include "ccwarns.h"
 
 #if !defined(MAX_PATH_LEN)
 #define MAX_PATH_LEN 4096
@@ -76,12 +77,17 @@ static int init_locks(biterc_session_t *session)
 {
    shminfo_t *shm = session->shm;
    biter_header_t *header = &shm->shared_header->biter;
-   session->pipe_lock.lock = header->lock + 0;
-   session->pipe_lock.held_by = header->held_by + 0;
-   session->queue_lock.lock = header->lock + 1;
-   session->queue_lock.held_by = header->held_by + 1;
-   session->write_lock.lock = header->lock + 2;
-   session->write_lock.held_by = header->held_by + 2;
+   session->pipe_lock.lock = header->locks + 0;
+   session->queue_lock.lock = header->locks + 2;
+   session->write_lock.lock = header->locks + 4;
+
+   GCC_DISABLE_WARNING("-Wincompatible-pointer-types")
+   // unsigned long int * assigned to volatile pid_t *
+   session->pipe_lock.held_by = header->locks + 1;
+   session->queue_lock.held_by = header->locks + 3;
+   session->write_lock.held_by = header->locks + 5;
+   GCC_ENABLE_WARNING
+
    return init_heap_lock(shm);
 }
 
