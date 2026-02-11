@@ -344,11 +344,13 @@ static char **get_hostlist(spank_t spank, unsigned int num_hosts)
 {
    char *short_hosts, **hostlist;;
 
-   short_hosts = readSpankEnv(spank, "SLURM_JOB_NODELIST");
+   short_hosts = readSpankEnv(spank, "SLURM_STEP_NODELIST");
+   if (!short_hosts)
+      short_hosts = readSpankEnv(spank, "SLURM_JOB_NODELIST");
    if (!short_hosts)
       short_hosts = readSpankEnv(spank, "SLURM_NODELIST");
    if (!short_hosts) {
-      sdprintf(1, "ERROR: SLURM_JOB_NODELIST not set.\n");
+      sdprintf(1, "ERROR: None of SLURM_STEP_NODELIST, SLURM_JOB_NODELIST, SLURM_NODELIST set.\n");
       return NULL;
    }   
 
