@@ -51,9 +51,11 @@ static signed int gots_size;
 #elif defined(arch_ppc64) || defined(arch_ppc64le)
 #define DEFAULT_RELENTSZ 24
 #define EXTRA_GOT_ENTRIES 2
+#define DATA_GOT_TYPE R_PPC64_GLOB_DAT
 #elif defined(arch_aarch64)
 #define DEFAULT_RELENTSZ 24
 #define EXTRA_GOT_ENTRIES 4
+#define DATA_GOT_TYPE R_AARCH64_GLOB_DAT
 #else
 #error Need to fill in got info
 #endif
