@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 #if defined(CUSTOM_GETENV)
-extern char *custom_getenv();
+extern char *custom_getenv(char*);
 #endif
 #define IS_ENVVAR_CHAR(X) ((X >= 'a' && X <= 'z') || (X >= 'A' && X <= 'Z') || (X == '_'))
 
