@@ -21,7 +21,19 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #define _GNU_SOURCE
 #endif
 
+#include "config.h"
 #include <link.h>
+#include <elf.h>
+
+#if defined(arch_x86_64)
+#define DATA_GOT_TYPE  R_X86_64_GLOB_DAT
+#elif defined(arch_ppc64) || defined(arch_ppc64le)
+#define DATA_GOT_TYPE  R_PPC64_GLOB_DAT
+#elif defined(arch_aarch64)
+#define DATA_GOT_TYPE  R_AARCH64_GLOB_DAT
+#else
+#error Need to define DATA_GOT_TYPE for this architecture
+#endif
 
 int add_wgot_library(struct link_map *map);
 int rm_wgot_library(struct link_map *map);
