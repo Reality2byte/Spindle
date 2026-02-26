@@ -82,7 +82,7 @@ static int bind_global_relocations(struct link_map *map, Elf64_Rela *relocs, Elf
    for (i = 0; i < num_relocs; i++) {
       Elf64_Rela *r = relocs+i;
       if (ELF64_R_TYPE(r->r_info) != R_X86_64_GLOB_DAT)
-         continue;      
+         continue;
       symidx = ELF64_R_SYM(r->r_info);
       sym = symtable + symidx;
       symname = strtable + sym->st_name;
@@ -120,7 +120,6 @@ static int bind_global_relocations(struct link_map *map, Elf64_Rela *relocs, Elf
             }
             made_reloc_table_writable = 1;
          }
-         
          r->r_info &= ~((Elf64_Xword) 0xffffffff);
          r->r_info |= R_X86_64_NONE;
       }
@@ -144,7 +143,7 @@ int do_global_bindings(struct link_map *map)
       return 0;
    }
    for (; dyn->d_tag != DT_NULL; dyn++) {
-      if (dyn->d_tag == DT_SYMTAB) 
+      if (dyn->d_tag == DT_SYMTAB)
          syms = (Elf64_Sym *) dyn->d_un.d_ptr;
       else if (dyn->d_tag == DT_STRTAB)
          strtable = (char *) dyn->d_un.d_ptr;
