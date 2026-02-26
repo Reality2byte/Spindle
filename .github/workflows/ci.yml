@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - devel
+      - arm64_CI
 
 permissions:
   contents: read
