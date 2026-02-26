@@ -133,7 +133,7 @@ static int dso_at_address(ElfW(Addr) addr, char **name)
    return 0;
 }
 
-#if defined(__x86_64) || definted(__aarch64__)
+#if defined(__x86_64) || defined(__aarch64__)
 #define REL_TYPE ElfW(Rela)
 #else
 #error Need rel type for architecture
