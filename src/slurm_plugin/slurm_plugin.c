@@ -53,6 +53,7 @@ static int set_spindle_args(spank_t spank, spindle_args_t *params, int argc, cha
 static int get_spindle_args(spank_t spank, spindle_args_t *params);
 #endif
 
+static int forward_environment_to_slurmstepd(spank_t spank);
 static int launchFE(char **hostlist, spindle_args_t *params);
 static int launchBE(spank_t spank, spindle_args_t *params);
 static int prepApp(spank_t spank, spindle_args_t *params);
@@ -79,6 +80,32 @@ struct spank_option spank_options[] =
    },
    SPANK_OPTIONS_TABLE_END
 };
+
+static int forward_environment_to_slurmstepd(spank_t spank) 
+{
+   char *debugEnv, *testEnv, *tmpEnv;
+
+   debugEnv= readSpankEnv(spank, "SPINDLE_DEBUG");
+   testEnv = readSpankEnv(spank, "SPINDLE_TEST");
+   tmpEnv = readSpankEnv(spank, "TMPDIR");
+
+   if (debugEnv) {
+      setenv("SPINDLE_DEBUG", debugEnv, 1);
+      free(debugEnv);
+   }
+
+   if (testEnv) {
+      setenv("SPINDLE_TEST", testEnv, 1);
+      free(testEnv);
+   }
+
+   if (tmpEnv) {
+      setenv("TMPDIR", tmpEnv, 1);
+      free(tmpEnv);
+   }
+
+   return 0;
+}
 
 int slurm_spank_task_init(spank_t spank, int site_argc, char *site_argv[])
 {
@@ -107,8 +134,13 @@ int slurm_spank_task_init(spank_t spank, int site_argc, char *site_argv[])
       return 0;
    }
    
-   push_env(spank, &env);
+   // We need to acquire the job environment before we do anything that
+   // will spawn the log daemon so that SPINDLE_DEBUG and SPINDLE_TEST
+   // are set appropriately.
+   forward_environment_to_slurmstepd(spank);
+
    sdprintf(1, "Beginning spindle plugin\n");
+   push_env(spank, &env);
    
    result = process_spindle_args(spank, site_argc, site_argv, &params, NULL, NULL);
    if (result == -1) {
