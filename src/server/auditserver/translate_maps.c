@@ -49,7 +49,6 @@ static int open_replacement_proc_maps(char *spindle_dir, int pid, char *output_f
    static int uniqnum = 0;
 
    snprintf(output_file, output_file_size, "%s/spindle_proc_maps_%d_%d", spindle_dir, pid, uniqnum++);
-   output_file[MAX_NAME_LEN] = '\0';   
    fd = open(output_file, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
    if (fd == -1) {
       error = errno;
