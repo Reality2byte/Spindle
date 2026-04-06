@@ -18,20 +18,20 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #define _GNU_SOURCE
 #endif
 
-#include <stdlib.h>
-#include "client.h"
 #include "auditclient.h"
 #include "spindle_debug.h"
 
-Elf64_Addr la_aarch64_gnu_pltenter(Elf64_Sym *sym, unsigned int ndx,
+
+
+/*Elf64_Addr la_aarch64_gnu_pltenter(Elf64_Sym *sym, unsigned int ndx,
                                     uintptr_t *refcook,
                                     uintptr_t *defcook,
                                     La_aarch64_regs *regs,
                                     unsigned int *flags,
                                     const char *symname,
-                                    long int *framesizep) AUDIT_EXPORT;
+                                    long int *framesizep) AUDIT_EXPORT;*/
 
-Elf64_Addr la_aarch64_gnu_pltenter (Elf64_Sym *sym, unsigned int ndx,
+Elf64_Addr la_aarch64_gnu_pltenter(Elf64_Sym *sym, unsigned int ndx,
                                     uintptr_t *refcook,
                                     uintptr_t *defcook,
                                     La_aarch64_regs *regs,
