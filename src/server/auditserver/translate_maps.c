@@ -159,7 +159,7 @@ static int translate_line(char *spindle_dir, char *line, int *linelen, int maxle
       lastpart = spindle_dir;
    if (*(lastpart+1) == '\0') {
       lastpart--;
-      while (lastpart != line && *lastpart != '/') lastpart--;
+      while (lastpart != spindle_dir && *lastpart != '/') lastpart--;
    }
 
    p = strstr(line, lastpart);
