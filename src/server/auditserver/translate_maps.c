@@ -199,7 +199,7 @@ int translate_proc_pid_maps(char *spindle_dir, int pid, char *output_file, int o
    }
 
    newfd = open_replacement_proc_maps(spindle_dir, pid, output_file, output_file_size);
-   if (fd == -1) {
+   if (newfd == -1) {
       close(fd);
       return -1;
    }
