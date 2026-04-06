@@ -96,7 +96,7 @@ int init_readymsg()
    int result, error;
    result = pipe(ready_pipe);
    if (result == -1) {
-      error = result;
+      error = errno;
       fprintf(stderr, "Could not create ready pipe for spindle session: %s\n", strerror(error));
       return -1;
    }
