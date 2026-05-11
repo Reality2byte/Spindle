@@ -13215,6 +13215,33 @@ _ACEOF
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking wheter ld.so has the _dl_argv variable" >&5
+$as_echo_n "checking wheter ld.so has the _dl_argv variable... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern char **_dl_argv;
+int
+main ()
+{
+(void) _dl_argv;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  HAVE_DL_ARGV="true";{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+if test "x$HAVE_DL_ARGV" == "xtrue"; then
+
+$as_echo "#define HAVE_DL_ARGV 1" >>confdefs.h
+
+fi
 
 #Usage logging
 

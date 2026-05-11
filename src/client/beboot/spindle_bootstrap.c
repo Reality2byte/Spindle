@@ -60,6 +60,7 @@ static char *client_lib;
 static char *opts_s;
 static char **daemon_args;
 static char *cachesize_s;
+static char *executable_abspath;
 
 opt_t opts;
 
@@ -231,7 +232,7 @@ static void get_executable()
    }
 
    debug_printf2("Sending request for executable %s\n", *cmdline);
-   exec_pathsearch(ldcsid, *cmdline, &executable, &errcode);
+   exec_pathsearch(ldcsid, *cmdline, &executable, &errcode, &executable_abspath);
 
    if (executable == NULL) {
       executable = *cmdline;
@@ -256,7 +257,7 @@ static void adjust_script()
    if (!executable)
       return;
 
-   result = adjust_if_script(*cmdline, executable, cmdline, &new_executable, &new_cmdline);
+   result = adjust_if_script(*cmdline, executable, cmdline, &new_executable, &new_cmdline, executable_abspath);
    if (result != 0)
       return;
 

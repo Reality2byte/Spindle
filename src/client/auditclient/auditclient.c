@@ -54,23 +54,8 @@ unsigned int spindle_la_objopen(struct link_map *map, Lmid_t lmid, uintptr_t *co
 {
    (void)lmid;
    (void)cookie;
-   char buffer[4096];
-   char *exe_name, *exe_name2;
-
    restore_pathpatch();
    patch_on_linkactivity(map);
-   memset(buffer, 0, sizeof(buffer));
-   readlink("/proc/self/exe", buffer, sizeof(buffer));
-   exe_name = strrchr(buffer, '/');
-   if (exe_name)
-      exe_name++;
-   else
-      exe_name = buffer;
-   if (strstr(exe_name, "spindlens")) {
-      exe_name2 = strrchr(exe_name, '-');
-      if (exe_name2)
-         exe_name = exe_name2 + 1;
-   }   
    return LA_FLG_BINDTO | LA_FLG_BINDFROM;
 }
 

@@ -129,7 +129,7 @@ static int parse_interp_args(char *interp_line, char **interp_exec, char ***inte
 }
 
 
-int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char **interp_path, char ***new_argv)
+int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char **interp_path, char ***new_argv, char *found_from_pathsearch)
 {
    int result, fd, argc, interp_argc, i, j, errcode;
    char interpreter_line[MAX_PATH_LEN+1];
@@ -139,10 +139,10 @@ int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char 
 
    if (argv && argv[0] && strcmp(argv[0], orig_path) != 0) {
       char *lastslash = strrchr(orig_path, '/');
-      if (lastslash && strcmp(lastslash+1, argv[0]) != 0) {
+      if (!lastslash || (lastslash && strcmp(lastslash+1, argv[0]) != 0)) {
          debug_printf2("Not treating %s as a script because it's argv[0] (%s) is different than the executable, "
                        "and Spindle can't emulate that\n", orig_path, argv[0]);
-         return SCRIPT_NOTSCRIPT;
+         return SCRIPT_CANTEMULATE;
       }
    }
    if (opts & OPT_REMAPEXEC) {
@@ -177,7 +177,7 @@ int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char 
    if (result == -1) {
       return SCRIPT_ENOENT;
    }
-   
+
    debug_printf2("Exec operation requesting interpreter %s for script %s\n", interpreter, orig_path);
    get_relocated_file(ldcsid, interpreter, 1, &new_interpreter, &errcode, NULL);
    debug_printf2("Changed interpreter %s to %s for script %s\n", 
@@ -195,29 +195,34 @@ int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char 
    *new_argv = (char **) spindle_malloc(sizeof(char*) * (argc + interp_argc + 2));
    j = 0;
 
-   for (i = 0; i < interp_argc; i++)
+   for (i = 0; i < interp_argc; i++) {
       (*new_argv)[j++] = spindle_strdup(interpreter_args[i]);
-   /* If argv[0] is not a path, replace with absolute path to mimic kernel behavior */
-   char *orig_path_copy = strdup( orig_path ); /* Preserve constness of orig_path. */
-   (*new_argv)[j++] = (argv[0] && strchr(argv[0], '/')) ? argv[0] : orig_path_copy;
+   }
+
+   if (found_from_pathsearch) {
+      (*new_argv)[j++] = spindle_strdup(found_from_pathsearch);
+   }
+   else {
+      char *orig_path_copy = spindle_strdup( orig_path ); /* Preserve constness of orig_path. */
+      (*new_argv)[j++] = (argv[0] && strchr(argv[0], '/')) ? argv[0] : orig_path_copy;
+   }
    for (i = 1; i < argc; i++) {
       (*new_argv)[j++] = argv[i];
    }
    (*new_argv)[j++] = NULL;
 
    *interp_path = new_interpreter;
-   debug_printf3("Rewritten interpreter cmdline is: ");
-   for (i = 0; i<argc+1; i++) {
-      bare_printf3("%s ", (*new_argv)[i]);
+   debug_printf3("Rewritten interpreter '%s' cmdline is: ", *interp_path ? *interp_path : "NULL");
+   for (i = 0; (*new_argv)[i]; i++) {
+      bare_printf3("%s ", (*new_argv)[i] ? (*new_argv)[i] : "NULL");
    }
    bare_printf3("\n");
-
    spindle_free(interpreter_args);
 
    return 0;
 }
 
-int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *errcode)
+int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *errcode, char **orig_file_abspath)
 {
    char *saveptr = NULL, *path, *cur;
    char newexec[MAX_PATH_LEN+1];
@@ -227,6 +232,9 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
       *reloc_exec = NULL;
       return -1;
    }
+   if (orig_file_abspath) {
+      *orig_file_abspath = NULL;
+   }   
    
    if (orig_exec[0] == '/' || orig_exec[0] == '.') {
       get_relocated_file(ldcsid, (char *) orig_exec, 1, reloc_exec, errcode, NULL);
@@ -273,6 +281,9 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
       get_relocated_file(ldcsid, newexec, 1, reloc_exec, errcode, NULL);
       debug_printf2("Exec search request returned %s -> %s\n", newexec, *reloc_exec ? *reloc_exec : "NULL");
       if (*reloc_exec) {
+         if (orig_file_abspath) {
+            *orig_file_abspath = strdup(newexec);
+         }
          found = 1;
          break;
       }
