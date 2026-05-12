@@ -282,7 +282,7 @@ int exec_pathsearch(int ldcsid, const char *orig_exec, char **reloc_exec, int *e
       debug_printf2("Exec search request returned %s -> %s\n", newexec, *reloc_exec ? *reloc_exec : "NULL");
       if (*reloc_exec) {
          if (orig_file_abspath) {
-            *orig_file_abspath = strdup(newexec);
+            *orig_file_abspath = spindle_strdup(newexec);
          }
          found = 1;
          break;

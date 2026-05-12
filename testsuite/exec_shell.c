@@ -464,5 +464,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Failure\n");
         return -1;
     }
+    printf("PASSED.\n");
     return 0;
 }

@@ -577,7 +577,7 @@ int execlp_wrapper(const char *path, const char *arg0, ...)
 int execvp_wrapper(const char *path, char *const argv[])
 {
    char newpath[MAX_PATH_LEN+1];
-   char **new_argv = NULL, **s;
+   char **new_argv = NULL;
    int result;
    int propogate_spindle;
    newpath[0] = '\0';

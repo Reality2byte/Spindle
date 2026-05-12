@@ -259,14 +259,13 @@ int rtcache_fxstat64(int vers, int fd, struct stat *buf)
 }
 
 static int *ldso_errno;
-extern int __xstat(int, const char *, struct stat*);
 int ldso_xstat(int ver, const char *filename, struct stat *buf)
 {
    (void)ver;
    int result;
    result = handle_stat(filename, buf, FROM_LDSO);
    if (result == ORIG_STAT) {
-      result = __xstat(ver, filename, buf);
+      result = stat(filename, buf);
    }
    if (result != 0) {
       if (*ldso_errno)
@@ -282,7 +281,7 @@ int ldso_lxstat(int ver, const char *filename, struct stat *buf)
    int result;
    result = handle_stat(filename, buf, FROM_LDSO | IS_LSTAT);
    if (result == ORIG_STAT) {
-      result = stat(filename, buf);
+      result = lstat(filename, buf);
    }   
    if (result != 0) {
       if (*ldso_errno)
