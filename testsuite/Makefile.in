@@ -357,7 +357,8 @@ BUILT_SOURCES = libtest10.so libtest11.so libtest12.so libtest13.so \
 	hello_rx.py hello_.py hello_l.py badlink.py spindle_exec_test \
 	spindle_deactivated.sh liblocal.so symbind_test \
 	interpreter_test interpreter_test_dir/interpreter_test_perl \
-	alias/aliastest.py
+	alias/aliastest.py exec_shell.sh exec_shell.tcsh \
+	exec_shell_expected_output exec_shell exec_shell_env.sh
 @BGQ_BLD_FALSE@DYNAMIC_FLAG = 
 @BGQ_BLD_TRUE@DYNAMIC_FLAG = -dynamic
 @BGQ_BLD_FALSE@IS_BLUEGENE = false
@@ -397,7 +398,9 @@ CLEANFILES = libtest10.c libtest11.c libtest12.c libtest13.c \
 	libsymbind_a.so libsymbind_b.so libsymbind_c.so \
 	libsymbind_d.so libsymbind_e.so libsymbind_f.so \
 	libsymbind_g.so interpreter_test \
-	interpreter_test_dir/interpreter_test_perl alias
+	interpreter_test_dir/interpreter_test_perl alias exec_shell.sh \
+	exec_shell.tcsh exec_shell_env.sh exec_shell_expected_output \
+	exec_shell
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -1096,6 +1099,21 @@ interpreter_test_dir/interpreter_test_perl: interpreter_test_perl_template inter
 
 interpreter_test: interpreter_test_template
 	$(AM_V_GEN)cp $< $@; chmod 700 $@
+
+exec_shell.sh: $(srcdir)/exec_shell_template.sh 
+	$(AM_V_GEN)cp $< $@; chmod 700 $@
+
+exec_shell.tcsh: $(srcdir)/exec_shell_template.tcsh 
+	$(AM_V_GEN)cp $< $@; chmod 700 $@
+
+exec_shell_env.sh: $(srcdir)/exec_shell_env_template.sh
+	$(AM_V_GEN)cp $< $@; chmod 700 $@
+
+exec_shell_expected_output: $(srcdir)/exec_shell_expected_output_template
+	$(AM_V_GEN)cp $< $@
+
+exec_shell: $(srcdir)/exec_shell.c
+	$(AM_V_CCLD)$(CC) $(CFLAGS) -o $@ $<
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -264,6 +264,9 @@ int ldso_xstat(int ver, const char *filename, struct stat *buf)
    (void)ver;
    int result;
    result = handle_stat(filename, buf, FROM_LDSO);
+   if (result == ORIG_STAT) {
+      result = stat(filename, buf);
+   }
    if (result != 0) {
       if (*ldso_errno)
          *ldso_errno = -result;
@@ -276,7 +279,10 @@ int ldso_lxstat(int ver, const char *filename, struct stat *buf)
 {
    (void)ver;
    int result;
-   result = handle_stat(filename, buf, FROM_LDSO | IS_LSTAT);   
+   result = handle_stat(filename, buf, FROM_LDSO | IS_LSTAT);
+   if (result == ORIG_STAT) {
+      result = lstat(filename, buf);
+   }   
    if (result != 0) {
       if (*ldso_errno)
          *ldso_errno = -result;

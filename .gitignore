@@ -3,7 +3,8 @@
 /src/server/autom4te.cache
 /src/client/autom4te.cache
 /src/fe/autom4te.cache
-
+.vscode
+.idea/
 tags
 
 #Need if someone does an in-source configure/build
@@ -34,5 +35,3 @@ run_driver
 run_driver_rm
 preload_file_list
 build
-
-.idea/

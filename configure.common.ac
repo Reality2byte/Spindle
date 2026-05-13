@@ -322,7 +322,13 @@ if test "x$HAVE_NUMA" == "xtrue"; then
   AC_DEFINE_UNQUOTED([NUMA_EXCLUDES], "[$NUMA_EXCLUDES_VAL]", [Exclusions for numa optimization])
 fi
               
-              
+AC_MSG_CHECKING([wheter ld.so has the _dl_argv variable])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([extern char **_dl_argv;], [(void) _dl_argv;])],
+               [HAVE_DL_ARGV="true";AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no])])
+if test "x$HAVE_DL_ARGV" == "xtrue"; then
+  AC_DEFINE([HAVE_DL_ARGV], [1], [ld.so exports the _dl_argv variable])
+fi
+
 #Usage logging
 AC_ARG_WITH(usage-logging,
             [AS_HELP_STRING([--with-usage-logging=FILE],[File for writing usage logs])],

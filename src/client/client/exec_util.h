@@ -20,9 +20,10 @@
 #define SCRIPT_ERR -1
 #define SCRIPT_ENOENT -2
 #define SCRIPT_NOTSCRIPT -3
+#define SCRIPT_CANTEMULATE -4
 
-int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char **interp_path, char ***new_argv);
-int exec_pathsearch(int ldcsid, const char *orig_exec, char **new_exec, int *errcode);
+int adjust_if_script(const char *orig_path, char *reloc_path, char **argv, char **interp_path, char ***new_argv, char *found_from_pathsearch);
+int exec_pathsearch(int ldcsid, const char *orig_exec, char **new_exec, int *errcode, char **orig_file_abspath);
 int isExecExcluded(const char *fname);
 int get_dirlists(char ***prefixes, char ***eexecs);
 

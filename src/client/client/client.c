@@ -78,6 +78,8 @@ char *orig_location;
 number_t number;
 static int have_stat_patches;
 
+extern void adjust_argv_if_needed();
+
 static char *concatStrings(const char *str1, const char *str2) 
 {
    static char buffer[MAX_PATH_LEN+1];
@@ -380,6 +382,7 @@ int client_init()
   {
      remap_executable(ldcsid);
   }
+  adjust_argv_if_needed();
 
   if (opts & OPT_PATCHLDSO) {
      result = init_intercept_ldso_stat();

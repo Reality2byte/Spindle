@@ -57,11 +57,10 @@ ssize_t readlink_wrapper(const char *path, char *buf, size_t bufsiz)
 {
    char resultpath[MAX_PATH_LEN+1];
    int intercept_result, result, readlink_errcode;
-   size_t len;
+   ssize_t len;
    ssize_t rl_result;
 
    check_for_fork();
-
    memset(resultpath, 0, sizeof(resultpath));
    intercept_result = stat_filter(path);
    if (intercept_result == ORIG_CALL) {
