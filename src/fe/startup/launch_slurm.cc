@@ -14,6 +14,7 @@ program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
+#include "config.h"
 #include "launcher.h"
 #include "spindle_debug.h"
 
@@ -159,8 +160,15 @@ bool SlurmLauncher::spawnDaemon()
       char count_buffer[64];
       snprintf(count_buffer, 64, "%d", nnodes);
       new_daemon_args[i++] = const_cast<char *>("srun");
+#if HAVE_SRUN_EXTERNAL_LAUNCHER
       new_daemon_args[i++] = const_cast<char *>("--external-launcher");
       new_daemon_args[i++] = const_cast<char *>("--wait=0");
+#else
+      new_daemon_args[i++] = const_cast<char *>("--ntasks-per-node=1");
+      new_daemon_args[i++] = const_cast<char *>("--wait=0");
+      new_daemon_args[i++] = const_cast<char *>("--gres=none");
+      new_daemon_args[i++] = const_cast<char *>("--mem=0");
+#endif
       new_daemon_args[i++] = const_cast<char *>("-n");
       new_daemon_args[i++] = count_buffer;
       new_daemon_args[i++] = const_cast<char *>("-N");
