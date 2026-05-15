@@ -151,7 +151,7 @@ jobs:
           docker compose down
 
   spindle-slurm-ubuntu:
-    name: Testsuite (Slurm, Ubuntu)
+    name: Testsuite (Slurm rshlaunch, Ubuntu)
     environment: Spindle CI
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -206,6 +206,64 @@ jobs:
         continue-on-error: true
         run: |
           cd containers/spindle-slurm-ubuntu/testing
+          docker compose down
+
+  spindle-slurm-srun-ubuntu:
+    name: Testsuite (Slurm srun, Ubuntu)
+    environment: Spindle CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out Spindle
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Setup Docker Compose
+        uses: docker/setup-compose-action@8cccb8c14b6500aaffebff1aa49c502c34d2e5e6
+        with:
+          version: latest
+
+      - name: Login to GitHub Container Registry
+        if: ${{ !env.ACT }}
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate MariaDB configuration
+        id: slurm-ubuntu-mariadb
+        run: |
+          cd containers/spindle-slurm-ubuntu/testing-srun
+          ./generate_config.sh
+
+      - name: Build spindle-slurm-ubuntu image
+        id: slurm-ubuntu-build
+        run: |
+          cd containers/spindle-slurm-ubuntu/testing-srun
+          docker compose --progress=plain build
+
+      - name: Bring spindle-slurm-ubuntu up
+        id: slurm-ubuntu-up
+        run: |
+          cd containers/spindle-slurm-ubuntu/testing-srun
+          docker compose up -d --wait --wait-timeout 120
+
+      - name: Verify munge works in spindle-slurm-srun-ubuntu
+        id: slurm-ubuntu-munge
+        run: |
+          docker exec slurm-srun-head bash -c 'munge -n | unmunge'
+
+      - name: Run spindle-slurm-srun-ubuntu testsuite
+        id: slurm-ubuntu-testsuite
+        run: |
+          docker exec slurm-srun-head bash -c 'cd Spindle-build/testsuite && salloc -n${workers} -N${workers} ./runTests ${workers}'
+
+      - name: Bring spindle-slurm-ubuntu down
+        id: slurm-ubuntu-down
+        if: ${{ always() }}
+        continue-on-error: true
+        run: |
+          cd containers/spindle-slurm-ubuntu/testing-srun
           docker compose down
 
   spindle-slurm-plugin-ubuntu:
