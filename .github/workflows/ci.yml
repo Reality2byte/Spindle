@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Docker Compose
-        uses: docker/setup-compose-action@8cccb8c14b6500aaffebff1aa49c502c34d2e5e6
+        uses: docker/setup-compose-action@16feee727cbdc83b6a014e6cc26fec4a79bcf30c
         with:
           version: latest
 
@@ -72,7 +72,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Docker Compose
-        uses: docker/setup-compose-action@8cccb8c14b6500aaffebff1aa49c502c34d2e5e6
+        uses: docker/setup-compose-action@16feee727cbdc83b6a014e6cc26fec4a79bcf30c
         with:
           version: latest
 
@@ -116,7 +116,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Docker Compose
-        uses: docker/setup-compose-action@8cccb8c14b6500aaffebff1aa49c502c34d2e5e6
+        uses: docker/setup-compose-action@16feee727cbdc83b6a014e6cc26fec4a79bcf30c
         with:
           version: latest
 
@@ -160,7 +160,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Docker Compose
-        uses: docker/setup-compose-action@8cccb8c14b6500aaffebff1aa49c502c34d2e5e6
+        uses: docker/setup-compose-action@16feee727cbdc83b6a014e6cc26fec4a79bcf30c
         with:
           version: latest
 
@@ -218,7 +218,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Docker Compose
-        uses: docker/setup-compose-action@8cccb8c14b6500aaffebff1aa49c502c34d2e5e6
+        uses: docker/setup-compose-action@16feee727cbdc83b6a014e6cc26fec4a79bcf30c
         with:
           version: latest
 
@@ -276,7 +276,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup Docker Compose
-        uses: docker/setup-compose-action@8cccb8c14b6500aaffebff1aa49c502c34d2e5e6
+        uses: docker/setup-compose-action@16feee727cbdc83b6a014e6cc26fec4a79bcf30c
         with:
           version: latest
 
