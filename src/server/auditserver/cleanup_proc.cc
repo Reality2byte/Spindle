@@ -56,7 +56,8 @@ static void rmDirSet(const set<string> &dirs, const char *cachepath, const char 
    string path_sep("/");
    if( !cachepath || !commpath ){
        // Should never happen.
-       err_printf( "cachepath (%s) and/or commpath (%s) is NULL.  Unable to cleanup files.\n" );
+       err_printf( "cachepath (%s) and/or commpath (%s) is NULL.  Unable to cleanup files.\n",
+              cachepath, commpath );
        return;
    }
    size_t cachepath_len = strlen(cachepath);

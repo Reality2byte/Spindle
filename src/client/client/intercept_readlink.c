@@ -27,6 +27,7 @@ Place, Suite 330, Boston, MA 02111-1307 USA
 #include "client_api.h"
 #include "spindle_launch.h"
 #include "should_intercept.h"
+#include "ccwarns.h"
 
 ssize_t (*orig_readlink)(const char *path, char *buf, size_t bufsiz);
 ssize_t (*orig_readlinkat)(int dirfd, const char *pathname, char *buf, size_t bufsiz);
@@ -114,8 +115,10 @@ ssize_t readlink_wrapper(const char *path, char *buf, size_t bufsiz)
    }
 
    len = strlen(resultpath);
+GCC7_DISABLE_WARNING("-Wsign-compare");
    if (len > bufsiz)
       len = bufsiz;
+GCC7_ENABLE_WARNING;
    memcpy(buf, resultpath, len);
    debug_printf2("spindle readlink translated %s to %.*s with len %zu\n", path, (int)len, buf, len);
    return len;
