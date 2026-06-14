@@ -148,6 +148,7 @@ static int setup_environment()
          free(preload);
       }
    }
+   return 0;
 }
 
 static int parse_cmdline(int argc, char *argv[])
